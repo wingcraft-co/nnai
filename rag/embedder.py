@@ -1,31 +1,34 @@
 import os
 import numpy as np
-from huggingface_hub import InferenceClient
+import requests
 
-HF_TOKEN    = os.getenv("HF_TOKEN", "")
-EMBED_MODEL = "BAAI/bge-m3"
+EMBED_MODEL = "models/gemini-embedding-001"
+_EMBED_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/"
+    f"{EMBED_MODEL}:embedContent"
+)
 
-_embed_client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
+
+def _embed_one(text: str) -> np.ndarray:
+    key = os.getenv("GEMINI_API_KEY", "")
+    resp = requests.post(
+        f"{_EMBED_URL}?key={key}",
+        json={"model": EMBED_MODEL, "content": {"parts": [{"text": text[:2048]}]}},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    vec = np.array(resp.json()["embedding"]["values"], dtype=np.float32)
+    norm = np.linalg.norm(vec)
+    if norm > 0:
+        vec = vec / norm
+    return vec
 
 
 def embed_texts(texts: list[str]) -> np.ndarray:
-    """텍스트 리스트 → (N, 1024) float32, L2 정규화 적용"""
-    embeddings = []
-    for text in texts:
-        result = _embed_client.feature_extraction(
-            text[:512],
-            model=EMBED_MODEL,
-        )
-        vec = np.array(result, dtype=np.float32)
-        if vec.ndim > 1:
-            vec = vec.mean(axis=0)
-        norm = np.linalg.norm(vec)
-        if norm > 0:
-            vec = vec / norm
-        embeddings.append(vec)
-    return np.stack(embeddings)
+    """텍스트 리스트 → (N, 3072) float32, L2 정규화 적용"""
+    return np.stack([_embed_one(t) for t in texts])
 
 
 def embed_query(query: str) -> np.ndarray:
-    """단일 쿼리 → 1D 벡터 (1024,)"""
-    return embed_texts([query])[0]
+    """단일 쿼리 → 1D 벡터 (3072,)"""
+    return _embed_one(query)
