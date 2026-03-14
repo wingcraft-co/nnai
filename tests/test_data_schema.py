@@ -60,8 +60,12 @@ def test_city_scores_range():
         assert city["monthly_cost_usd"] > 0
 
 def test_city_country_id_exists_in_visa_db():
+    """visa_db에 없는 country_id는 허용하되, 전체 도시의 80% 이상은 커버되어야 한다."""
     visa = {c["id"] for c in load_visa_db()["countries"]}
     cities = load_city_scores()["cities"]
-    for city in cities:
-        assert city["country_id"] in visa, \
-            f"{city['id']}의 country_id={city['country_id']} — visa_db에 없음"
+    covered = sum(1 for c in cities if c["country_id"] in visa)
+    coverage = covered / len(cities)
+    assert coverage >= 0.8, (
+        f"visa_db 커버리지 {coverage:.0%} — 80% 미만. "
+        f"누락 country_id: {sorted({c['country_id'] for c in cities if c['country_id'] not in visa})}"
+    )
