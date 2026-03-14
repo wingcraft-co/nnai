@@ -158,6 +158,40 @@ def format_step1_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _normalize_string_list(value) -> list:
+    """LLM 출력의 타입 불일치를 방어합니다.
+
+    Handles:
+    - list[str]  → 그대로 반환
+    - list[dict] → 각 dict에서 "item"/"text"/"content" 키 또는 str() 변환
+    - str        → 줄바꿈 또는 쉼표로 분리
+    - 기타       → 빈 리스트
+    """
+    if isinstance(value, str):
+        # 줄바꿈으로 우선 분리, 없으면 쉼표로 분리
+        if "\n" in value:
+            return [s.strip() for s in value.split("\n") if s.strip()]
+        return [s.strip() for s in value.split(",") if s.strip()]
+    elif isinstance(value, list):
+        items = []
+        for item in value:
+            if isinstance(item, str):
+                items.append(item)
+            elif isinstance(item, dict):
+                text = (
+                    item.get("item")
+                    or item.get("text")
+                    or item.get("content")
+                    or item.get("step")
+                    or str(item)
+                )
+                items.append(text)
+            else:
+                items.append(str(item))
+        return items
+    return []
+
+
 def format_step2_markdown(data: dict) -> str:
     """Step 2 결과(상세 정착 가이드)를 마크다운으로 포맷팅합니다."""
     if not data:
@@ -180,8 +214,8 @@ def format_step2_markdown(data: dict) -> str:
             lines.append(f"- {item}")
         lines.append("")
 
-    # 비자 체크리스트
-    checklist = data.get("visa_checklist", [])
+    # 비자 체크리스트 (type defense: str / list[str] / list[dict] 모두 처리)
+    checklist = _normalize_string_list(data.get("visa_checklist", []))
     if checklist:
         lines.append("## 📄 비자 준비 체크리스트\n")
         for item in checklist:
@@ -205,10 +239,10 @@ def format_step2_markdown(data: dict) -> str:
         lines.append(f"| **합계** | **${total_usd:,}** | **{total_krw:,}원** |")
         lines.append("")
 
-    # 첫 번째 실행 스텝
-    first_steps = data.get("first_steps", [])
+    # 첫 번째 실행 스텝 (type defense: str / list[str] / list[dict] 모두 처리)
+    first_steps = _normalize_string_list(data.get("first_steps", []))
     if first_steps:
-        lines.append("## 🚀 첫 번째 실행 스텝\n")
+        lines.append("### 첫 번째 실행 스텝\n")
         for j, step in enumerate(first_steps, 1):
             lines.append(f"{j}. {step}")
         lines.append("")

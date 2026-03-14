@@ -424,3 +424,135 @@ def test_parse_response_injects_visa_url_for_known_country():
     with patch("api.parser._VISA_URLS", fake_urls):
         result = parse_response(raw)
     assert result["top_cities"][0]["visa_url"] == "https://official-my.gov/"
+
+
+# ── TASK-2b: visa_checklist type-defense tests ───────────────────────────────
+
+def test_visa_checklist_list_str_renders_correctly():
+    """visa_checklist as list[str] — standard path renders each item as checkbox."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["visa_checklist"] = ["여권 사본", "소득 증빙", "건강보험 증명서"]
+    result = format_step2_markdown(data)
+    assert "- [ ] 여권 사본" in result
+    assert "- [ ] 소득 증빙" in result
+    assert "- [ ] 건강보험 증명서" in result
+
+
+def test_visa_checklist_list_dict_item_key_renders_correctly():
+    """visa_checklist as list[dict] with 'item' key — should extract and render."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["visa_checklist"] = [
+        {"item": "여권 사본"},
+        {"item": "소득 증빙 서류"},
+        {"item": "거주지 증명서"},
+    ]
+    result = format_step2_markdown(data)
+    assert "- [ ] 여권 사본" in result
+    assert "- [ ] 소득 증빙 서류" in result
+    assert "- [ ] 거주지 증명서" in result
+
+
+def test_visa_checklist_list_dict_text_key_renders_correctly():
+    """visa_checklist as list[dict] with 'text' key — should extract and render."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["visa_checklist"] = [
+        {"text": "여권 사본"},
+        {"text": "소득 증빙"},
+    ]
+    result = format_step2_markdown(data)
+    assert "- [ ] 여권 사본" in result
+    assert "- [ ] 소득 증빙" in result
+
+
+def test_visa_checklist_str_newline_separated_renders_correctly():
+    """visa_checklist as newline-separated str — should split and render each line."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["visa_checklist"] = "여권 사본\n소득 증빙\n건강보험 증명서"
+    result = format_step2_markdown(data)
+    assert "- [ ] 여권 사본" in result
+    assert "- [ ] 소득 증빙" in result
+    assert "- [ ] 건강보험 증명서" in result
+
+
+def test_visa_checklist_str_comma_separated_renders_correctly():
+    """visa_checklist as comma-separated str — should split and render each item."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["visa_checklist"] = "여권 사본, 소득 증빙, 건강보험"
+    result = format_step2_markdown(data)
+    assert "- [ ] 여권 사본" in result
+    assert "- [ ] 소득 증빙" in result
+    assert "- [ ] 건강보험" in result
+
+
+def test_visa_checklist_empty_list_no_section_rendered():
+    """Empty visa_checklist — checklist section should not appear."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["visa_checklist"] = []
+    result = format_step2_markdown(data)
+    assert "비자 준비 체크리스트" not in result
+
+
+# ── TASK-2e: first_steps type-defense tests ──────────────────────────────────
+
+def test_first_steps_list_str_renders_numbered():
+    """first_steps as list[str] — renders as numbered list under correct heading."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["first_steps"] = ["비자 신청 시작", "항공권 예약", "숙소 예약"]
+    result = format_step2_markdown(data)
+    assert "1. 비자 신청 시작" in result
+    assert "2. 항공권 예약" in result
+    assert "3. 숙소 예약" in result
+    assert "첫 번째 실행 스텝" in result
+
+
+def test_first_steps_list_dict_renders_correctly():
+    """first_steps as list[dict] with 'step' key — should extract and render numbered."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["first_steps"] = [
+        {"step": "비자 신청 시작"},
+        {"step": "항공권 예약"},
+    ]
+    result = format_step2_markdown(data)
+    assert "1. 비자 신청 시작" in result
+    assert "2. 항공권 예약" in result
+
+
+def test_first_steps_list_dict_item_key_renders_correctly():
+    """first_steps as list[dict] with 'item' key — should extract and render."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["first_steps"] = [
+        {"item": "비자 서류 준비"},
+        {"item": "은행 계좌 개설 예약"},
+    ]
+    result = format_step2_markdown(data)
+    assert "1. 비자 서류 준비" in result
+    assert "2. 은행 계좌 개설 예약" in result
+
+
+def test_first_steps_str_newline_renders_numbered():
+    """first_steps as newline-separated str — should split and render numbered."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["first_steps"] = "비자 신청 시작\n항공권 예약\n숙소 예약"
+    result = format_step2_markdown(data)
+    assert "1. 비자 신청 시작" in result
+    assert "2. 항공권 예약" in result
+    assert "3. 숙소 예약" in result
+
+
+def test_first_steps_empty_list_no_section_rendered():
+    """Empty first_steps — section should not appear."""
+    from api.parser import format_step2_markdown
+    data = dict(SAMPLE_STEP2_DATA)
+    data["first_steps"] = []
+    result = format_step2_markdown(data)
+    assert "첫 번째 실행 스텝" not in result

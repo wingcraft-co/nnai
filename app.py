@@ -91,7 +91,7 @@ def show_city_detail(
         user_profile,   # _user_profile 키 사용
     )
 
-    raw = query_model(step2_messages, max_tokens=2048)
+    raw = query_model(step2_messages, max_tokens=3072)
 
     if raw.startswith("ERROR"):
         return f"⚠️ API 오류: {raw}"

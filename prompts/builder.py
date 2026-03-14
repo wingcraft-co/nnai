@@ -57,8 +57,11 @@ _STEP2_SYSTEM_PROMPT = """당신은 특정 도시의 장기 체류 정착 가이
 [출력 규칙]
 1. 순수 JSON만 출력하세요. 코드 블록이나 설명 텍스트 없이.
 2. 모든 한국어 필드는 반드시 한국어로 작성하세요.
+3. visa_checklist와 first_steps는 반드시 문자열 배열(list[str])로 출력하세요. dict나 중첩 객체를 사용하지 마세요.
+4. 모든 배열 필드(visa_checklist, first_steps, sections[].items)는 빈 배열이 아닌 최소 3개 이상의 항목을 포함해야 합니다.
+5. JSON이 잘리지 않도록 반드시 완전한 JSON을 출력하세요.
 
-[출력 스키마]
+[출력 스키마 — 정확히 따를 것]
 {
   "city": "도시명",
   "country_id": "ISO 코드",
@@ -68,14 +71,20 @@ _STEP2_SYSTEM_PROMPT = """당신은 특정 도시의 장기 체류 정착 가이
       {
         "step": 1,
         "title": "섹션 제목",
-        "items": ["실행 항목"]
+        "items": ["실행 항목 1", "실행 항목 2"]
       }
     ]
   },
-  "visa_checklist": ["필요 서류 항목"],
+  "visa_checklist": ["여권 사본 (유효기간 6개월 이상)", "소득 증빙 서류 (최근 3개월 은행 내역)", "여권 사진 2장"],
   "budget_breakdown": {"rent": 숫자, "food": 숫자, "cowork": 숫자, "misc": 숫자},
-  "first_steps": ["즉시 실행 가능한 첫 스텝"]
-}"""
+  "first_steps": ["비자 신청 서류 준비 시작", "항공권 및 숙소 예약", "현지 한인 커뮤니티 채널 가입"]
+}
+
+[중요] visa_checklist 예시 (올바른 형식):
+["여권 사본", "소득 증빙 서류", "거주지 증명서", "건강보험 가입 증명서"]
+
+[중요] first_steps 예시 (올바른 형식):
+["비자 신청서 작성 및 제출", "현지 은행 계좌 개설 예약", "코워킹 스페이스 단기 멤버십 신청"]"""
 
 
 def build_detail_prompt(selected_city: dict, user_profile: dict) -> list[dict]:
