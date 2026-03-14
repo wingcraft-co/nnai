@@ -60,7 +60,7 @@ def nomad_advisor(
     }
 
     messages = build_prompt(user_profile)
-    raw      = query_model(messages, max_tokens=4096)
+    raw      = query_model(messages, max_tokens=8192)
 
     if raw.startswith("ERROR"):
         return f"⚠️ API 오류: {raw}", [], {}
@@ -95,7 +95,7 @@ def show_city_detail(
         user_profile,   # _user_profile 키 사용
     )
 
-    raw = query_model(step2_messages, max_tokens=3072)
+    raw = query_model(step2_messages, max_tokens=6144)
 
     if raw.startswith("ERROR"):
         return f"⚠️ API 오류: {raw}"
