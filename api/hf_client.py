@@ -3,7 +3,7 @@ import os
 import re
 from openai import OpenAI
 
-MODEL_ID = "gemini-2.0-flash"
+MODEL_ID = "gemini-2.5-flash"
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 _client: OpenAI | None = None
