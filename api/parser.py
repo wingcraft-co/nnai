@@ -1,5 +1,6 @@
 import json
 import re
+from urllib.parse import quote
 
 import utils.currency
 
@@ -52,6 +53,14 @@ def format_result_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _make_search_links(city: str, point: str) -> str:
+    """source_url이 없을 때 Google/YouTube 자동 검색 링크를 생성합니다."""
+    query = quote(f"{city} {point[:20]} 이민")
+    google  = f"https://www.google.com/search?q={query}"
+    youtube = f"https://www.youtube.com/results?search_query={query}"
+    return f" ([🔍 검색]({google})) ([▶ 유튜브]({youtube}))"
+
+
 def _usd_to_krw(usd_amount: float) -> int:
     """USD 금액을 KRW로 환산합니다. 환율 조회 실패 시 1 USD = 1,400 KRW 사용."""
     try:
@@ -97,12 +106,12 @@ def format_step1_markdown(data: dict) -> str:
         # 추천 근거
         lines.append("**✅ 추천 근거**")
         for reason in city.get("reasons", []):
-            point = reason.get("point", "")
+            point  = reason.get("point", "")
             source = reason.get("source_url")
             if source:
                 lines.append(f"- {point} ([출처]({source}))")
             else:
-                lines.append(f"- {point}")
+                lines.append(f"- {point}{_make_search_links(city_en, point)}")
         lines.append("")
 
         # 현실적 고려 사항

@@ -183,3 +183,47 @@ def test_format_step2_empty_data_no_crash():
     """빈 데이터에서도 크래시 없이 문자열 반환"""
     result = format_step2_markdown({})
     assert isinstance(result, str)
+
+
+def test_format_step1_no_source_url_generates_search_links():
+    """source_url=None 이면 Google/YouTube 자동 링크가 포함되어야 함"""
+    data = {
+        "top_cities": [{
+            "city": "Chiang Mai",
+            "city_kr": "치앙마이",
+            "country": "Thailand",
+            "country_id": "TH",
+            "visa_type": "Tourist Visa",
+            "monthly_cost_usd": 1100,
+            "score": 9,
+            "reasons": [
+                {"point": "노마드 커뮤니티가 활발합니다.", "source_url": None},
+            ],
+            "realistic_warnings": [],
+        }],
+    }
+    result = format_step1_markdown(data)
+    assert "google.com/search" in result
+    assert "youtube.com/results" in result
+
+
+def test_format_step1_with_source_url_no_auto_links():
+    """source_url이 있으면 자동 링크 없이 출처 링크만 있어야 함"""
+    data = {
+        "top_cities": [{
+            "city": "Chiang Mai",
+            "city_kr": "치앙마이",
+            "country": "Thailand",
+            "country_id": "TH",
+            "visa_type": "Tourist Visa",
+            "monthly_cost_usd": 1100,
+            "score": 9,
+            "reasons": [
+                {"point": "노마드 커뮤니티가 활발합니다.", "source_url": "https://nomads.com"},
+            ],
+            "realistic_warnings": [],
+        }],
+    }
+    result = format_step1_markdown(data)
+    assert "[출처]" in result
+    assert "google.com/search" not in result
