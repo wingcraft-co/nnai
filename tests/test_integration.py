@@ -209,9 +209,8 @@ def test_step1_income_krw_converted_to_usd():
 def test_step2_full_pipeline(tmp_path, monkeypatch):
     """
     Step 2 전체 파이프라인 통합 테스트.
-    parsed_data → 도시 선택 → LLM 호출 → 상세 가이드 마크다운 + PDF 생성 검증.
+    parsed_data → 도시 선택 → LLM 호출 → 상세 가이드 마크다운 검증.
     """
-    import os
     monkeypatch.chdir(tmp_path)
 
     mock_parsed = {
@@ -244,20 +243,12 @@ def test_step2_full_pipeline(tmp_path, monkeypatch):
 
         from app import show_city_detail
 
-        markdown, pdf_path = show_city_detail(mock_parsed, city_index=0)
+        markdown = show_city_detail(mock_parsed, city_index=0)
 
     assert isinstance(markdown, str)
     assert len(markdown) > 0
     assert "출국 전" in markdown or "Step 1" in markdown
     assert "비자 준비" in markdown or "visa" in markdown.lower() or "체크리스트" in markdown
-
-    assert pdf_path is not None
-    assert os.path.exists(pdf_path)
-    assert pdf_path.endswith(".pdf")
-    assert os.path.getsize(pdf_path) > 0
-
-    if pdf_path and os.path.exists(pdf_path):
-        os.remove(pdf_path)
 
 
 def test_step2_invalid_city_index():
@@ -271,11 +262,10 @@ def test_step2_invalid_city_index():
 
     from app import show_city_detail
 
-    markdown, pdf_path = show_city_detail(mock_parsed, city_index=99)
+    markdown = show_city_detail(mock_parsed, city_index=99)
 
     assert isinstance(markdown, str)
     assert "찾을 수 없습니다" in markdown
-    assert pdf_path is None
 
 
 def test_step2_empty_parsed_data():
@@ -284,10 +274,9 @@ def test_step2_empty_parsed_data():
     """
     from app import show_city_detail
 
-    markdown, pdf_path = show_city_detail({}, city_index=0)
+    markdown = show_city_detail({}, city_index=0)
 
     assert isinstance(markdown, str)
-    assert pdf_path is None
 
 
 def test_step2_user_profile_passed_to_prompt():

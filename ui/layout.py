@@ -64,8 +64,7 @@ _STEP1_LOADING = [
 # Step 2 로딩 메시지 시퀀스
 _STEP2_LOADING = [
     "🏙️ 선택한 도시 정보를 불러오는 중이에요...",
-    "📋 맞춤 이민 가이드를 작성하는 중이에요...",
-    "📄 PDF 리포트를 생성하는 중이에요...",
+    "📋 맞춤 가이드를 작성하는 중이에요...",
 ]
 
 
@@ -167,7 +166,7 @@ def create_layout(advisor_fn, detail_fn):
                             label="상세 가이드를 받을 도시 선택",
                         )
                         btn_step2 = gr.Button(
-                            "📖 상세 가이드 + PDF 받기",
+                            "📖 상세 가이드 받기",
                             variant="primary",
                             size="lg",
                         )
@@ -176,7 +175,6 @@ def create_layout(advisor_fn, detail_fn):
                         step2_output = gr.Markdown(
                             "← Step 1을 먼저 완료한 후 도시를 선택하세요."
                         )
-                        output_pdf = gr.File(label="📄 리포트 PDF 다운로드")
 
         # ── Step 1 이벤트 ──────────────────────────────────────────────
         def run_step1(nat, inc, purpose, life, langs, tl, pref_countries):
@@ -211,16 +209,16 @@ def create_layout(advisor_fn, detail_fn):
             try:
                 idx = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}.get(choice, 0)
                 for msg in _STEP2_LOADING:
-                    yield msg, gr.update()
-                markdown, pdf_path = detail_fn(parsed, city_index=idx)
-                yield markdown, pdf_path
+                    yield [msg]
+                markdown = detail_fn(parsed, city_index=idx)
+                yield [markdown]
             except Exception as e:
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}", None
+                yield [f"⚠️ 오류가 발생했습니다: {str(e)}"]
 
         btn_step2.click(
             fn=run_step2,
             inputs=[parsed_state, city_choice],
-            outputs=[step2_output, output_pdf],
+            outputs=[step2_output],
         )
 
     return demo
