@@ -33,7 +33,9 @@ def query_model(messages: list[dict], max_tokens: int = 2048) -> str:
             temperature=0.3,
         )
         raw = response.choices[0].message.content or ""
-        return re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
+        result = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
+        print(f"\n[API RESPONSE] length={len(result)}, first 300:\n{result[:300]!r}\n")
+        return result
     except Exception as e:
         return f"ERROR: {str(e)}"
 

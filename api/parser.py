@@ -52,6 +52,7 @@ def parse_response(raw_text: str) -> dict:
         except json.JSONDecodeError:
             continue
     # 3) 파싱 실패 폴백
+    print(f"\n[PARSE FAIL] raw length={len(raw_text)}, first 500 chars:\n{raw_text[:500]!r}\n")
     return {
         "top_cities": [{"city": "파싱 오류", "country": "-", "visa_type": "-",
                          "monthly_cost": 0, "score": 0, "why": raw_text[:200]}],
