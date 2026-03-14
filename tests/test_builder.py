@@ -48,3 +48,52 @@ def test_build_prompt_rag_query_uses_profile():
         build_prompt(SAMPLE_PROFILE)
         call_args = mock_rag.call_args[0][0]
         assert "Korean" in call_args or "3000" in call_args
+
+
+def test_build_detail_prompt_returns_list():
+    """build_detail_prompt() 는 메시지 리스트를 반환해야 함"""
+    from prompts.builder import build_detail_prompt
+
+    selected_city = {
+        "city": "Kuala Lumpur",
+        "country_id": "MY",
+        "visa_type": "DE Nomad Visa",
+        "monthly_cost_usd": 1500,
+    }
+    user_profile = {
+        "nationality": "Korean",
+        "income_usd": 3570,
+        "purpose": "디지털 노마드",
+        "languages": ["한국어만 가능"],
+        "timeline": "1년 단기 체험",
+    }
+    result = build_detail_prompt(selected_city, user_profile)
+
+    assert isinstance(result, list)
+    assert len(result) >= 2
+    assert result[0]["role"] == "system"
+    assert result[-1]["role"] == "user"
+
+
+def test_build_detail_prompt_includes_city_info():
+    """build_detail_prompt() 의 user 메시지에 도시 정보가 포함되어야 함"""
+    from prompts.builder import build_detail_prompt
+
+    selected_city = {
+        "city": "Lisbon",
+        "country_id": "PT",
+        "visa_type": "D8 Digital Nomad Visa",
+        "monthly_cost_usd": 2600,
+    }
+    user_profile = {
+        "nationality": "Korean",
+        "income_usd": 6000,
+        "purpose": "자녀 교육 이민",
+        "languages": ["영어"],
+        "timeline": "영구 이민",
+    }
+    result = build_detail_prompt(selected_city, user_profile)
+
+    last_user = result[-1]["content"]
+    assert "Lisbon" in last_user or "PT" in last_user
+    assert "자녀 교육 이민" in last_user

@@ -41,7 +41,7 @@ def generate_report(parsed: dict, user_profile: dict) -> str:
     story.append(Paragraph(
         f"Date: {datetime.now().strftime('%Y-%m-%d')} | "
         f"Nationality: {user_profile.get('nationality','-')} | "
-        f"Monthly Income: ${user_profile.get('income',0):,} USD",
+        f"Monthly Income: ${user_profile.get('income_usd', user_profile.get('income', 0)):,} USD",
         body_s
     ))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#0C447C")))
