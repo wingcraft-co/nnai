@@ -113,18 +113,18 @@ def test_format_step1_contains_dual_currency():
 
 
 def test_format_step1_contains_reasons_as_bullets():
-    """추천 근거가 불릿 형식으로 출력되어야 함"""
+    """추천 근거가 평문 불릿 형식으로 출력되어야 함 (source_url 여부 무관)"""
     result = format_step1_markdown(SAMPLE_STEP1_DATA)
     # source_url=None → plain text bullet
     assert "- 디지털 노마드 커뮤니티" in result
-    # source_url present → hyperlink bullet
-    assert "코워킹 월 $80" in result
+    # source_url present → also plain text (no inline link)
+    assert "- 코워킹 월 $80 수준입니다." in result
 
 
-def test_format_step1_contains_source_url():
-    """source_url이 있는 항목은 [point](url) 하이퍼링크 형식을 포함해야 함"""
+def test_format_step1_reasons_no_inline_source_links():
+    """source_url이 있어도 reasons에는 [point](url) 인라인 링크가 포함되지 않아야 함"""
     result = format_step1_markdown(SAMPLE_STEP1_DATA)
-    assert "[코워킹 월 $80 수준입니다.](https://example.com)" in result
+    assert "[코워킹 월 $80 수준입니다.](https://example.com)" not in result
 
 
 def test_format_step1_contains_warnings():
@@ -210,8 +210,8 @@ def test_format_step1_no_source_url_renders_plain_text():
     assert "youtube.com/results" not in result
 
 
-def test_format_step1_with_source_url_no_auto_links():
-    """source_url이 있으면 [point](url) 형식으로 렌더링되고 자동 링크는 없어야 함"""
+def test_format_step1_with_source_url_no_inline_links():
+    """source_url이 있어도 reasons에 인라인 링크가 생성되지 않아야 함"""
     data = {
         "top_cities": [{
             "city": "Chiang Mai",
@@ -228,8 +228,113 @@ def test_format_step1_with_source_url_no_auto_links():
         }],
     }
     result = format_step1_markdown(data)
-    assert "[노마드 커뮤니티가 활발합니다.](https://nomads.com)" in result
+    assert "- 노마드 커뮤니티가 활발합니다." in result
+    assert "[노마드 커뮤니티가 활발합니다.](https://nomads.com)" not in result
     assert "google.com/search" not in result
+
+
+# ── references section tests ─────────────────────────────────────────────────
+
+SAMPLE_STEP1_WITH_REFS = {
+    "top_cities": [
+        {
+            "city": "Chiang Mai",
+            "city_kr": "치앙마이",
+            "country": "Thailand",
+            "country_id": "TH",
+            "visa_type": "Tourist Visa",
+            "monthly_cost_usd": 1100,
+            "score": 9,
+            "reasons": [{"point": "생활비가 저렴합니다.", "source_url": None}],
+            "realistic_warnings": [],
+            "references": [
+                {"title": "태국 BOI 공식 사이트", "url": "https://www.boi.go.th/en/index/"},
+                {"title": "Wikipedia — Chiang Mai", "url": "https://en.wikipedia.org/wiki/Chiang_Mai"},
+            ],
+        }
+    ],
+}
+
+
+def test_format_step1_references_section_present():
+    """references가 있으면 ### 참고 자료 섹션이 출력되어야 함"""
+    result = format_step1_markdown(SAMPLE_STEP1_WITH_REFS)
+    assert "### 참고 자료" in result
+
+
+def test_format_step1_references_links_rendered():
+    """references 항목이 마크다운 링크로 렌더링되어야 함"""
+    result = format_step1_markdown(SAMPLE_STEP1_WITH_REFS)
+    assert "[태국 BOI 공식 사이트](https://www.boi.go.th/en/index/)" in result
+    assert "[Wikipedia — Chiang Mai](https://en.wikipedia.org/wiki/Chiang_Mai)" in result
+
+
+def test_format_step1_references_missing_key_no_crash():
+    """references 키가 없어도 크래시 없이 렌더링되어야 함 (하위 호환)"""
+    data = {
+        "top_cities": [{
+            "city": "Lisbon",
+            "city_kr": "리스본",
+            "country": "Portugal",
+            "country_id": "PT",
+            "visa_type": "D8 Visa",
+            "monthly_cost_usd": 2600,
+            "score": 9,
+            "reasons": [{"point": "유럽 장기 체류 가능합니다.", "source_url": None}],
+            "realistic_warnings": [],
+            # references key intentionally absent
+        }],
+    }
+    result = format_step1_markdown(data)
+    assert isinstance(result, str)
+    assert "### 참고 자료" not in result
+
+
+def test_format_step1_references_empty_list_no_section():
+    """references가 빈 배열이면 참고 자료 섹션이 출력되지 않아야 함"""
+    data = {
+        "top_cities": [{
+            "city": "Chiang Mai",
+            "city_kr": "치앙마이",
+            "country": "Thailand",
+            "country_id": "TH",
+            "visa_type": "Tourist Visa",
+            "monthly_cost_usd": 1100,
+            "score": 9,
+            "reasons": [{"point": "생활비가 저렴합니다.", "source_url": None}],
+            "realistic_warnings": [],
+            "references": [],
+        }],
+    }
+    result = format_step1_markdown(data)
+    assert "### 참고 자료" not in result
+
+
+def test_format_step1_references_skips_empty_url():
+    """url이 None이거나 빈 문자열인 references 항목은 건너뛰어야 함"""
+    data = {
+        "top_cities": [{
+            "city": "Chiang Mai",
+            "city_kr": "치앙마이",
+            "country": "Thailand",
+            "country_id": "TH",
+            "visa_type": "Tourist Visa",
+            "monthly_cost_usd": 1100,
+            "score": 9,
+            "reasons": [{"point": "생활비가 저렴합니다.", "source_url": None}],
+            "realistic_warnings": [],
+            "references": [
+                {"title": "유효한 링크", "url": "https://valid.example.com"},
+                {"title": "URL 없음", "url": None},
+                {"title": "빈 URL", "url": ""},
+            ],
+        }],
+    }
+    result = format_step1_markdown(data)
+    assert "### 참고 자료" in result
+    assert "[유효한 링크](https://valid.example.com)" in result
+    assert "URL 없음" not in result
+    assert "빈 URL" not in result
 
 
 # ── _inject_visa_urls tests ──────────────────────────────────────────────────

@@ -124,15 +124,11 @@ def format_step1_markdown(data: dict) -> str:
         # 월 예상 비용 (이중 통화)
         lines.append(f"- **월 예상 비용**: ${cost_usd:,} (약 {cost_krw:,}원)\n")
 
-        # 추천 근거
+        # 추천 근거 (항상 평문 — 출처는 하단 참고 자료 섹션에서 처리)
         lines.append("**✅ 추천 근거**")
         for reason in city.get("reasons", []):
-            point  = reason.get("point", "")
-            source = reason.get("source_url")
-            if source:
-                lines.append(f"- [{point}]({source})")
-            else:
-                lines.append(f"- {point}")
+            point = reason.get("point", "")
+            lines.append(f"- {point}")
         lines.append("")
 
         # 현실적 고려 사항
@@ -142,6 +138,16 @@ def format_step1_markdown(data: dict) -> str:
             for w in warnings:
                 lines.append(f"- {w}")
             lines.append("")
+
+        # 참고 자료
+        references = city.get("references")
+        if references:
+            valid_refs = [r for r in references if r.get("url")]
+            if valid_refs:
+                lines.append("### 참고 자료")
+                for ref in valid_refs:
+                    lines.append(f"- [{ref.get('title', ref['url'])}]({ref['url']})")
+                lines.append("")
 
     # 전체 경고
     overall = data.get("overall_warning", "")
