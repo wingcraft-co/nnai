@@ -46,3 +46,53 @@ def test_layout_has_preferred_countries_checkbox():
     assert len(COUNTRY_OPTIONS) == 12
     assert "🇲🇾 말레이시아" in COUNTRY_OPTIONS
     assert "🇻🇳 베트남" in COUNTRY_OPTIONS
+
+
+# ── TASK-2a: flag helper and city button label tests ──────────────────────────
+
+def test_country_code_to_flag_malaysia():
+    from ui.layout import _country_code_to_flag
+    assert _country_code_to_flag("MY") == "🇲🇾"
+
+
+def test_country_code_to_flag_portugal():
+    from ui.layout import _country_code_to_flag
+    assert _country_code_to_flag("PT") == "🇵🇹"
+
+
+def test_country_code_to_flag_lowercase():
+    from ui.layout import _country_code_to_flag
+    # lowercase input should also work
+    assert _country_code_to_flag("de") == "🇩🇪"
+
+
+def test_city_btn_label_full():
+    from ui.layout import _city_btn_label
+    city_data = {"city": "Kuala Lumpur", "country_id": "MY"}
+    label = _city_btn_label(city_data)
+    assert label == "🇲🇾 Kuala Lumpur, MYS"
+
+
+def test_city_btn_label_unknown_country():
+    from ui.layout import _city_btn_label
+    # Unknown country code falls back to passing code as iso3
+    city_data = {"city": "SomeCity", "country_id": "XX"}
+    label = _city_btn_label(city_data)
+    assert "SomeCity" in label
+    assert "XX" in label
+
+
+def test_city_btn_label_missing_country_id():
+    from ui.layout import _city_btn_label
+    city_data = {"city": "TestCity"}
+    label = _city_btn_label(city_data)
+    assert "TestCity" in label
+
+
+def test_city_btn_label_missing_city():
+    from ui.layout import _city_btn_label
+    city_data = {"country_id": "TH"}
+    label = _city_btn_label(city_data)
+    assert "🇹🇭" in label
+    assert "?" in label
+    assert "THA" in label

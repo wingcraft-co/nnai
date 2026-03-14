@@ -2,6 +2,27 @@
 import gradio as gr
 from ui.theme import create_theme
 
+
+def _country_code_to_flag(code: str) -> str:
+    """Convert 2-letter ISO country code to flag emoji via Unicode regional indicators."""
+    code = code.upper()
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code)
+
+
+ISO2_TO_ISO3 = {
+    "MY": "MYS", "PT": "PRT", "TH": "THA", "EE": "EST",
+    "ES": "ESP", "ID": "IDN", "DE": "DEU", "GE": "GEO",
+    "CR": "CRI", "GR": "GRC", "PH": "PHL", "VN": "VNM",
+}
+
+
+def _city_btn_label(city_data: dict) -> str:
+    code = city_data.get("country_id", "")
+    flag = _country_code_to_flag(code) if code else ""
+    iso3 = ISO2_TO_ISO3.get(code, code)
+    city = city_data.get("city", "?")
+    return f"{flag} {city}, {iso3}".strip()
+
 NATIONALITIES = [
     "Korean", "Japanese", "Chinese", "American",
     "British", "German", "French", "Australian", "Other",
@@ -177,16 +198,34 @@ def create_layout(advisor_fn, detail_fn):
                         )
 
         # ── Step 1 이벤트 ──────────────────────────────────────────────
+        _FALLBACK_LABELS = ["1순위 도시", "2순위 도시", "3순위 도시"]
+
         def run_step1(nat, inc, purpose, life, langs, tl, pref_countries):
             try:
                 for msg in _STEP1_LOADING:
-                    yield msg, gr.update(), gr.update(visible=False), gr.update()
+                    yield msg, gr.update(), gr.update(visible=False), gr.update(), gr.update()
                 markdown, cities, parsed = advisor_fn(
                     nat, inc, purpose, life, langs, tl, pref_countries
                 )
-                yield markdown, parsed, gr.update(visible=True), gr.update()
+                labels = [
+                    _city_btn_label(cities[i]) if i < len(cities) else _FALLBACK_LABELS[i]
+                    for i in range(3)
+                ]
+                yield (
+                    markdown,
+                    parsed,
+                    gr.update(visible=True),
+                    gr.update(),
+                    gr.update(choices=labels, value=labels[0]),
+                )
             except Exception as e:
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}", {}, gr.update(visible=False), gr.update()
+                yield (
+                    f"⚠️ 오류가 발생했습니다: {str(e)}",
+                    {},
+                    gr.update(visible=False),
+                    gr.update(),
+                    gr.update(),
+                )
 
         btn_step1.click(
             fn=run_step1,
@@ -194,7 +233,7 @@ def create_layout(advisor_fn, detail_fn):
                 nationality, income_krw, immigration_purpose,
                 lifestyle, languages, timeline, preferred_countries,
             ],
-            outputs=[step1_output, parsed_state, btn_go_step2, tabs],
+            outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice],
         )
 
         # Step 2 탭으로 이동
@@ -207,7 +246,14 @@ def create_layout(advisor_fn, detail_fn):
         # ── Step 2 이벤트 ──────────────────────────────────────────────
         def run_step2(parsed, choice):
             try:
-                idx = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}.get(choice, 0)
+                # Support both legacy static labels and new dynamic city labels
+                static_map = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}
+                if choice in static_map:
+                    idx = static_map[choice]
+                else:
+                    cities = parsed.get("top_cities", [])
+                    dynamic_labels = [_city_btn_label(c) for c in cities]
+                    idx = dynamic_labels.index(choice) if choice in dynamic_labels else 0
                 for msg in _STEP2_LOADING:
                     yield [msg]
                 markdown = detail_fn(parsed, city_index=idx)
