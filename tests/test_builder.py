@@ -88,15 +88,15 @@ def test_build_detail_prompt_includes_city_info():
     user_profile = {
         "nationality": "Korean",
         "income_usd": 6000,
-        "purpose": "자녀 교육 이민",
+        "purpose": "자녀 교육 동반 장기 체류",
         "languages": ["영어"],
-        "timeline": "영구 이민",
+        "timeline": "5년 이상 초장기 체류",
     }
     result = build_detail_prompt(selected_city, user_profile)
 
     last_user = result[-1]["content"]
     assert "Lisbon" in last_user or "PT" in last_user
-    assert "자녀 교육 이민" in last_user
+    assert "자녀 교육 동반 장기 체류" in last_user
 
 
 def test_build_prompt_includes_preferred_countries_hint():
@@ -125,3 +125,49 @@ def test_build_prompt_no_hint_when_empty_preferred_countries():
         result = build_prompt(profile)
     last_user = result[-1]["content"]
     assert "우선 고려 국가" not in last_user
+
+
+def test_build_prompt_english_uses_english_system_prompt():
+    """language='English' 프로필이면 messages[0]['content']가 SYSTEM_PROMPT_EN과 일치해야 함"""
+    profile = {
+        **SAMPLE_PROFILE,
+        "language": "English",
+    }
+    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
+        from prompts.builder import build_prompt
+        from prompts.system_en import SYSTEM_PROMPT_EN
+        result = build_prompt(profile)
+    assert result[0]["content"] == SYSTEM_PROMPT_EN
+
+
+def test_build_prompt_korean_uses_korean_system_prompt():
+    """language 미지정(기본값 한국어)이면 messages[0]['content']가 SYSTEM_PROMPT와 일치해야 함"""
+    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
+        from prompts.builder import build_prompt
+        from prompts.system import SYSTEM_PROMPT
+        result = build_prompt(SAMPLE_PROFILE)
+    assert result[0]["content"] == SYSTEM_PROMPT
+
+
+def test_build_detail_prompt_english_returns_english_user_message():
+    """language='English' 프로필이면 user 메시지에 'Selected city:'가 포함되고 '선택 도시:'는 없어야 함"""
+    from prompts.builder import build_detail_prompt
+
+    selected_city = {
+        "city": "Chiang Mai",
+        "country_id": "TH",
+        "visa_type": "Thailand LTR Visa",
+        "monthly_cost_usd": 1200,
+    }
+    user_profile = {
+        "nationality": "Korean",
+        "income_usd": 3000,
+        "purpose": "Digital Nomad",
+        "languages": ["English"],
+        "timeline": "1 year",
+        "language": "English",
+    }
+    result = build_detail_prompt(selected_city, user_profile)
+    last_user = result[-1]["content"]
+    assert "Selected city:" in last_user
+    assert "선택 도시:" not in last_user

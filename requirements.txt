@@ -3,7 +3,6 @@ openai>=1.30
 huggingface_hub>=0.24
 faiss-cpu>=1.8
 numpy>=1.26
-reportlab>=4.0
 python-dotenv>=1.0
 requests>=2.31
 pytest>=8.0

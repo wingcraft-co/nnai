@@ -6,7 +6,6 @@ load_dotenv()
 import utils.currency
 from api.hf_client        import query_model
 from api.parser           import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown
-from report.pdf_generator import generate_report
 from rag.vector_store     import build_index
 from prompts.builder      import build_prompt, build_detail_prompt
 from ui.layout            import create_layout
@@ -26,6 +25,7 @@ def nomad_advisor(
     languages: list,
     timeline: str,
     preferred_countries=None,   # 신규 — None을 기본값으로, 내부에서 [] 처리
+    preferred_language: str = "한국어",
 ) -> tuple[str, list, dict]:
     """
     Step 1 파이프라인: RAG → 프롬프트 → LLM → 파싱 → 마크다운 + 도시 리스트
@@ -54,6 +54,7 @@ def nomad_advisor(
         "languages":          languages if isinstance(languages, list) else [languages],
         "timeline":           timeline,
         "preferred_countries": preferred_countries,
+        "language":           preferred_language,
     }
 
     messages = build_prompt(user_profile)
@@ -76,16 +77,13 @@ def nomad_advisor(
 def show_city_detail(
     parsed_data: dict,
     city_index: int = 0,
-) -> tuple[str, str | None]:
+) -> str:
     """
-    Step 2 파이프라인: 선택된 도시 → LLM → 상세 가이드 마크다운 + PDF
-
-    Returns:
-        (markdown_str, pdf_path_or_None)
+    Step 2 파이프라인: 선택된 도시 → LLM → 상세 가이드 마크다운
     """
     top_cities = parsed_data.get("top_cities", [])
     if not top_cities or city_index >= len(top_cities):
-        return "선택한 도시를 찾을 수 없습니다.", None
+        return "선택한 도시를 찾을 수 없습니다."
 
     selected_city = top_cities[city_index]
     user_profile  = parsed_data.get("_user_profile", {})
@@ -95,23 +93,15 @@ def show_city_detail(
         user_profile,   # _user_profile 키 사용
     )
 
-    raw = query_model(step2_messages, max_tokens=2048)
+    raw = query_model(step2_messages, max_tokens=3072)
 
     if raw.startswith("ERROR"):
-        return f"⚠️ API 오류: {raw}", None
+        return f"⚠️ API 오류: {raw}"
 
     detail_parsed = parse_response(raw)
     markdown      = format_step2_markdown(detail_parsed)
 
-    # PDF 생성 (Step 2 데이터 + 선택된 도시 정보)
-    pdf_data = {
-        **detail_parsed,
-        "_user_profile":  user_profile,
-        "selected_city":  selected_city,
-    }
-    pdf_path = generate_report(pdf_data, user_profile)
-
-    return markdown, pdf_path
+    return markdown
 
 
 if __name__ == "__main__":

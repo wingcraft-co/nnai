@@ -2,18 +2,39 @@
 import gradio as gr
 from ui.theme import create_theme
 
+
+def _country_code_to_flag(code: str) -> str:
+    """Convert 2-letter ISO country code to flag emoji via Unicode regional indicators."""
+    code = code.upper()
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code)
+
+
+ISO2_TO_ISO3 = {
+    "MY": "MYS", "PT": "PRT", "TH": "THA", "EE": "EST",
+    "ES": "ESP", "ID": "IDN", "DE": "DEU", "GE": "GEO",
+    "CR": "CRI", "GR": "GRC", "PH": "PHL", "VN": "VNM",
+}
+
+
+def _city_btn_label(city_data: dict) -> str:
+    code = city_data.get("country_id", "")
+    flag = _country_code_to_flag(code) if code else ""
+    iso3 = ISO2_TO_ISO3.get(code, code)
+    city = city_data.get("city", "?")
+    return f"{flag} {city}, {iso3}".strip()
+
 NATIONALITIES = [
     "Korean", "Japanese", "Chinese", "American",
     "British", "German", "French", "Australian", "Other",
 ]
 
-IMMIGRATION_PURPOSES = [
+STAY_PURPOSES = [
     "💻 디지털 노마드 / 원격 근무",
-    "👨‍👩‍👧 자녀 교육 이민",
-    "🏖️ 은퇴 이민",
-    "💼 취업 / 창업 이민",
-    "🎓 유학 후 이민",
-    "🌿 라이프스타일 이민 (삶의 질)",
+    "👨‍👩‍👧 자녀 교육 동반 장기 체류",
+    "🏖️ 은퇴 후 장기 체류",
+    "💼 취업 / 창업 장기 체류",
+    "🎓 유학 후 장기 체류",
+    "🌿 라이프스타일 장기 체류 (삶의 질)",
 ]
 
 LIFESTYLE_OPTIONS = [
@@ -53,6 +74,8 @@ COUNTRY_OPTIONS = [
     "🇻🇳 베트남",
 ]
 
+LANGUAGE_TOGGLE_OPTIONS = ["한국어", "English"]
+
 # Step 1 로딩 메시지 시퀀스
 _STEP1_LOADING = [
     "🔍 프로필을 분석하는 중이에요...",
@@ -64,8 +87,7 @@ _STEP1_LOADING = [
 # Step 2 로딩 메시지 시퀀스
 _STEP2_LOADING = [
     "🏙️ 선택한 도시 정보를 불러오는 중이에요...",
-    "📋 맞춤 이민 가이드를 작성하는 중이에요...",
-    "📄 PDF 리포트를 생성하는 중이에요...",
+    "📋 맞춤 가이드를 작성하는 중이에요...",
 ]
 
 
@@ -87,7 +109,7 @@ def create_layout(advisor_fn, detail_fn):
         with gr.Column(elem_classes="main-header"):
             gr.HTML("""
                 <h1>🌏 NomadNavigator AI</h1>
-                <p>국적 · 소득 · 이민 목적을 입력하면 AI가 최적의 이민 설계를 제안합니다</p>
+                <p>국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>
             """)
 
         # ── State ──────────────────────────────────────────────────────
@@ -103,6 +125,13 @@ def create_layout(advisor_fn, detail_fn):
                     with gr.Column(scale=1):
                         gr.Markdown("### 📋 내 프로필 입력")
 
+                        ui_language = gr.Radio(
+                            choices=["한국어", "English"],
+                            value="한국어",
+                            label="언어 / Language",
+                            info="UI and AI response language",
+                        )
+
                         nationality = gr.Dropdown(
                             choices=NATIONALITIES, value="Korean",
                             label="국적", info="여권 발급 국가 기준",
@@ -113,9 +142,9 @@ def create_layout(advisor_fn, detail_fn):
                             info="세전 월 소득 (만원 단위, 예: 500 = 500만원)",
                         )
                         immigration_purpose = gr.Dropdown(
-                            choices=IMMIGRATION_PURPOSES,
-                            value=IMMIGRATION_PURPOSES[0],
-                            label="이민 목적",
+                            choices=STAY_PURPOSES,
+                            value=STAY_PURPOSES[0],
+                            label="장기 체류 목적",
                         )
                         lifestyle = gr.CheckboxGroup(
                             choices=LIFESTYLE_OPTIONS,
@@ -128,7 +157,7 @@ def create_layout(advisor_fn, detail_fn):
                             info="가능한 언어 모두 선택",
                         )
                         timeline = gr.Radio(
-                            choices=["1년 단기 체험", "3년 장기 이민", "영구 이민 (영주권 목표)"],
+                            choices=["1년 단기 체험", "3년 장기 체류", "5년 이상 초장기 체류"],
                             value="1년 단기 체험",
                             label="목표 체류 기간",
                         )
@@ -140,7 +169,7 @@ def create_layout(advisor_fn, detail_fn):
                         btn_step1 = gr.Button(
                             "🚀 도시 추천 받기", variant="primary", size="lg",
                         )
-                        gr.Markdown("_⚠️ 본 서비스는 참고용이며 법적 이민 조언이 아닙니다._")
+                        gr.Markdown("_⚠️ 본 서비스는 참고용이며 법적 비자/체류 조언이 아닙니다._")
 
                     # 결과 패널
                     with gr.Column(scale=1):
@@ -167,7 +196,7 @@ def create_layout(advisor_fn, detail_fn):
                             label="상세 가이드를 받을 도시 선택",
                         )
                         btn_step2 = gr.Button(
-                            "📖 상세 가이드 + PDF 받기",
+                            "📖 상세 가이드 받기",
                             variant="primary",
                             size="lg",
                         )
@@ -176,27 +205,45 @@ def create_layout(advisor_fn, detail_fn):
                         step2_output = gr.Markdown(
                             "← Step 1을 먼저 완료한 후 도시를 선택하세요."
                         )
-                        output_pdf = gr.File(label="📄 리포트 PDF 다운로드")
 
         # ── Step 1 이벤트 ──────────────────────────────────────────────
-        def run_step1(nat, inc, purpose, life, langs, tl, pref_countries):
+        _FALLBACK_LABELS = ["1순위 도시", "2순위 도시", "3순위 도시"]
+
+        def run_step1(nat, inc, purpose, life, langs, tl, pref_countries, ui_lang):
             try:
                 for msg in _STEP1_LOADING:
-                    yield msg, gr.update(), gr.update(visible=False), gr.update()
+                    yield msg, gr.update(), gr.update(visible=False), gr.update(), gr.update()
                 markdown, cities, parsed = advisor_fn(
-                    nat, inc, purpose, life, langs, tl, pref_countries
+                    nat, inc, purpose, life, langs, tl, pref_countries, ui_lang
                 )
-                yield markdown, parsed, gr.update(visible=True), gr.update()
+                labels = [
+                    _city_btn_label(cities[i]) if i < len(cities) else _FALLBACK_LABELS[i]
+                    for i in range(3)
+                ]
+                yield (
+                    markdown,
+                    parsed,
+                    gr.update(visible=True),
+                    gr.update(),
+                    gr.update(choices=labels, value=labels[0]),
+                )
             except Exception as e:
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}", {}, gr.update(visible=False), gr.update()
+                yield (
+                    f"⚠️ 오류가 발생했습니다: {str(e)}",
+                    {},
+                    gr.update(visible=False),
+                    gr.update(),
+                    gr.update(),
+                )
 
         btn_step1.click(
             fn=run_step1,
             inputs=[
                 nationality, income_krw, immigration_purpose,
                 lifestyle, languages, timeline, preferred_countries,
+                ui_language,
             ],
-            outputs=[step1_output, parsed_state, btn_go_step2, tabs],
+            outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice],
         )
 
         # Step 2 탭으로 이동
@@ -209,18 +256,25 @@ def create_layout(advisor_fn, detail_fn):
         # ── Step 2 이벤트 ──────────────────────────────────────────────
         def run_step2(parsed, choice):
             try:
-                idx = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}.get(choice, 0)
+                # Support both legacy static labels and new dynamic city labels
+                static_map = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}
+                if choice in static_map:
+                    idx = static_map[choice]
+                else:
+                    cities = parsed.get("top_cities", [])
+                    dynamic_labels = [_city_btn_label(c) for c in cities]
+                    idx = dynamic_labels.index(choice) if choice in dynamic_labels else 0
                 for msg in _STEP2_LOADING:
-                    yield msg, gr.update()
-                markdown, pdf_path = detail_fn(parsed, city_index=idx)
-                yield markdown, pdf_path
+                    yield [msg]
+                markdown = detail_fn(parsed, city_index=idx)
+                yield [markdown]
             except Exception as e:
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}", None
+                yield [f"⚠️ 오류가 발생했습니다: {str(e)}"]
 
         btn_step2.click(
             fn=run_step2,
             inputs=[parsed_state, city_choice],
-            outputs=[step2_output, output_pdf],
+            outputs=[step2_output],
         )
 
     return demo
