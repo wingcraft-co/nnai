@@ -4,6 +4,7 @@ import re
 
 import utils.currency
 from utils.tax_warning import get_tax_warning
+from utils.accommodation import get_accommodation_links
 
 # Module-level cache for visa URLs loaded from data/visa_urls.json
 _VISA_URLS: dict | None = None
@@ -263,5 +264,22 @@ def format_step2_markdown(data: dict) -> str:
         for j, step in enumerate(first_steps, 1):
             lines.append(f"{j}. {step}")
         lines.append("")
+
+    # 숙소 딥링크 섹션
+    city_name = data.get("city", "")
+    if city_name:
+        links = get_accommodation_links(city_name)
+        accom_parts = []
+        if links["flatio_url"]:
+            rent_note = f" (평균 ${links['mid_term_rent_usd']:,}/월)" if links["mid_term_rent_usd"] else ""
+            accom_parts.append(f"- 🏠 [Flatio — 중기 임대{rent_note}]({links['flatio_url']})")
+        if links["anyplace_url"]:
+            accom_parts.append(f"- 🏡 [Anyplace — 가구 완비 원룸]({links['anyplace_url']})")
+        if links["nomad_meetup_url"]:
+            accom_parts.append(f"- 🤝 [노마드 밋업 그룹]({links['nomad_meetup_url']})")
+        if accom_parts:
+            lines.append("\n---\n\n### 🏠 중기 숙소 & 커뮤니티\n")
+            lines.extend(accom_parts)
+            lines.append("")
 
     return "\n".join(lines)
