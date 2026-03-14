@@ -132,6 +132,36 @@ def create_layout(advisor_fn, detail_fn):
                             info="UI and AI response language",
                         )
 
+                        with gr.Accordion("🔍 내 노마드 유형 진단 (선택사항)", open=True):
+                            gr.Markdown("_5가지 질문으로 AI가 당신의 노마드 스타일을 파악합니다._")
+
+                            q_motivation = gr.Radio(
+                                choices=["번아웃 탈출 / 삶 리셋", "비용 최적화 (FIRE / 저물가)",
+                                         "유럽 여행 루트 (쉥겐 90일)", "사회 이탈 (탈조선)", "자유로운 삶 / 원격근무"],
+                                label="Q1. 노마드 생활을 고려하는 주된 이유는?",
+                                value="자유로운 삶 / 원격근무",
+                            )
+                            q_europe = gr.Radio(
+                                choices=["예 (유럽 루트 계획 있음)", "아니오"],
+                                label="Q2. 유럽에서 활동할 계획이 있나요?",
+                                value="아니오",
+                            )
+                            q_stay_duration = gr.Radio(
+                                choices=["1개월 이하", "1~3개월", "3~6개월", "6개월 이상"],
+                                label="Q3. 한 도시에 얼마나 머물 계획인가요?",
+                                value="1~3개월",
+                            )
+                            q_work_type = gr.Radio(
+                                choices=["직장인 (원격근무)", "프리랜서", "사업자", "구직 중"],
+                                label="Q4. 원격근무 형태는?",
+                                value="프리랜서",
+                            )
+                            q_concern = gr.Radio(
+                                choices=["비자/체류일 관리", "생활비 예산", "세금/법적 문제", "외로움/커뮤니티", "숙소 구하기"],
+                                label="Q5. 가장 걱정되는 것은?",
+                                value="생활비 예산",
+                            )
+
                         nationality = gr.Dropdown(
                             choices=NATIONALITIES, value="Korean",
                             label="국적", info="여권 발급 국가 기준",
@@ -209,12 +239,15 @@ def create_layout(advisor_fn, detail_fn):
         # ── Step 1 이벤트 ──────────────────────────────────────────────
         _FALLBACK_LABELS = ["1순위 도시", "2순위 도시", "3순위 도시"]
 
-        def run_step1(nat, inc, purpose, life, langs, tl, pref_countries, ui_lang):
+        def run_step1(nat, inc, purpose, life, langs, tl, pref_countries, ui_lang,
+                      q_motiv, q_euro, q_stay, q_work, q_concern_val):
             try:
+                from utils.persona import diagnose_persona
+                persona_type = diagnose_persona(q_motiv, q_euro, q_stay, q_work, q_concern_val)
                 for msg in _STEP1_LOADING:
                     yield msg, gr.update(), gr.update(visible=False), gr.update(), gr.update()
                 markdown, cities, parsed = advisor_fn(
-                    nat, inc, purpose, life, langs, tl, pref_countries, ui_lang
+                    nat, inc, purpose, life, langs, tl, pref_countries, ui_lang, persona_type
                 )
                 labels = [
                     _city_btn_label(cities[i]) if i < len(cities) else _FALLBACK_LABELS[i]
@@ -242,6 +275,7 @@ def create_layout(advisor_fn, detail_fn):
                 nationality, income_krw, immigration_purpose,
                 lifestyle, languages, timeline, preferred_countries,
                 ui_language,
+                q_motivation, q_europe, q_stay_duration, q_work_type, q_concern,
             ],
             outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice],
         )

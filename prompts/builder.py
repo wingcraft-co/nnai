@@ -27,6 +27,14 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"(단, 프로필에 더 적합한 다른 도시가 있다면 포함 가능)\n\n"
         )
 
+    persona_type = user_profile.get("persona_type", "")
+    persona_hint = ""
+    if persona_type:
+        from utils.persona import get_persona_hint
+        persona_hint = get_persona_hint(persona_type)
+        if persona_hint:
+            persona_hint = persona_hint + "\n\n"
+
     rag_query = (
         f"{nationality} {purpose} 월 소득 ${income_usd:.0f} "
         f"라이프스타일 {' '.join(lifestyle)} {timeline} 비자 도시 추천"
@@ -41,6 +49,7 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"Target stay duration: {timeline}\n"
             f"Lifestyle preferences: {', '.join(lifestyle) if lifestyle else 'no specific preference'}\n\n"
             f"{rag_context}\n\n"
+            f"{persona_hint}"
             f"{preferred_hint}"
             "Based on the above profile, recommend the top 3 best cities for long-term digital nomad living. "
             "Include realistic challenges and risks. "
@@ -56,6 +65,7 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"목표 체류 기간: {timeline}\n"
             f"라이프스타일 선호: {', '.join(lifestyle) if lifestyle else '특별한 선호 없음'}\n\n"
             f"{rag_context}\n\n"
+            f"{persona_hint}"
             f"{preferred_hint}"
             "위 프로필 기반으로 최적 거주 도시 TOP 3를 추천하세요. "
             "현실적 어려움과 위험 요소를 반드시 포함하세요. "
