@@ -1,4 +1,4 @@
-from api.parser import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown
+from api.parser import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown, _inject_visa_urls
 
 VALID_JSON_RAW = """{
   "top_cities": [
@@ -230,3 +230,92 @@ def test_format_step1_with_source_url_no_auto_links():
     result = format_step1_markdown(data)
     assert "[노마드 커뮤니티가 활발합니다.](https://nomads.com)" in result
     assert "google.com/search" not in result
+
+
+# ── _inject_visa_urls tests ──────────────────────────────────────────────────
+
+def test_inject_visa_urls_known_country_overrides_llm_url():
+    """Known country_id should have its visa_url replaced with the hardcoded official URL."""
+    from unittest.mock import patch
+    fake_urls = {"TH": "https://official-th.gov/"}
+    with patch("api.parser._VISA_URLS", fake_urls):
+        parsed = {
+            "top_cities": [
+                {
+                    "city": "Bangkok",
+                    "country_id": "TH",
+                    "visa_url": "https://llm-hallucinated.example.com/th-visa",
+                }
+            ]
+        }
+        result = _inject_visa_urls(parsed)
+        assert result["top_cities"][0]["visa_url"] == "https://official-th.gov/"
+
+
+def test_inject_visa_urls_unknown_country_keeps_llm_url():
+    """Unknown country_id should preserve whatever the LLM returned."""
+    from unittest.mock import patch
+    fake_urls = {"TH": "https://official-th.gov/"}
+    with patch("api.parser._VISA_URLS", fake_urls):
+        parsed = {
+            "top_cities": [
+                {
+                    "city": "Tokyo",
+                    "country_id": "JP",
+                    "visa_url": "https://llm-returned-jp.example.com/",
+                }
+            ]
+        }
+        result = _inject_visa_urls(parsed)
+        assert result["top_cities"][0]["visa_url"] == "https://llm-returned-jp.example.com/"
+
+
+def test_inject_visa_urls_no_country_id_no_crash():
+    """City with no country_id should not crash and visa_url should be unchanged."""
+    from unittest.mock import patch
+    fake_urls = {"TH": "https://official-th.gov/"}
+    with patch("api.parser._VISA_URLS", fake_urls):
+        parsed = {
+            "top_cities": [
+                {"city": "Unknown City", "visa_url": "https://some.url/"}
+            ]
+        }
+        result = _inject_visa_urls(parsed)
+        assert result["top_cities"][0]["visa_url"] == "https://some.url/"
+
+
+def test_inject_visa_urls_multiple_cities_mixed():
+    """Multiple cities: known countries get overridden, unknown ones are preserved."""
+    from unittest.mock import patch
+    fake_urls = {"MY": "https://official-my.gov/", "PT": "https://official-pt.gov/"}
+    with patch("api.parser._VISA_URLS", fake_urls):
+        parsed = {
+            "top_cities": [
+                {"city": "Kuala Lumpur", "country_id": "MY", "visa_url": "https://hallucinated-my.com/"},
+                {"city": "Lisbon", "country_id": "PT", "visa_url": "https://hallucinated-pt.com/"},
+                {"city": "Berlin", "country_id": "DE", "visa_url": "https://llm-de.example.com/"},
+            ]
+        }
+        result = _inject_visa_urls(parsed)
+        assert result["top_cities"][0]["visa_url"] == "https://official-my.gov/"
+        assert result["top_cities"][1]["visa_url"] == "https://official-pt.gov/"
+        assert result["top_cities"][2]["visa_url"] == "https://llm-de.example.com/"
+
+
+def test_inject_visa_urls_empty_top_cities_no_crash():
+    """Empty top_cities list should not crash."""
+    from unittest.mock import patch
+    with patch("api.parser._VISA_URLS", {"TH": "https://official-th.gov/"}):
+        parsed = {"top_cities": []}
+        result = _inject_visa_urls(parsed)
+        assert result["top_cities"] == []
+
+
+def test_parse_response_injects_visa_url_for_known_country():
+    """parse_response should inject official visa URL for a known country_id."""
+    from unittest.mock import patch
+    fake_urls = {"MY": "https://official-my.gov/"}
+    raw = '{"top_cities": [{"city": "KL", "country_id": "MY", "visa_url": "https://bad.url/"}]}'
+    with patch("api.parser._VISA_URLS", fake_urls):
+        result = parse_response(raw)
+    assert result["top_cities"][0]["visa_url"] == "https://official-my.gov/"

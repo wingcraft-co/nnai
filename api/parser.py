@@ -1,20 +1,50 @@
 import json
+import os
 import re
 
 import utils.currency
+
+# Module-level cache for visa URLs loaded from data/visa_urls.json
+_VISA_URLS: dict | None = None
+
+
+def _load_visa_urls() -> dict:
+    """Load visa_urls.json once and cache it. Returns empty dict on failure."""
+    global _VISA_URLS
+    if _VISA_URLS is None:
+        _data_path = os.path.join(os.path.dirname(__file__), "..", "data", "visa_urls.json")
+        try:
+            with open(_data_path, encoding="utf-8") as f:
+                _VISA_URLS = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            _VISA_URLS = {}
+    return _VISA_URLS
+
+
+def _inject_visa_urls(parsed: dict) -> dict:
+    """Overwrite visa_url for each city in top_cities with the official hardcoded URL.
+
+    If country_id is not in visa_urls.json, the LLM-generated value is kept as-is.
+    """
+    visa_urls = _load_visa_urls()
+    for city in parsed.get("top_cities", []):
+        country_id = city.get("country_id")
+        if country_id and country_id in visa_urls:
+            city["visa_url"] = visa_urls[country_id]
+    return parsed
 
 
 def parse_response(raw_text: str) -> dict:
     # 1) 코드 블록 안 JSON 먼저 시도
     for match in re.findall(r"```(?:json)?\s*([\s\S]*?)```", raw_text):
         try:
-            return json.loads(match.strip())
+            return _inject_visa_urls(json.loads(match.strip()))
         except json.JSONDecodeError:
             continue
     # 2) 중괄호 덩어리 탐색 (긴 것 우선)
     for match in sorted(re.findall(r"\{[\s\S]*\}", raw_text), key=len, reverse=True):
         try:
-            return json.loads(match)
+            return _inject_visa_urls(json.loads(match))
         except json.JSONDecodeError:
             continue
     # 3) 파싱 실패 폴백
