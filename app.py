@@ -99,15 +99,17 @@ def show_city_detail(
     return markdown
 
 
-if __name__ == "__main__":
-    from ui.layout import _APP_CSS
-    from ui.theme import create_theme
+from ui.layout import _APP_CSS
+from ui.theme import create_theme
 
-    demo = create_layout(nomad_advisor, show_city_detail)
+demo = create_layout(nomad_advisor, show_city_detail)
+
+if __name__ == "__main__":
+    _is_hf = bool(os.getenv("SPACE_ID"))
     demo.launch(
         theme=create_theme(),
         css=_APP_CSS,
-        server_name="127.0.0.1",
+        server_name="0.0.0.0" if _is_hf else "127.0.0.1",
         server_port=7860,
-        inbrowser=True,
+        inbrowser=not _is_hf,
     )
