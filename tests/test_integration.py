@@ -3,6 +3,24 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 
+def _anthropic_mock(text: str) -> MagicMock:
+    """api.hf_client._get_client() 반환값 mock — messages.create()가 text를 반환"""
+    block = MagicMock()
+    block.text = text
+    resp = MagicMock()
+    resp.content = [block]
+    client = MagicMock()
+    client.messages.create.return_value = resp
+    return client
+
+
+def _anthropic_error_mock(exc: Exception) -> MagicMock:
+    """messages.create()가 예외를 발생시키는 mock"""
+    client = MagicMock()
+    client.messages.create.side_effect = exc
+    return client
+
+
 # ── Step 1 파이프라인 통합 테스트 ─────────────────────────────────
 
 MOCK_LLM_STEP1_RESPONSE = """{
@@ -91,16 +109,11 @@ def test_step1_full_pipeline():
     Step 1 전체 파이프라인 통합 테스트.
     RAG 검색 → LLM 호출 → JSON 파싱 → 마크다운 포맷 → user_profile 주입 검증.
     """
-    with patch("api.hf_client.requests.post") as mock_post, \
+    with patch("api.hf_client._get_client", return_value=_anthropic_mock(MOCK_LLM_STEP1_RESPONSE)), \
          patch("prompts.builder.retrieve_as_context", return_value="관련 비자 데이터"), \
          patch("rag.vector_store.build_index"), \
          patch("utils.currency.get_exchange_rates",
                return_value={"USD": 0.000714, "MYR": 0.00312, "THB": 0.0246}):
-
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"generated_text": MOCK_LLM_STEP1_RESPONSE}]
-        mock_post.return_value = mock_resp
 
         import importlib
         import app as app_mod
@@ -135,16 +148,11 @@ def test_step1_api_error_returns_error_string():
     """
     Step 1에서 API 오류 발생 시 에러 문자열을 반환하고 크래시가 없어야 함.
     """
-    with patch("api.hf_client.requests.post") as mock_post, \
+    with patch("api.hf_client._get_client", return_value=_anthropic_error_mock(Exception("Service Unavailable"))), \
          patch("prompts.builder.retrieve_as_context", return_value=""), \
          patch("rag.vector_store.build_index"), \
          patch("utils.currency.get_exchange_rates",
                return_value={"USD": 0.000714}):
-
-        mock_resp = MagicMock()
-        mock_resp.status_code = 503
-        mock_resp.raise_for_status.side_effect = Exception("Service Unavailable")
-        mock_post.return_value = mock_resp
 
         import importlib
         import app as app_mod
@@ -170,16 +178,11 @@ def test_step1_income_krw_converted_to_usd():
     KRW 입력값이 올바르게 USD로 환산되어 user_profile에 저장되는지 검증.
     500만원 → 약 $3,570 (환율 1USD=1400KRW 기준)
     """
-    with patch("api.hf_client.requests.post") as mock_post, \
+    with patch("api.hf_client._get_client", return_value=_anthropic_mock(MOCK_LLM_STEP1_RESPONSE)), \
          patch("prompts.builder.retrieve_as_context", return_value=""), \
          patch("rag.vector_store.build_index"), \
          patch("utils.currency.get_exchange_rates",
                return_value={"USD": 0.000714}):
-
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"generated_text": MOCK_LLM_STEP1_RESPONSE}]
-        mock_post.return_value = mock_resp
 
         import importlib
         import app as app_mod
@@ -235,12 +238,7 @@ def test_step2_full_pipeline(tmp_path, monkeypatch):
         },
     }
 
-    with patch("api.hf_client.requests.post") as mock_post:
-
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"generated_text": MOCK_LLM_STEP2_RESPONSE}]
-        mock_post.return_value = mock_resp
+    with patch("api.hf_client._get_client", return_value=_anthropic_mock(MOCK_LLM_STEP2_RESPONSE)):
 
         from app import show_city_detail
 
@@ -317,17 +315,13 @@ def test_step2_user_profile_passed_to_prompt():
         },
     }
 
-    with patch("api.hf_client.requests.post") as mock_post, \
+    with patch("api.hf_client._get_client", return_value=_anthropic_mock(MOCK_LLM_STEP2_RESPONSE)), \
          patch("app.build_detail_prompt") as mock_build:
 
         mock_build.return_value = [
             {"role": "system", "content": "test"},
             {"role": "user", "content": "test"},
         ]
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"generated_text": MOCK_LLM_STEP2_RESPONSE}]
-        mock_post.return_value = mock_resp
 
         from app import show_city_detail
 

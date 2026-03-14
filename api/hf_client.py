@@ -1,82 +1,75 @@
 # api/hf_client.py
 import os
 import re
-import requests
+import anthropic
 
-HF_TOKEN = os.getenv("HF_TOKEN", "")
-MODEL_ID  = "Qwen/Qwen2.5-7B-Instruct"
-_ROUTER_URL = "https://router.huggingface.co/v1/chat/completions"
+MODEL_ID = "claude-sonnet-4-6"
+
+_client: anthropic.Anthropic | None = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+    return _client
 
 
 def query_model(messages: list[dict], max_tokens: int = 2048) -> str:
-    """LLM에 chat messages를 전송하고 텍스트 응답을 반환합니다."""
+    """Claude API에 chat messages를 전송하고 텍스트 응답을 반환합니다."""
     try:
-        payload = {
+        system = ""
+        conv_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                system = msg["content"]
+            else:
+                conv_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        kwargs: dict = {
             "model": MODEL_ID,
-            "messages": messages,
             "max_tokens": max_tokens,
-            "temperature": 0.3,
-            "top_p": 0.95,
-            "top_k": 20,
+            "messages": conv_messages,
         }
-        resp = requests.post(
-            _ROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {HF_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=180,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        if system:
+            kwargs["system"] = system
 
-        # OpenAI-compatible chat completion format
-        if isinstance(data, dict) and "choices" in data:
-            raw = data["choices"][0]["message"]["content"] or ""
-        # HF Inference text-generation format
-        elif isinstance(data, list) and data:
-            raw = data[0].get("generated_text", "")
-        else:
-            raw = str(data)
-
-        raw = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
-        return raw
+        response = _get_client().messages.create(**kwargs)
+        raw = response.content[0].text
+        return re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
     except Exception as e:
         return f"ERROR: {str(e)}"
 
 
 def query_model_with_thinking(messages: list[dict], max_tokens: int = 4096) -> tuple[str, str]:
-    """thinking 모드로 LLM에 질의하고 (reasoning, content) 튜플을 반환합니다."""
+    """extended thinking 모드로 Claude에 질의하고 (reasoning, content) 튜플을 반환합니다."""
     try:
-        payload = {
-            "model": MODEL_ID,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": 1.0,
-            "top_p": 0.95,
-        }
-        resp = requests.post(
-            _ROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {HF_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=180,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        system = ""
+        conv_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                system = msg["content"]
+            else:
+                conv_messages.append({"role": msg["role"], "content": msg["content"]})
 
-        if isinstance(data, dict) and "choices" in data:
-            msg = data["choices"][0].get("message", {})
-            thinking = msg.get("reasoning_content", "") or ""
-            content  = msg.get("content", "") or ""
-        elif isinstance(data, list) and data:
-            content  = data[0].get("generated_text", "")
-            thinking = ""
-        else:
-            thinking, content = "", str(data)
+        kwargs: dict = {
+            "model": MODEL_ID,
+            "max_tokens": max_tokens,
+            "thinking": {"type": "enabled", "budget_tokens": 2048},
+            "messages": conv_messages,
+        }
+        if system:
+            kwargs["system"] = system
+
+        response = _get_client().messages.create(**kwargs)
+
+        thinking = ""
+        content = ""
+        for block in response.content:
+            if block.type == "thinking":
+                thinking = block.thinking
+            elif block.type == "text":
+                content = block.text
 
         return thinking, content
     except Exception as e:
