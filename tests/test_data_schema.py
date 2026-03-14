@@ -20,9 +20,9 @@ REQUIRED_CITY_FIELDS = {
 }
 
 def test_visa_db_has_12_countries():
-    """10개 기본국 + Philippines + Vietnam = 12개"""
+    """Task-1B 이후 29개국 (기존 12 + 신규 17)"""
     db = load_visa_db()
-    assert len(db["countries"]) == 12
+    assert len(db["countries"]) == 29
 
 def test_visa_db_schema():
     db = load_visa_db()
@@ -30,10 +30,11 @@ def test_visa_db_schema():
         missing = REQUIRED_VISA_FIELDS - set(c.keys())
         assert not missing, f"{c.get('id','?')} 누락 필드: {missing}"
 
-def test_visa_db_income_positive():
+def test_visa_db_income_non_negative():
+    """min_income_usd는 0 이상 (무비자 국가는 0 허용)."""
     db = load_visa_db()
     for c in db["countries"]:
-        assert c["min_income_usd"] > 0
+        assert c["min_income_usd"] >= 0
 
 def test_visa_db_key_docs_nonempty():
     db = load_visa_db()
