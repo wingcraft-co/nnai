@@ -112,8 +112,6 @@ def test_step1_full_pipeline():
     RAG 검색 → LLM 호출 → JSON 파싱 → 마크다운 포맷 → user_profile 주입 검증.
     """
     with patch("api.hf_client._get_client", return_value=_openai_mock(MOCK_LLM_STEP1_RESPONSE)), \
-         patch("prompts.builder.retrieve_as_context", return_value="관련 비자 데이터"), \
-         patch("rag.vector_store.build_index"), \
          patch("utils.currency.get_exchange_rates",
                return_value={"USD": 0.000714, "MYR": 0.00312, "THB": 0.0246}):
 
@@ -153,8 +151,6 @@ def test_step1_api_error_returns_error_string():
     Step 1에서 API 오류 발생 시 에러 문자열을 반환하고 크래시가 없어야 함.
     """
     with patch("api.hf_client._get_client", return_value=_openai_error_mock(Exception("Service Unavailable"))), \
-         patch("prompts.builder.retrieve_as_context", return_value=""), \
-         patch("rag.vector_store.build_index"), \
          patch("utils.currency.get_exchange_rates",
                return_value={"USD": 0.000714}):
 
@@ -183,8 +179,6 @@ def test_step1_income_krw_converted_to_usd():
     500만원 → 약 $3,570 (환율 1USD=1400KRW 기준)
     """
     with patch("api.hf_client._get_client", return_value=_openai_mock(MOCK_LLM_STEP1_RESPONSE)), \
-         patch("prompts.builder.retrieve_as_context", return_value=""), \
-         patch("rag.vector_store.build_index"), \
          patch("utils.currency.get_exchange_rates",
                return_value={"USD": 0.000714}):
 

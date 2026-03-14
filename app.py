@@ -4,17 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import utils.currency
-from api.hf_client        import query_model
-from api.parser           import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown
-from rag.vector_store     import build_index
-from prompts.builder      import build_prompt, build_detail_prompt
-from ui.layout            import create_layout
-
-# 앱 시작 시 RAG 인덱스 자동 초기화 (테스트 시 SKIP_RAG_INIT 환경변수로 건너뜀)
-if not os.getenv("SKIP_RAG_INIT"):
-    print("🔧 RAG 인덱스 초기화...")
-    build_index(force=False)
-    print("✅ RAG 준비 완료")
+from api.hf_client   import query_model
+from api.parser      import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown
+from prompts.builder import build_prompt, build_detail_prompt
+from ui.layout       import create_layout
 
 
 def nomad_advisor(

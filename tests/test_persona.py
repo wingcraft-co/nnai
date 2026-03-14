@@ -35,7 +35,6 @@ def test_all_persona_types_have_hints():
 
 def test_persona_hint_injected_in_build_prompt():
     """persona_type이 user_profile에 있으면 build_prompt 결과 user 메시지에 힌트 포함."""
-    from unittest.mock import patch
     from prompts.builder import build_prompt
 
     profile = {
@@ -43,8 +42,7 @@ def test_persona_hint_injected_in_build_prompt():
         "purpose": "디지털 노마드", "lifestyle": [], "languages": [],
         "timeline": "1년 단기 체험", "persona_type": "fire_optimizer",
     }
-    with patch("prompts.builder.retrieve_as_context", return_value="RAG context"):
-        messages = build_prompt(profile)
+    messages = build_prompt(profile)
     user_content = messages[-1]["content"]
     assert "FIRE" in user_content or "저물가" in user_content or "비용" in user_content
 

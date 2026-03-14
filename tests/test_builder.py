@@ -1,6 +1,5 @@
-from unittest.mock import patch
+from prompts.builder import build_prompt, build_detail_prompt
 
-FAKE_RAG_CONTEXT = "=== RAG 검색 결과 ===\n[1] 말레이시아 비자 정보..."
 SAMPLE_PROFILE = {
     "nationality": "Korean",
     "income": 3000,
@@ -8,52 +7,37 @@ SAMPLE_PROFILE = {
     "timeline": "1년 단기 체험",
 }
 
+
 def test_build_prompt_returns_list():
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(SAMPLE_PROFILE)
-        assert isinstance(result, list)
+    result = build_prompt(SAMPLE_PROFILE)
+    assert isinstance(result, list)
+
 
 def test_build_prompt_starts_with_system():
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(SAMPLE_PROFILE)
-        assert result[0]["role"] == "system"
+    result = build_prompt(SAMPLE_PROFILE)
+    assert result[0]["role"] == "system"
+
 
 def test_build_prompt_ends_with_user():
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(SAMPLE_PROFILE)
-        assert result[-1]["role"] == "user"
+    result = build_prompt(SAMPLE_PROFILE)
+    assert result[-1]["role"] == "user"
 
-def test_build_prompt_includes_rag_context():
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(SAMPLE_PROFILE)
-        last_user = result[-1]["content"]
-        assert "RAG 검색 결과" in last_user
+
+def test_build_prompt_includes_data_context():
+    result = build_prompt(SAMPLE_PROFILE)
+    last_user = result[-1]["content"]
+    assert "비자·도시 데이터베이스" in last_user
+
 
 def test_build_prompt_includes_user_profile():
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(SAMPLE_PROFILE)
-        last_user = result[-1]["content"]
-        assert "Korean" in last_user
-        assert "3,000" in last_user
-        assert "해변" in last_user
-
-def test_build_prompt_rag_query_uses_profile():
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT) as mock_rag:
-        from prompts.builder import build_prompt
-        build_prompt(SAMPLE_PROFILE)
-        call_args = mock_rag.call_args[0][0]
-        assert "Korean" in call_args or "3000" in call_args
+    result = build_prompt(SAMPLE_PROFILE)
+    last_user = result[-1]["content"]
+    assert "Korean" in last_user
+    assert "해변" in last_user
 
 
 def test_build_detail_prompt_returns_list():
     """build_detail_prompt() 는 메시지 리스트를 반환해야 함"""
-    from prompts.builder import build_detail_prompt
-
     selected_city = {
         "city": "Kuala Lumpur",
         "country_id": "MY",
@@ -77,8 +61,6 @@ def test_build_detail_prompt_returns_list():
 
 def test_build_detail_prompt_includes_city_info():
     """build_detail_prompt() 의 user 메시지에 도시 정보가 포함되어야 함"""
-    from prompts.builder import build_detail_prompt
-
     selected_city = {
         "city": "Lisbon",
         "country_id": "PT",
@@ -105,9 +87,7 @@ def test_build_prompt_includes_preferred_countries_hint():
         **SAMPLE_PROFILE,
         "preferred_countries": ["🇲🇾 말레이시아", "🇹🇭 태국"],
     }
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(profile)
+    result = build_prompt(profile)
     last_user = result[-1]["content"]
     assert "말레이시아" in last_user
     assert "태국" in last_user
@@ -120,9 +100,7 @@ def test_build_prompt_no_hint_when_empty_preferred_countries():
         **SAMPLE_PROFILE,
         "preferred_countries": [],
     }
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        result = build_prompt(profile)
+    result = build_prompt(profile)
     last_user = result[-1]["content"]
     assert "우선 고려 국가" not in last_user
 
@@ -133,26 +111,20 @@ def test_build_prompt_english_uses_english_system_prompt():
         **SAMPLE_PROFILE,
         "language": "English",
     }
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        from prompts.system_en import SYSTEM_PROMPT_EN
-        result = build_prompt(profile)
+    from prompts.system_en import SYSTEM_PROMPT_EN
+    result = build_prompt(profile)
     assert result[0]["content"] == SYSTEM_PROMPT_EN
 
 
 def test_build_prompt_korean_uses_korean_system_prompt():
     """language 미지정(기본값 한국어)이면 messages[0]['content']가 SYSTEM_PROMPT와 일치해야 함"""
-    with patch("prompts.builder.retrieve_as_context", return_value=FAKE_RAG_CONTEXT):
-        from prompts.builder import build_prompt
-        from prompts.system import SYSTEM_PROMPT
-        result = build_prompt(SAMPLE_PROFILE)
+    from prompts.system import SYSTEM_PROMPT
+    result = build_prompt(SAMPLE_PROFILE)
     assert result[0]["content"] == SYSTEM_PROMPT
 
 
 def test_build_detail_prompt_english_returns_english_user_message():
     """language='English' 프로필이면 user 메시지에 'Selected city:'가 포함되고 '선택 도시:'는 없어야 함"""
-    from prompts.builder import build_detail_prompt
-
     selected_city = {
         "city": "Chiang Mai",
         "country_id": "TH",

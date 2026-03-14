@@ -1,8 +1,8 @@
 # prompts/builder.py
-from prompts.system    import SYSTEM_PROMPT
-from prompts.system_en import SYSTEM_PROMPT_EN
-from prompts.few_shots import FEW_SHOT_EXAMPLES
-from rag.retriever     import retrieve_as_context
+from prompts.system       import SYSTEM_PROMPT
+from prompts.system_en    import SYSTEM_PROMPT_EN
+from prompts.few_shots    import FEW_SHOT_EXAMPLES
+from prompts.data_context import DATA_CONTEXT
 
 
 def build_prompt(user_profile: dict) -> list[dict]:
@@ -35,12 +35,6 @@ def build_prompt(user_profile: dict) -> list[dict]:
         if persona_hint:
             persona_hint = persona_hint + "\n\n"
 
-    rag_query = (
-        f"{nationality} {purpose} 월 소득 ${income_usd:.0f} "
-        f"라이프스타일 {' '.join(lifestyle)} {timeline} 비자 도시 추천"
-    )
-    rag_context = retrieve_as_context(rag_query, top_k=6)
-
     if language == "English":
         user_message = (
             f"Nationality: {nationality} | Monthly income: ${income_usd:,.0f} USD | "
@@ -48,7 +42,7 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"Languages: {', '.join(languages) if languages else 'not specified'} | "
             f"Target stay duration: {timeline}\n"
             f"Lifestyle preferences: {', '.join(lifestyle) if lifestyle else 'no specific preference'}\n\n"
-            f"{rag_context}\n\n"
+            f"{DATA_CONTEXT}\n\n"
             f"{persona_hint}"
             f"{preferred_hint}"
             "Based on the above profile, recommend the top 3 best cities for long-term digital nomad living. "
@@ -64,7 +58,7 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"사용 가능 언어: {', '.join(languages) if languages else '미응답'} | "
             f"목표 체류 기간: {timeline}\n"
             f"라이프스타일 선호: {', '.join(lifestyle) if lifestyle else '특별한 선호 없음'}\n\n"
-            f"{rag_context}\n\n"
+            f"{DATA_CONTEXT}\n\n"
             f"{persona_hint}"
             f"{preferred_hint}"
             "위 프로필 기반으로 최적 거주 도시 TOP 3를 추천하세요. "
