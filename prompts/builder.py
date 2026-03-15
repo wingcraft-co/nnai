@@ -56,28 +56,62 @@ def build_prompt(user_profile: dict) -> list[dict]:
 
     income_type = user_profile.get("income_type", "")
     income_type_hint = ""
-    if income_type == "프리랜서 / 개인사업자 (해외 송금 내역)":
-        income_type_hint = "※ 소득 증빙: 프리랜서/개인사업자 — 포르투갈 D8, 독일 프리랜서 비자 서류 거절 리스크 주의. 해외 송금 내역 3개월치 필수.\n\n"
-    elif income_type == "무소득 / 배우자 부양":
-        income_type_hint = "※ 소득 없음 / 배우자 부양 — 배우자 동반 비자 또는 가족 비자 가능 국가를 우선 추천하세요.\n\n"
+    if income_type == "프리랜서 (계약서·해외 송금 내역)":
+        income_type_hint = "※ 소득 증빙: 프리랜서 — 포르투갈 D8, 독일 프리랜서 비자 서류 거절 리스크 주의. 계약서 및 해외 송금 내역 3개월치 필수.\n\n"
+    elif income_type == "해외 법인 재직":
+        income_type_hint = "※ 소득 증빙: 해외 법인 재직 — 고용계약서(영문) 및 급여명세서 필수. 스페인·포르투갈 디지털 노마드 비자 우선 고려.\n\n"
+    elif income_type == "무소득 / 은퇴":
+        income_type_hint = "※ 소득 없음 / 은퇴 — 배우자 동반 비자, 은퇴자 비자(은퇴 후 장기 거주), 자산 증명 기반 비자 가능 국가를 우선 추천하세요.\n\n"
 
     dual_nationality = user_profile.get("dual_nationality", False)
     dual_nat_hint = ""
     if dual_nationality:
         dual_nat_hint = "※ 복수국적 보유 — 쉥겐 90일은 한국 여권 기준이며, 보조 여권으로 체류 가능 여부를 포함하여 안내하세요.\n\n"
 
-    travel_type_val = user_profile.get("travel_type", "혼자")
+    TRAVEL_TYPE_HINTS = {
+        "혼자 (솔로)": "코워킹 인프라, 노마드 커뮤니티 규모, 1인 생활비를 우선 고려.",
+        "배우자·파트너 동반": "배우자 동반 비자 가능 여부, 합산 소득 기준 비자 필터링, 배우자 취업 허용 여부 포함.",
+        "자녀 동반 (배우자 없이)": "국제학교 유무, 의료 인프라, 안전 지수를 1순위로 고려. 싱글 부모 비자 가능 여부 포함.",
+        "가족 전체 동반 (배우자 + 자녀)": "국제학교, 의료, 안전 + 주거 면적, 가족 생활비 배수, 배우자 취업 허용 여부 포함.",
+    }
+    travel_type_val = user_profile.get("travel_type", "혼자 (솔로)")
     children_ages_val = user_profile.get("children_ages", [])
     travel_hint = ""
-    if travel_type_val in ["자녀 동반", "가족 전체 동반"]:
+    if travel_type_val in ["자녀 동반 (배우자 없이)", "가족 전체 동반 (배우자 + 자녀)"]:
         ages_str = ", ".join(children_ages_val) if children_ages_val else "미지정"
-        travel_hint = f"※ 자녀 동반: {ages_str} — 국제학교 유무·학비·가족 비자 여부를 반드시 포함하세요.\n\n"
-    elif travel_type_val == "배우자 동반":
-        travel_hint = "※ 배우자 동반 — 동반 비자·배우자 취업 허용 여부를 반드시 포함하세요.\n\n"
+        base_hint = TRAVEL_TYPE_HINTS.get(travel_type_val, "")
+        travel_hint = f"※ {travel_type_val}: 자녀 연령 {ages_str} — {base_hint}\n\n"
+    elif travel_type_val in TRAVEL_TYPE_HINTS:
+        travel_hint = f"※ {TRAVEL_TYPE_HINTS[travel_type_val]}\n\n"
 
     timeline_hint = ""
     if timeline == "90일 이하 (비자 없이 탐색)":
         timeline_hint = "※ 90일 이하 단기 탐색 — 비자 체크리스트보다 무비자 체류 가능 국가와 첫 30일 루트 중심으로 안내하세요.\n\n"
+
+    readiness_stage = user_profile.get("readiness_stage", "")
+    readiness_hint = ""
+    if readiness_stage == "막연하게 고민 중 (6개월+ 후 실행 예상)":
+        readiness_hint = "※ 초기 탐색 단계. 비용·비자 개요 중심으로 추천. 세부 체크리스트보다 도시 비교에 집중.\n\n"
+    elif readiness_stage == "이미 출국했거나 출국 임박":
+        readiness_hint = "※ 출국 임박. first_steps에서 기한이 있는 항목(건보 임의계속가입 등)을 최우선으로 배치.\n\n"
+
+    income_usd = user_profile.get("income_usd", 0)
+    has_spouse_income = user_profile.get("has_spouse_income", "없음")
+    spouse_income_krw_val = user_profile.get("spouse_income_krw", 0)
+    spouse_hint = ""
+    if has_spouse_income == "있음" and spouse_income_krw_val:
+        try:
+            import utils.currency
+            rates = utils.currency.get_exchange_rates()
+            usd_rate = rates.get("USD", 0.000714)
+        except Exception:
+            usd_rate = 0.000714
+        spouse_usd = round(spouse_income_krw_val * 10000 * usd_rate)
+        total_usd = income_usd + spouse_usd
+        spouse_hint = (
+            f"※ 가족 합산 소득 기준 적용. 주 신청인 ${income_usd:.0f} + 배우자 ${spouse_usd:.0f}, "
+            f"합산 ${total_usd:.0f}/월. 스페인·그리스 등 합산 소득 인정 비자 우선 고려.\n\n"
+        )
 
     if language == "English":
         user_message = (
@@ -94,6 +128,8 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"{dual_nat_hint}"
             f"{travel_hint}"
             f"{timeline_hint}"
+            f"{readiness_hint}"
+            f"{spouse_hint}"
             "Based on the above profile, recommend the top 3 best cities for long-term digital nomad living. "
             "Include realistic challenges and risks. "
             "Output pure JSON only."
@@ -115,6 +151,8 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"{dual_nat_hint}"
             f"{travel_hint}"
             f"{timeline_hint}"
+            f"{readiness_hint}"
+            f"{spouse_hint}"
             "위 프로필 기반으로 최적 거주 도시 TOP 3를 추천하세요. "
             "현실적 어려움과 위험 요소를 반드시 포함하세요. "
             "반드시 순수 JSON만 출력하세요."

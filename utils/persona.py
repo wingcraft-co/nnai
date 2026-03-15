@@ -35,7 +35,7 @@ PERSONA_HINTS = {
 
 
 def diagnose_persona(
-    motivation: str,
+    motivation: str | list,
     europe_plan: str,
     stay_duration: str | None,
     work_type: str | None,
@@ -43,6 +43,7 @@ def diagnose_persona(
 ) -> str:
     """
     온보딩 질문 응답으로 페르소나 유형을 진단한다.
+    motivation은 str 또는 list[str]을 허용한다 (Q1 CheckboxGroup 지원).
     stay_duration, work_type은 None을 허용한다 (P1에서 해당 질문 제거됨).
     main_concern은 str 또는 list[str]을 허용한다 (CheckboxGroup 지원).
 
@@ -53,15 +54,27 @@ def diagnose_persona(
     if europe_plan == "예 (유럽 루트 계획 있음)":
         return "schengen_loop"
 
-    # Q1: 동기 기반 분류
+    # Q1: 동기 기반 분류 (신규 선택지 + 구 선택지 하위호환)
     motivation_map = {
+        # 신규 선택지 (변경 5-Q1)
+        "생활비 절감 / FIRE":           "fire_optimizer",
+        "번아웃 회복 / 환경 전환":       "burnout_escape",
+        "유럽 장기 체류 (쉥겐 루프)":   "schengen_loop",
+        "한국 생활 리셋":               "expat_freedom",
+        "사업/프리랜서 거점 이전":       "slow_nomad",
+        # 구 선택지 하위호환
         "번아웃 탈출 / 삶 리셋":        "burnout_escape",
         "비용 최적화 (FIRE / 저물가)":   "fire_optimizer",
         "유럽 여행 루트 (쉥겐 90일)":   "schengen_loop",
         "사회 이탈 (탈조선)":            "expat_freedom",
         "자유로운 삶 / 원격근무":         "slow_nomad",
     }
-    if motivation in motivation_map:
+    # list 입력 처리 (CheckboxGroup)
+    if isinstance(motivation, list):
+        for item in motivation:
+            if item in motivation_map:
+                return motivation_map[item]
+    elif motivation in motivation_map:
         return motivation_map[motivation]
 
     # Q3: 체류 기간 힌트 (None이면 건너뜀)

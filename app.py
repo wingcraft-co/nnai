@@ -29,9 +29,12 @@ def nomad_advisor(
     preferred_language: str = "한국어",
     persona_type: str = "",
     income_type: str = "",
-    travel_type: str = "혼자",
+    travel_type: str = "혼자 (솔로)",
     children_ages: list | None = None,
     dual_nationality: bool = False,
+    readiness_stage: str = "",
+    has_spouse_income: str = "없음",
+    spouse_income_krw: int = 0,
 ) -> tuple[str, list, dict]:
     """
     Step 1 파이프라인: RAG → 프롬프트 → LLM → 파싱 → 마크다운 + 도시 리스트
@@ -66,6 +69,9 @@ def nomad_advisor(
         "travel_type":        travel_type,
         "children_ages":      children_ages if isinstance(children_ages, list) else [],
         "dual_nationality":   dual_nationality,
+        "readiness_stage":    readiness_stage,
+        "has_spouse_income":  has_spouse_income,
+        "spouse_income_krw":  spouse_income_krw,
     }
 
     # --- 서버사이드 Context Caching 시도 ---
