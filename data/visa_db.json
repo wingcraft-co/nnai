@@ -9,7 +9,8 @@
       "cost_tier": "low", "notes": "동남아 노마드 기지 1순위. 한인 커뮤니티 활발, 영어 통용",
       "source": "https://www.mm2h.gov.my",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 182,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "PT", "name": "Portugal", "name_kr": "포르투갈",
@@ -20,7 +21,8 @@
       "cost_tier": "medium", "notes": "EU 영주권 경로 개방. 리스본·포르투 노마드 씬 활발",
       "source": "https://vistos.mne.gov.pt",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "TH", "name": "Thailand", "name_kr": "태국",
@@ -31,7 +33,8 @@
       "cost_tier": "low", "notes": "치앙마이·방콕이 세계 최대 노마드 허브. LTR 미충족 시 Tourist/SETV 반복 가능",
       "source": "https://ltr.boi.go.th",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 180,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "annual", "ees_applicable": false
     },
     {
       "id": "EE", "name": "Estonia", "name_kr": "에스토니아",
@@ -42,7 +45,8 @@
       "cost_tier": "medium", "notes": "e-Residency 병행 시 EU 법인 설립 가능. 탈린 영어 소통 원활",
       "source": "https://www.politsei.ee",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "ES", "name": "Spain", "name_kr": "스페인",
@@ -53,7 +57,8 @@
       "cost_tier": "medium", "notes": "바르셀로나·발렌시아 노마드 인프라 우수. 지중해 기후",
       "source": "https://www.exteriores.gob.es",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "ID", "name": "Indonesia", "name_kr": "인도네시아",
@@ -64,7 +69,8 @@
       "cost_tier": "low", "notes": "발리 짱구 코워킹 허브. E33G 갱신 반복 가능 (국경 이동 필요)",
       "source": "https://molina.imigrasi.go.id",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "DE", "name": "Germany", "name_kr": "독일",
@@ -75,7 +81,8 @@
       "cost_tier": "high", "notes": "베를린 스타트업 생태계. EU 거주 기반. 영주권 경로 5년",
       "source": "https://www.make-it-in-germany.com",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "GE", "name": "Georgia", "name_kr": "조지아",
@@ -86,7 +93,8 @@
       "cost_tier": "low", "notes": "트빌리시 물가 낮고 인터넷 빠름. 비자 없이 365일 체류 가능",
       "source": "https://stophere.georgia.com",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "CR", "name": "Costa Rica", "name_kr": "코스타리카",
@@ -97,7 +105,8 @@
       "cost_tier": "medium", "notes": "열대 자연환경, 안전성 높음, 영어 통용. Pura Vida 라이프스타일",
       "source": "https://www.migracion.go.cr",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": false
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": false,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "GR", "name": "Greece", "name_kr": "그리스",
@@ -108,7 +117,8 @@
       "cost_tier": "medium", "notes": "아테네·테살로니키 노마드 씬 성장 중. 지중해 섬 옵션",
       "source": "https://nomad.gov.gr",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "PH", "name": "Philippines", "name_kr": "필리핀",
@@ -119,7 +129,8 @@
       "cost_tier": "low", "notes": "영어 공용어. 세부 아일랜드 호핑. 노마드 커뮤니티 성장 중",
       "source": "https://www.immigration.gov.ph",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 180,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "VN", "name": "Vietnam", "name_kr": "베트남",
@@ -130,7 +141,8 @@
       "cost_tier": "low", "notes": "하노이·호치민 물가 최저. 커피 문화, 음식 훌륭. 장기 비자는 복잡함",
       "source": "https://evisa.xuatnhapcanh.gov.vn",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "HR", "name": "Croatia", "name_kr": "크로아티아",
@@ -141,7 +153,8 @@
       "cost_tier": "medium", "notes": "쉥겐 2023년 편입. 두브로브니크·자다르 인기 거점. 아드리아해 접근성",
       "source": "https://mup.gov.hr",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "CZ", "name": "Czech Republic", "name_kr": "체코",
@@ -152,7 +165,8 @@
       "cost_tier": "medium", "notes": "프라하 물가 대비 삶의 질 높음. 쉥겐 중심부 위치. 영어 소통 가능",
       "source": "https://www.mzv.cz",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "HU", "name": "Hungary", "name_kr": "헝가리",
@@ -163,7 +177,8 @@
       "cost_tier": "low", "notes": "부다페스트 물가 저렴. 쉥겐 내 비용 최적 거점. 온천·문화 인프라",
       "source": "https://www.kormany.hu",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "SI", "name": "Slovenia", "name_kr": "슬로베니아",
@@ -174,7 +189,8 @@
       "cost_tier": "medium", "notes": "류블랴나 소도시 감성. 알프스·아드리아해 접근. 쉥겐 내 자연환경 최상급",
       "source": "https://www.gov.si",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "MT", "name": "Malta", "name_kr": "몰타",
@@ -185,7 +201,8 @@
       "cost_tier": "medium", "notes": "쉥겐 내 영어 공용어 국가. 지중해 섬나라. EU 디지털 허브 성장 중",
       "source": "https://nomad.gov.mt",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": true
     },
     {
       "id": "CY", "name": "Cyprus", "name_kr": "사이프러스",
@@ -196,7 +213,8 @@
       "cost_tier": "medium", "notes": "EU 회원국이나 쉥겐 비편입 — 쉥겐 소진 후 버퍼로 활용 가능. 영어 광범위 통용",
       "source": "https://www.mfa.gov.cy",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "AL", "name": "Albania", "name_kr": "알바니아",
@@ -207,7 +225,8 @@
       "cost_tier": "low", "notes": "한국인 무비자 1년 체류 가능. 비쉥겐 버퍼 최적. 티라나 물가 동남아 수준. 쉥겐 소진 후 휴식지",
       "source": "https://e-albania.al",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "RS", "name": "Serbia", "name_kr": "세르비아",
@@ -218,7 +237,8 @@
       "cost_tier": "low", "notes": "베오그라드 물가 유럽 최저권. 비쉥겐. 쉥겐 소진 후 비용 효율적 버퍼. 노마드 커뮤니티 성장 중",
       "source": "https://www.mfa.gov.rs",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "MK", "name": "North Macedonia", "name_kr": "북마케도니아",
@@ -229,7 +249,8 @@
       "cost_tier": "low", "notes": "스코페 물가 발칸 최저권. 비쉥겐. 쉥겐 인접 지리적 위치로 루트 활용 가능",
       "source": "https://www.mfa.gov.mk",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": false
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": false,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "MX", "name": "Mexico", "name_kr": "멕시코",
@@ -240,7 +261,8 @@
       "cost_tier": "low", "notes": "멕시코시티·오악사카 노마드 허브. 미국 근접. 스페인어권. 생활비 저렴",
       "source": "https://www.inm.gob.mx",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "CO", "name": "Colombia", "name_kr": "콜롬비아",
@@ -251,7 +273,8 @@
       "cost_tier": "low", "notes": "메데진 노마드 허브로 급부상. 소득 요건 낮아 접근성 높음. 커뮤니티 활발",
       "source": "https://www.cancilleria.gov.co",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "AR", "name": "Argentina", "name_kr": "아르헨티나",
@@ -262,7 +285,8 @@
       "cost_tier": "low", "notes": "부에노스아이레스 유럽풍 도시. 물가 매우 저렴 (환율 효과). 스페인어권 남미 허브",
       "source": "https://www.migraciones.gov.ar",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "BR", "name": "Brazil", "name_kr": "브라질",
@@ -273,7 +297,8 @@
       "cost_tier": "low", "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권",
       "source": "https://www.gov.br/mre",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "AE", "name": "UAE", "name_kr": "아랍에밀리트",
@@ -284,7 +309,8 @@
       "cost_tier": "high", "notes": "두바이 무세금 환경. 중동 허브. 생활비 높으나 소득 전액 보전. 영어 광범위 통용",
       "source": "https://www.mohre.gov.ae",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "MA", "name": "Morocco", "name_kr": "모로코",
@@ -295,7 +321,8 @@
       "cost_tier": "low", "notes": "마라케시·아가디르 유럽 접근성 최고. 비쉥겐. 유럽 물가의 30%. 아프리카 노마드 허브 부상",
       "source": "https://www.maroc.ma",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "CA", "name": "Canada", "name_kr": "캐나다",
@@ -306,7 +333,8 @@
       "cost_tier": "high", "notes": "밴쿠버·토론토 영어권 허브. 한인 커뮤니티 대규모. 영주권 경로 다양",
       "source": "https://www.canada.ca",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     },
     {
       "id": "JP", "name": "Japan", "name_kr": "일본",
@@ -317,7 +345,8 @@
       "cost_tier": "high", "notes": "도쿄·오사카·후쿠오카 한국인 최선호 아시아 노마드 거점. 교통·안전·음식 최상. 언어 장벽 있음",
       "source": "https://www.mofa.go.jp",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 183,
-      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true
+      "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
+      "income_period": "monthly", "ees_applicable": false
     }
   ]
 }

@@ -1,7 +1,10 @@
 # api/hf_client.py
 import os
 import re
+import logging
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 MODEL_ID = "gemini-2.5-flash"
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -38,6 +41,51 @@ def query_model(messages: list[dict], max_tokens: int = 2048) -> str:
         return result
     except Exception as e:
         return f"ERROR: {str(e)}"
+
+
+def query_model_cached(
+    user_message: str,
+    cache,
+    max_tokens: int = 8192,
+) -> str:
+    """Gemini 서버 캐시를 활용한 Step 1 쿼리.
+
+    캐시에 SYSTEM_PROMPT + DATA_CONTEXT + FEW_SHOTS가 포함되어 있으므로
+    동적인 사용자 프로필 메시지만 새로 전송.
+
+    Args:
+        user_message: DATA_CONTEXT 제외한 사용자 프로필 + 지시 텍스트
+        cache: cache_manager.get_or_create_cache() 가 반환한 CachedContent 객체
+        max_tokens: 최대 출력 토큰 수
+
+    Returns:
+        LLM 응답 텍스트, 실패 시 "ERROR: ..." 문자열
+    """
+    try:
+        from google import genai
+        from google.genai import types
+
+        api_key = os.getenv("GEMINI_API_KEY", "")
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=MODEL_ID,
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                cached_content=cache.name,
+                temperature=0.3,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        raw = response.text or ""
+        result = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
+        logger.info(f"[Cached API] length={len(result)}, first 300: {result[:300]!r}")
+        print(f"\n[Cached API] length={len(result)}, first 300:\n{result[:300]!r}\n")
+        return result
+
+    except Exception as exc:
+        logger.warning(f"[Cached API] 실패 — 폴백 권장: {exc}")
+        return f"ERROR: {str(exc)}"
 
 
 def query_model_with_thinking(messages: list[dict], max_tokens: int = 4096) -> tuple[str, str]:
