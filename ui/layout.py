@@ -129,6 +129,12 @@ def create_layout(advisor_fn, detail_fn):
                             choices=NATIONALITIES, value="Korean",
                             label="국적", info="여권 발급 국가 기준",
                         )
+                        # P2-1: 복수국적 여부
+                        dual_nationality = gr.Checkbox(
+                            label="복수국적 보유 (예: 한국-미국 이중국적)",
+                            value=False,
+                            info="복수국적 보유 시 보조 여권 기준 체류 가능 여부를 추가 안내합니다.",
+                        )
 
                         # P1-1: 동반 여부 + 자녀 연령대
                         travel_type = gr.Radio(
@@ -260,7 +266,7 @@ def create_layout(advisor_fn, detail_fn):
         # ── Step 1 이벤트 ──────────────────────────────────────────────
         _FALLBACK_LABELS = ["1순위 도시", "2순위 도시", "3순위 도시"]
 
-        def run_step1(nat, inc, inc_type, purpose, life, langs, tl, pref_countries, ui_lang,
+        def run_step1(nat, dual_nat, inc, inc_type, purpose, life, langs, tl, pref_countries, ui_lang,
                       q_motiv, q_euro, q_concern_val, travel_type_val, children_ages_val):
             try:
                 from utils.persona import diagnose_persona
@@ -269,6 +275,7 @@ def create_layout(advisor_fn, detail_fn):
                     yield msg, gr.update(), gr.update(visible=False), gr.update(), gr.update()
                 markdown, cities, parsed = advisor_fn(
                     nat, inc, purpose, life, langs, tl, pref_countries, ui_lang, persona_type,
+                    dual_nationality=dual_nat,
                     income_type=inc_type,
                     travel_type=travel_type_val, children_ages=children_ages_val,
                 )
@@ -295,7 +302,7 @@ def create_layout(advisor_fn, detail_fn):
         btn_step1.click(
             fn=run_step1,
             inputs=[
-                nationality, income_krw, income_type, immigration_purpose,
+                nationality, dual_nationality, income_krw, income_type, immigration_purpose,
                 lifestyle, languages, timeline, preferred_countries,
                 ui_language,
                 q_motivation, q_europe, q_concern,

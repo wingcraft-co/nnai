@@ -53,6 +53,11 @@ def build_prompt(user_profile: dict) -> list[dict]:
     elif income_type == "무소득 / 배우자 부양":
         income_type_hint = "※ 소득 없음 / 배우자 부양 — 배우자 동반 비자 또는 가족 비자 가능 국가를 우선 추천하세요.\n\n"
 
+    dual_nationality = user_profile.get("dual_nationality", False)
+    dual_nat_hint = ""
+    if dual_nationality:
+        dual_nat_hint = "※ 복수국적 보유 — 쉥겐 90일은 한국 여권 기준이며, 보조 여권으로 체류 가능 여부를 포함하여 안내하세요.\n\n"
+
     travel_type_val = user_profile.get("travel_type", "혼자")
     children_ages_val = user_profile.get("children_ages", [])
     travel_hint = ""
@@ -78,6 +83,7 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"{income_type_hint}"
             f"{slowmad_hint_en}"
             f"{preferred_hint}"
+            f"{dual_nat_hint}"
             f"{travel_hint}"
             f"{timeline_hint}"
             "Based on the above profile, recommend the top 3 best cities for long-term digital nomad living. "
@@ -98,6 +104,7 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"{income_type_hint}"
             f"{slowmad_hint_kr}"
             f"{preferred_hint}"
+            f"{dual_nat_hint}"
             f"{travel_hint}"
             f"{timeline_hint}"
             "위 프로필 기반으로 최적 거주 도시 TOP 3를 추천하세요. "
