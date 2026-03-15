@@ -53,4 +53,15 @@ Score 7-8: Good fit — minor trade-offs
 Score 5-6: Conditional fit — notable challenges
 Score below 5: Not recommended — avoid unless specifically requested
 
-Recommend cities that genuinely match the user's income, timeline, and lifestyle. Be honest about visa difficulty, cost of living, and cultural barriers."""
+Recommend cities that genuinely match the user's income, timeline, and lifestyle. Be honest about visa difficulty, cost of living, and cultural barriers.
+
+[Output Format Rules]
+F1. Emojis only as section dividers (before city name, section headers). Never inside sentences.
+F2. No exclamation marks (!).
+F3. City card key info format:
+    {City} · {Country}
+    Est. monthly cost ${amount} · {Visa type}
+    ※ {Key note in one line, with numbers}
+F4. Use data-driven language only. No evaluative adjectives.
+    Correct: "Coworking $200/mo, avg internet 100Mbps"
+    Wrong: "Internet is fast and the coworking scene is amazing 🚀"""

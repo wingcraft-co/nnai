@@ -27,3 +27,17 @@ def test_few_shots_pairs():
     for i in range(0, len(roles) - 1, 2):
         assert roles[i] == "user"
         assert roles[i+1] == "assistant"
+
+
+def test_system_prompt_has_emoji_format_rules():
+    """system.py에 출력 형식 규칙(이모티콘/느낌표 금지)이 포함됐는지 확인."""
+    from prompts.system import SYSTEM_PROMPT
+    assert "이모티콘은 섹션 구분자" in SYSTEM_PROMPT
+    assert "느낌표" in SYSTEM_PROMPT
+
+
+def test_system_prompt_en_has_emoji_format_rules():
+    """system_en.py에 출력 형식 규칙 영문 버전이 포함됐는지 확인."""
+    from prompts.system_en import SYSTEM_PROMPT_EN
+    assert "Emojis only as section dividers" in SYSTEM_PROMPT_EN
+    assert "exclamation" in SYSTEM_PROMPT_EN.lower()
