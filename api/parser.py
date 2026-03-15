@@ -63,6 +63,42 @@ def parse_response(raw_text: str) -> dict:
     }
 
 
+# 유니코드 이모티콘 범위 패턴 (보조 후처리용 — 프롬프트 지시가 1순위)
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F300-\U0001F9FF"
+    "\U00002700-\U000027BF"
+    "\U0000FE00-\U0000FE0F"
+    "\U00002600-\U000026FF"
+    "]+"
+)
+
+
+def _clean_inline_emoji(text: str) -> str:
+    """문장 중간 이모티콘 제거. 줄 시작 이모티콘(섹션 헤더)은 유지."""
+    lines = text.split("\n")
+    cleaned = []
+    for line in lines:
+        stripped = line.lstrip()
+        if stripped and _EMOJI_RE.match(stripped[0]):
+            cleaned.append(line)
+        else:
+            cleaned.append(_EMOJI_RE.sub("", line))
+    return "\n".join(cleaned)
+
+
+def _clean_output(text: str) -> str:
+    """LLM 출력 후처리 보조 함수.
+
+    프롬프트 지시가 1순위. 이 함수는 LLM이 지시를 어긴 경우의 안전망.
+    - 문장 중간 이모티콘 제거 (섹션 헤더 이모티콘 유지)
+    - 느낌표(!) 제거
+    """
+    text = _clean_inline_emoji(text)
+    text = text.replace("!", "")
+    return text
+
+
 def format_result_markdown(data: dict) -> str:
     lines = ["## 🌍 추천 거점 도시 TOP 3\n"]
     for i, city in enumerate(data.get("top_cities", [])[:3], 1):
@@ -174,7 +210,7 @@ def format_step1_markdown(data: dict) -> str:
         lines.append("---")
         lines.append(f"> ⚠️ **주의사항**: {overall}")
 
-    return "\n".join(lines)
+    return _clean_output("\n".join(lines))
 
 
 def _normalize_string_list(value) -> list:
@@ -312,4 +348,4 @@ def format_step2_markdown(data: dict) -> str:
                 )
             lines.append(header + "\n\n".join(planb_items) + "\n")
 
-    return "\n".join(lines)
+    return _clean_output("\n".join(lines))

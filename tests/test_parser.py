@@ -673,3 +673,45 @@ def test_format_step1_valid_url_normal_label():
     result = format_step1_markdown(data)
     assert "[D8]" in result or "D8" in result
     assert "공식 링크 확인 중" not in result
+
+
+class TestCleanOutput:
+    def test_removes_exclamation(self):
+        from api.parser import _clean_output
+        result = _clean_output("좋습니다! 추천합니다!")
+        assert "!" not in result
+
+    def test_keeps_section_header_emoji(self):
+        from api.parser import _clean_output
+        # 줄 첫 문자가 이모티콘이면 섹션 헤더 → 유지
+        text = "🌍 추천 도시\n좋은 도시입니다"
+        result = _clean_output(text)
+        assert "🌍" in result
+
+    def test_removes_inline_emoji(self):
+        from api.parser import _clean_output
+        # 문장 중간 이모티콘 제거
+        result = _clean_output("인터넷이 빠릅니다 🚀 코워킹도 좋아요")
+        assert "🚀" not in result
+
+    def test_plain_text_unchanged(self):
+        from api.parser import _clean_output
+        text = "코워킹 월 $200, 인터넷 평균 100Mbps"
+        assert _clean_output(text) == text
+
+    def test_format_step1_applies_clean_output(self):
+        """format_step1_markdown 출력에 _clean_output이 적용됨을 검증."""
+        from api.parser import format_step1_markdown
+        # LLM이 느낌표를 넣은 경우 시뮬레이션 — reasons에 !를 포함
+        data = {
+            "top_cities": [{
+                "city": "Chiang Mai", "city_kr": "치앙마이", "country": "Thailand",
+                "country_id": "TH", "visa_type": "DTV",
+                "visa_url": None, "monthly_cost_usd": 1100, "score": 9,
+                "reasons": [{"point": "인터넷 빠름! 코워킹 최고!", "source_url": None}],
+                "realistic_warnings": []
+            }],
+            "overall_warning": ""
+        }
+        result = format_step1_markdown(data)
+        assert "!" not in result
