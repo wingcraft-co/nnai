@@ -41,3 +41,9 @@ def test_system_prompt_en_has_emoji_format_rules():
     from prompts.system_en import SYSTEM_PROMPT_EN
     assert "Emojis only as section dividers" in SYSTEM_PROMPT_EN
     assert "exclamation" in SYSTEM_PROMPT_EN.lower()
+
+
+def test_ge_labour_warning_in_system_prompt():
+    """system.py: GE 노동이민법 경고가 system prompt에 포함됨."""
+    from prompts.system import SYSTEM_PROMPT
+    assert "노동이민법" in SYSTEM_PROMPT or "노동 활동 허가" in SYSTEM_PROMPT
