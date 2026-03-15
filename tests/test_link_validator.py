@@ -44,17 +44,22 @@ class TestFindReplacementUrl:
         assert "XX" in result
 
     def test_google_fallback_contains_visa_type(self):
+        import urllib.parse
         result = find_replacement_url("ZZ", "Digital Nomad Visa")
-        assert "Digital" in result or "Nomad" in result or "Visa" in result
+        assert "google.com/search" in result
+        # URL 파라미터 디코딩 후 검증
+        parsed = urllib.parse.urlparse(result)
+        query = urllib.parse.parse_qs(parsed.query)
+        q_value = query.get("q", [""])[0]
+        assert "Digital Nomad Visa" in q_value or "ZZ" in q_value
 
     def test_known_country_returns_non_google_url(self):
         """visa_db.json에 official_url이 있는 국가는 Google URL이 아닌 것을 반환."""
-        # PT는 visa_db.json에 official_url 있음
-        result = find_replacement_url("PT", "D8 Digital Nomad Visa")
-        assert result is not None
-        assert result.startswith("http")
-        # official_url이 있으면 Google fallback 아님
-        # (실제 official_url 값은 visa_db.json에 따라 다를 수 있으므로 느슨하게 검증)
+        fake_db = {"PT": {"id": "PT", "visa_type": "D8", "official_url": "https://imigracao.pt/en/visas/digital-nomad"}}
+        with patch("utils.link_validator._load_visa_db", return_value=fake_db):
+            result = find_replacement_url("PT", "D8 Digital Nomad Visa")
+        assert result == "https://imigracao.pt/en/visas/digital-nomad"
+        assert "google.com" not in result
 
 
 class TestRunValidationBatch:

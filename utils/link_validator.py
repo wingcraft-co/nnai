@@ -47,6 +47,13 @@ def find_replacement_url(country_id: str, visa_type: str) -> str:
 
     1순위: visa_db.json의 source 필드 (공식 URL)
     2순위: Google 정적 검색 URL (웹 검색 API 호출 없음)
+
+    Args:
+        country_id: 국가 코드 (e.g. "PT", "TH")
+        visa_type: 비자 종류 (e.g. "D8 Digital Nomad Visa")
+
+    Returns:
+        str: 공식 URL 또는 Google 검색 URL
     """
     db = _load_visa_db()
     entry = db.get(country_id, {})
