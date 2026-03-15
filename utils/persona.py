@@ -37,12 +37,14 @@ PERSONA_HINTS = {
 def diagnose_persona(
     motivation: str,
     europe_plan: str,
-    stay_duration: str,
-    work_type: str,
-    main_concern: str,
+    stay_duration: str | None,
+    work_type: str | None,
+    main_concern: str | list | None,
 ) -> str:
     """
-    5개 온보딩 질문 응답으로 페르소나 유형을 진단한다.
+    온보딩 질문 응답으로 페르소나 유형을 진단한다.
+    stay_duration, work_type은 None을 허용한다 (P1에서 해당 질문 제거됨).
+    main_concern은 str 또는 list[str]을 허용한다 (CheckboxGroup 지원).
 
     Returns:
         persona_type: one of the PERSONA_LABELS keys
@@ -62,20 +64,26 @@ def diagnose_persona(
     if motivation in motivation_map:
         return motivation_map[motivation]
 
-    # Q3: 체류 기간 힌트
+    # Q3: 체류 기간 힌트 (None이면 건너뜀)
     if stay_duration in ("6개월 이상", "3~6개월"):
         return "slow_nomad"
     if stay_duration == "1개월 이하":
         return "fire_optimizer"
 
-    # Q5: 주요 걱정
+    # Q5: 주요 걱정 — str 또는 list 모두 지원
     concern_map = {
         "비자/체류일 관리":               "schengen_loop",
         "생활비 예산":                    "fire_optimizer",
         "세금/법적 문제":                 "slow_nomad",
         "외로움/커뮤니티":                "burnout_escape",
         "숙소 구하기":                    "slow_nomad",
+        "건강보험 공백":                  "slow_nomad",
     }
+    if isinstance(main_concern, list):
+        for item in main_concern:
+            if item in concern_map:
+                return concern_map[item]
+        return "slow_nomad"
     return concern_map.get(main_concern, "slow_nomad")
 
 

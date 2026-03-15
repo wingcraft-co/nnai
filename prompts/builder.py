@@ -35,6 +35,19 @@ def build_prompt(user_profile: dict) -> list[dict]:
         if persona_hint:
             persona_hint = persona_hint + "\n\n"
 
+    travel_type = user_profile.get("travel_type", "혼자")
+    children_ages = user_profile.get("children_ages", [])
+    travel_hint = ""
+    if travel_type in ["자녀 동반", "가족 전체 동반"]:
+        ages_str = ", ".join(children_ages) if children_ages else "미지정"
+        travel_hint = f"※ 자녀 동반: {ages_str} — 국제학교 유무·학비·가족 비자 여부를 반드시 포함하세요.\n\n"
+    elif travel_type == "배우자 동반":
+        travel_hint = "※ 배우자 동반 — 동반 비자·배우자 취업 허용 여부를 반드시 포함하세요.\n\n"
+
+    timeline_hint = ""
+    if timeline == "90일 이하 (비자 없이 탐색)":
+        timeline_hint = "※ 90일 이하 단기 탐색 — 비자 체크리스트보다 무비자 체류 가능 국가와 첫 30일 루트 중심으로 안내하세요.\n\n"
+
     if language == "English":
         user_message = (
             f"Nationality: {nationality} | Monthly income: ${income_usd:,.0f} USD | "
@@ -45,6 +58,8 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"{DATA_CONTEXT}\n\n"
             f"{persona_hint}"
             f"{preferred_hint}"
+            f"{travel_hint}"
+            f"{timeline_hint}"
             "Based on the above profile, recommend the top 3 best cities for long-term digital nomad living. "
             "Include realistic challenges and risks. "
             "Output pure JSON only."
@@ -61,6 +76,8 @@ def build_prompt(user_profile: dict) -> list[dict]:
             f"{DATA_CONTEXT}\n\n"
             f"{persona_hint}"
             f"{preferred_hint}"
+            f"{travel_hint}"
+            f"{timeline_hint}"
             "위 프로필 기반으로 최적 거주 도시 TOP 3를 추천하세요. "
             "현실적 어려움과 위험 요소를 반드시 포함하세요. "
             "반드시 순수 JSON만 출력하세요."
