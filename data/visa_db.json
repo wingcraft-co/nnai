@@ -46,7 +46,9 @@
       "source": "https://www.politsei.ee",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
       "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
-      "income_period": "monthly", "ees_applicable": true
+"income_period": "monthly", "ees_applicable": true,
+      "common_mistake": "e-Residency는 체류 비자가 아님. EU 사업자 등록 수단이며 거주 권한 없음.",
+      "visa_availability_note": "에스토니아 DNV는 신규 발급 중단 이력 있음. 신청 전 공식 사이트 확인 필수."
     },
     {
       "id": "ES", "name": "Spain", "name_kr": "스페인",
@@ -92,7 +94,9 @@
       "visa_fee_usd": 0, "tax_note": "조지아 거주 1년 이상 시 플랫세율 1% 적용 (Virtual Zone 등록 시)",
       "cost_tier": "low", "notes": "트빌리시 물가 낮고 인터넷 빠름. 비자 없이 365일 체류 가능",
       "source": "https://stophere.georgia.com",
-      "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
+"schengen": false, "buffer_zone": true, "tax_residency_days": 180,
+      "tax_residency_risk": "180일 이상 체류 시 조지아 세법상 세금 거주자 간주 가능",
+      "common_mistake": "무비자 365일 체류 가능 = 세금 무관으로 오해하는 사례 많음. 체류 기간과 세금 거주지는 별개.",
       "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
       "income_period": "monthly", "ees_applicable": false
     },
