@@ -24,8 +24,9 @@ def test_create_layout_has_correct_inputs():
 
 def test_language_options_has_korean():
     from ui.layout import LANGUAGE_OPTIONS
-    assert "🇰🇷 한국어" in LANGUAGE_OPTIONS
-    assert "🇰🇷 한국어만 가능" not in LANGUAGE_OPTIONS
+    # P3: simplified to 3 choices (no flag emojis)
+    assert any("한국어" in opt for opt in LANGUAGE_OPTIONS)
+    assert len(LANGUAGE_OPTIONS) == 3
 
 
 def test_layout_has_tabs():
