@@ -157,3 +157,104 @@ def test_all_4_countries_have_data_verified_date():
     countries = {c["id"]: c for c in d["countries"]}
     for cid in ["GE", "TH", "PT", "ES"]:
         assert "data_verified_date" in countries[cid], f"{cid} missing data_verified_date"
+
+
+# ===== P1 비자 현행화 검증 테스트 =====
+
+def test_ee_min_income_monthly_eur():
+    """EE: DNV 소득 기준 €4,500/월로 업데이트."""
+    ee = _country("EE")
+    assert ee.get("min_income_monthly_eur") == 4500
+
+
+def test_ee_visa_notes():
+    """EE: visa_notes 필드 존재 및 갱신 불가 안내 포함."""
+    ee = _country("EE")
+    assert "visa_notes" in ee
+    assert isinstance(ee["visa_notes"], list)
+    assert len(ee["visa_notes"]) >= 2
+    assert any("갱신" in n for n in ee["visa_notes"])
+
+
+def test_ee_data_verified_date():
+    """EE: data_verified_date 필드 존재."""
+    ee = _country("EE")
+    assert "data_verified_date" in ee
+
+
+def test_id_e33g_kitas_added():
+    """ID: E33G 디지털 노마드 KITAS 항목 추가 확인."""
+    id_ = _country("ID")
+    assert "e33g_kitas" in id_, "e33g_kitas 필드 없음"
+    kitas = id_["e33g_kitas"]
+    assert kitas.get("min_income_annual_usd") == 60000
+    assert kitas.get("stay_duration_months") == 12
+
+
+def test_id_e33g_critical_warnings():
+    """ID: E33G 현지 전환 불가 및 MERP 경고 포함."""
+    id_ = _country("ID")
+    kitas = id_.get("e33g_kitas", {})
+    warnings = kitas.get("critical_warnings", [])
+    assert len(warnings) >= 2
+    assert any("현지 전환" in w or "출국" in w for w in warnings)
+    assert any("MERP" in w for w in warnings)
+
+
+def test_id_data_verified_date():
+    """ID: data_verified_date 필드 존재."""
+    id_ = _country("ID")
+    assert "data_verified_date" in id_
+
+
+def test_gr_onsite_application_not_available():
+    """GR: Law 5275/2026 시행으로 현지 신청 불가 (onsite_application_available=false)."""
+    gr = _country("GR")
+    assert gr.get("onsite_application_available") is False
+
+
+def test_gr_application_method_note():
+    """GR: application_method_note 필드에 Law 5275/2026 언급."""
+    gr = _country("GR")
+    note = gr.get("application_method_note", "")
+    assert "5275" in note or "영사관" in note
+
+
+def test_gr_family_income_addition():
+    """GR: 가족 동반 소득 기준 배수 필드 존재."""
+    gr = _country("GR")
+    assert "family_income_addition" in gr
+    assert gr["family_income_addition"].get("spouse_pct") == 20
+    assert gr["family_income_addition"].get("per_child_pct") == 15
+
+
+def test_gr_data_verified_date():
+    """GR: data_verified_date 필드 존재."""
+    gr = _country("GR")
+    assert "data_verified_date" in gr
+
+
+def test_my_income_tiers_two_tracks():
+    """MY: DE Rantau 직군별 2트랙 income_tiers 배열 존재."""
+    my = _country("MY")
+    assert "income_tiers" in my
+    tiers = my["income_tiers"]
+    assert isinstance(tiers, list)
+    assert len(tiers) == 2
+    categories = {t["category"] for t in tiers}
+    assert "tech" in categories
+    assert "non_tech" in categories
+
+
+def test_my_income_tiers_amounts():
+    """MY: 테크 $2,000/월, 비테크 $5,000/월 기준."""
+    my = _country("MY")
+    tiers = {t["category"]: t for t in my.get("income_tiers", [])}
+    assert tiers.get("tech", {}).get("min_income_monthly_usd") == 2000
+    assert tiers.get("non_tech", {}).get("min_income_monthly_usd") == 5000
+
+
+def test_my_data_verified_date():
+    """MY: data_verified_date 필드 존재."""
+    my = _country("MY")
+    assert "data_verified_date" in my

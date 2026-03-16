@@ -7,10 +7,26 @@
       "key_docs": ["여권 (유효기간 18개월 이상)", "3개월 이상 소득 증빙 (영문 고용계약서 또는 프리랜서 계약서)", "건강보험 증서 (말레이시아 체류 기간 커버)"],
       "visa_fee_usd": 150, "tax_note": "비거주자 — 현지 소득세 없음",
       "cost_tier": "low", "notes": "동남아 노마드 기지 1순위. 한인 커뮤니티 활발, 영어 통용",
-      "source": "https://www.mm2h.gov.my",
+      "source": "digital.gov.my, mdec.my, citizenremote.com",
       "schengen": false, "buffer_zone": false, "tax_residency_days": 182,
       "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
-      "income_period": "monthly", "ees_applicable": false
+      "income_period": "monthly", "ees_applicable": false,
+      "income_tiers": [
+        {
+          "category": "tech",
+          "category_kr": "테크/디지털 직군",
+          "min_income_annual_usd": 24000,
+          "min_income_monthly_usd": 2000
+        },
+        {
+          "category": "non_tech",
+          "category_kr": "비테크 직군 (CEO, 법무, 회계, PR 등)",
+          "min_income_annual_usd": 60000,
+          "min_income_monthly_usd": 5000,
+          "introduced_date": "2024-06-07"
+        }
+      ],
+      "data_verified_date": "2024-06"
     },
     {
       "id": "PT", "name": "Portugal", "name_kr": "포르투갈",
@@ -75,12 +91,19 @@
       "key_docs": ["고용계약서 또는 서비스 계약서 (원격근무 입증)", "3개월 급여명세서 또는 인보이스", "숙박 증빙 (임시 주소 확인서)"],
       "visa_fee_usd": 100, "tax_note": "에스토니아 거주자 아닐 시 현지 소득세 없음. e-Residency 별도 신청 가능",
       "cost_tier": "medium", "notes": "e-Residency 병행 시 EU 법인 설립 가능. 탈린 영어 소통 원활",
-      "source": "https://www.politsei.ee",
+      "source": "e-resident.gov.ee, citizenremote.com, aeroseer.com",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
       "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
-"income_period": "monthly", "ees_applicable": true,
+      "income_period": "monthly", "ees_applicable": true,
       "common_mistake": "e-Residency는 체류 비자가 아님. EU 사업자 등록 수단이며 거주 권한 없음.",
-      "visa_availability_note": "에스토니아 DNV는 신규 발급 중단 이력 있음. 신청 전 공식 사이트 확인 필수."
+      "visa_availability_note": "에스토니아 DNV는 신규 발급 중단 이력 있음. 신청 전 공식 사이트 확인 필수.",
+      "min_income_monthly_eur": 4500,
+      "visa_notes": [
+        "최대 체류 12개월, 갱신 불가",
+        "재신청 시 6개월 연장만 가능",
+        "가족 동반 신청 가능 (본인 소득 기준으로 동반 가족 커버)"
+      ],
+      "data_verified_date": "2025-12"
     },
     {
       "id": "ES", "name": "Spain", "name_kr": "스페인",
@@ -112,7 +135,27 @@
       "source": "https://molina.imigrasi.go.id",
       "schengen": false, "buffer_zone": true, "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true, "mid_term_rental_available": true,
-      "income_period": "monthly", "ees_applicable": false
+      "income_period": "monthly", "ees_applicable": false,
+      "data_verified_date": "2026-03",
+      "e33g_kitas": {
+        "visa_type": "E33G (디지털 노마드 KITAS)",
+        "introduced_date": "2024-04",
+        "min_income_annual_usd": 60000,
+        "employment_type": "해외 법인 소속 직원만 가능 (프리랜서 불가)",
+        "min_bank_balance_usd": 2000,
+        "bank_balance_period_months": 3,
+        "stay_duration_months": 12,
+        "max_renewals": 5,
+        "family_allowed": true,
+        "family_allowed_since": "2025-12",
+        "ineligible_nationalities": ["AF","CM","GN","IL","XK","LR","NG","KP","SO"],
+        "critical_warnings": [
+          "관광 비자 입국 후 현지 전환 불가 — 반드시 출국 상태에서 사전 신청",
+          "MERP(복수 출입국 허가) 미취득 시 출국하면 비자 무효화"
+        ],
+        "income_period": "annual",
+        "source": "rumavi.com, letsmoveindonesia.com, flado.id"
+      }
     },
     {
       "id": "DE", "name": "Germany", "name_kr": "독일",
@@ -169,10 +212,16 @@
       "key_docs": ["고용계약서 또는 원격근무 증명서", "3개월 급여명세서", "숙박 증빙 (임대계약서)"],
       "visa_fee_usd": 75, "tax_note": "7% 단일세율 10년 적용 (외국 연금·소득 특별세제)",
       "cost_tier": "medium", "notes": "아테네·테살로니키 노마드 씬 성장 중. 지중해 섬 옵션",
-      "source": "https://nomad.gov.gr",
+      "source": "aeroseer.com, consiliojus.com",
       "schengen": true, "buffer_zone": false, "tax_residency_days": 183,
       "double_tax_treaty_with_kr": false, "mid_term_rental_available": true,
-      "income_period": "monthly", "ees_applicable": true
+      "income_period": "monthly", "ees_applicable": true,
+      "application_method": "재외 영사관 신청만 가능",
+      "application_method_note": "Law 5275/2026 (2026-02-05 시행). 관광 비자 입국 후 현지 신분 전환 불가.",
+      "onsite_application_available": false,
+      "family_income_addition": {"spouse_pct": 20, "per_child_pct": 15},
+      "application_fee_eur": {"main_applicant": 1000, "per_dependent": 150},
+      "data_verified_date": "2026-03"
     },
     {
       "id": "PH", "name": "Philippines", "name_kr": "필리핀",
