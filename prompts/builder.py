@@ -556,8 +556,9 @@ def build_detail_prompt(selected_city: dict, user_profile: dict) -> list[dict]:
     languages    = user_profile.get("languages", [])
     timeline     = user_profile.get("timeline", "")
     income_usd   = user_profile.get("income_usd", 0)
-    income_type  = user_profile.get("income_type", "")
-    travel_type  = user_profile.get("travel_type", "")
+    income_type    = user_profile.get("income_type", "")
+    travel_type    = user_profile.get("travel_type", "")
+    readiness_stage = user_profile.get("readiness_stage", "")
 
     # 개인화 힌트 블록 조립
     if language == "English":
@@ -584,6 +585,22 @@ def build_detail_prompt(selected_city: dict, user_profile: dict) -> list[dict]:
         personalization_parts.append(
             hint_label("동반 구성", travel_type) + hint_map_travel[travel_type]
         )
+
+    # 출국 임박 단계: 건강보험 임의계속가입 기한 경고를 user_message에 명시
+    if readiness_stage == "이미 출국했거나 출국 임박":
+        if language == "English":
+            personalization_parts.append(
+                "[Urgent: Deadline-sensitive items]\n"
+                "Korean health insurance continuation (임의계속가입): must apply within 2 months of resignation/departure — permanently forfeited if deadline missed. "
+                "Place this as the FIRST item in first_steps regardless of other considerations."
+            )
+        else:
+            personalization_parts.append(
+                "[긴급: 기한 소멸 위험 항목]\n"
+                "건강보험 임의계속가입 신청: 퇴직/출국 후 2개월 이내 — 기한 초과 시 영구 불가. "
+                "준비 단계가 '이미 출국했거나 출국 임박'이더라도 아직 기한이 남아 있을 수 있음. "
+                "반드시 first_steps[0] 또는 first_steps[1]에 포함할 것."
+            )
 
     personalization_block = ("\n\n" + "\n\n".join(personalization_parts)) if personalization_parts else ""
 

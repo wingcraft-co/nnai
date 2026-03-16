@@ -78,3 +78,14 @@ def test_format_step2_no_planb_for_non_schengen_city():
     }
     result = format_step2_markdown(parsed)
     assert "플랜B" not in result and "Plan B" not in result
+
+
+# ── 수정 4: GE 플랜B 경고 ──────────────────────────────────────────────────────
+
+def test_get_planb_suggestions_ge_includes_labour_law_warning():
+    """GE 플랜B 추천 이유에 2026년 노동이민법 경고가 포함되어야 함."""
+    from utils.planb import get_planb_suggestions
+    suggestions = get_planb_suggestions("PT", language="한국어")
+    ge = next((s for s in suggestions if s["id"] == "GE"), None)
+    assert ge is not None, "GE가 플랜B 추천에 포함되어야 함"
+    assert "노동이민법" in ge["reason"] or "2026" in ge["reason"] or "노동 활동 허가" in ge["reason"]

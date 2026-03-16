@@ -19,7 +19,7 @@ def _load_buffer_countries() -> list[dict]:
 
 # 버퍼 국가별 한국어 추천 이유 (간결한 1문장)
 _BUFFER_REASONS_KR = {
-    "GE": "무비자 365일 체류 가능, 물가 낮음, 트빌리시 노마드 커뮤니티 활발",
+    "GE": "무비자 365일 체류 가능, 물가 낮음, 트빌리시 노마드 커뮤니티 활발. ⚠️ 주의: 2026-03-01 조지아 노동이민법 시행 — 원격 근무자도 노동 활동 허가 필요 가능성. 위반 시 벌금 2,000 라리(약 $740). 출국 전 최신 규정 확인 필수.",
     "AL": "무비자 1년 체류, 발칸 최저 물가, 쉥겐 인접 지리적 위치",
     "RS": "베오그라드 유럽 최저권 물가, 비쉥겐 무비자 연장 가능",
     "MK": "스코페 물가 발칸 최저, 비쉥겐 인접 루트 활용 가능",
@@ -32,7 +32,7 @@ _BUFFER_REASONS_KR = {
 }
 
 _BUFFER_REASONS_EN = {
-    "GE": "365-day visa-free stay, low cost of living, vibrant nomad scene in Tbilisi",
+    "GE": "365-day visa-free stay, low cost of living, vibrant nomad scene in Tbilisi. ⚠️ Warning: Georgia Labour Immigration Law effective 2026-03-01 — remote workers may need a labour activity permit. Fines up to 2,000 GEL (~$740) for violations. Verify latest regulations before departure.",
     "AL": "1-year visa-free, lowest cost in the Balkans, geographically close to Schengen",
     "RS": "Belgrade among cheapest in Europe, extendable visa-free stays",
     "MK": "Skopje lowest costs in the Balkans, useful non-Schengen transit route",

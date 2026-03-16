@@ -249,3 +249,19 @@ def test_detail_prompt_english_income_type_hint():
     msgs = build_detail_prompt(selected_city, profile)
     msg = msgs[-1]["content"]
     assert "remittance" in msg.lower() or "transfer" in msg.lower() or "송금" in msg
+
+
+# ── 수정 2: 건강보험 임의계속가입 — 출국 임박 단계 ────────────────────────────────
+
+def test_build_detail_prompt_imminent_departure_includes_health_insurance():
+    """readiness_stage=이미 출국했거나 출국 임박 → user_message에 건강보험 경고 포함."""
+    selected_city = {"city": "Lisbon", "country_id": "PT", "visa_type": "D8", "monthly_cost_usd": 2600}
+    profile = {
+        "nationality": "한국", "income_usd": 3360, "income_krw": 500,
+        "purpose": "원격 근무", "languages": ["한국어"], "timeline": "1년 단기 체험",
+        "language": "한국어", "income_type": "", "travel_type": "혼자 (솔로)",
+        "readiness_stage": "이미 출국했거나 출국 임박",
+    }
+    msgs = build_detail_prompt(selected_city, profile)
+    user_msg = msgs[-1]["content"]
+    assert "건강보험" in user_msg or "임의계속가입" in user_msg
