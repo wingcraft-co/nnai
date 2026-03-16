@@ -143,3 +143,41 @@ def test_build_detail_prompt_english_returns_english_user_message():
     last_user = result[-1]["content"]
     assert "Selected city:" in last_user
     assert "선택 도시:" not in last_user
+
+
+# ── VISA_CHECKLIST_INSTRUCTION 반영 테스트 ──────────────────────────────────
+
+def _get_step2_system_prompt(language: str = "한국어") -> str:
+    """build_detail_prompt()의 system 메시지 내용을 반환."""
+    selected_city = {"city": "Kuala Lumpur", "country_id": "MY",
+                     "visa_type": "무비자", "monthly_cost_usd": 1500}
+    user_profile = {"nationality": "Korean", "income_usd": 3000,
+                    "purpose": "디지털 노마드", "languages": ["한국어"],
+                    "timeline": "1년 단기 체험", "language": language}
+    msgs = build_detail_prompt(selected_city, user_profile)
+    return msgs[0]["content"]
+
+
+def test_step2_system_prompt_excludes_bank_balance_for_visa_free_countries():
+    """무비자 입국 국가(MY, TH, ID, VN, PH)에서 은행 잔고 증명 제외 지시가 있어야 함."""
+    prompt = _get_step2_system_prompt()
+    assert "MY" in prompt or "무비자" in prompt
+    assert "은행 잔고 증명" in prompt
+
+
+def test_step2_system_prompt_requires_round_trip_ticket_warning():
+    """왕복 항공권 소지 여부 지시가 system 프롬프트에 있어야 함."""
+    prompt = _get_step2_system_prompt()
+    assert "왕복 항공권" in prompt
+
+
+def test_step2_system_prompt_requires_visa_run_option():
+    """비자런 옵션 포함 지시가 system 프롬프트에 있어야 함."""
+    prompt = _get_step2_system_prompt()
+    assert "비자런" in prompt
+
+
+def test_step2_system_prompt_requires_work_disclosure_warning():
+    """원격근무 발설 주의 지시가 system 프롬프트에 있어야 함."""
+    prompt = _get_step2_system_prompt()
+    assert "원격근무" in prompt
