@@ -47,3 +47,10 @@ def test_ge_labour_warning_in_system_prompt():
     """system.py: GE 노동이민법 경고가 system prompt에 포함됨."""
     from prompts.system import SYSTEM_PROMPT
     assert "노동이민법" in SYSTEM_PROMPT or "노동 활동 허가" in SYSTEM_PROMPT
+
+
+def test_system_prompt_ees_current_active():
+    """system.py: EES 문구가 '시행 예정'이 아닌 '현재 시행 중'을 사용해야 함 (2025년 10월 발효)."""
+    from prompts.system import SYSTEM_PROMPT
+    assert "2024년 시행 예정" not in SYSTEM_PROMPT
+    assert "시행 중" in SYSTEM_PROMPT or "발효" in SYSTEM_PROMPT or "2025년 10월" in SYSTEM_PROMPT

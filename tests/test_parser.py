@@ -750,3 +750,35 @@ def test_format_step2_source_block_position():
     result = format_step2_markdown(SAMPLE_STEP2_DATA, visa_data=visa_data)
     tail = result[-300:]
     assert "2026-01" in tail or "official.gov" in tail
+
+
+# ── 수정 1: 잘린 JSON 부분 복구 테스트 ─────────────────────────────────────────
+
+TRUNCATED_TOP_CITIES_JSON = """{
+  "top_cities": [
+    {
+      "city": "Kuala Lumpur",
+      "city_kr": "쿠알라룸푸르",
+      "country": "Malaysia",
+      "country_id": "MY",
+      "visa_type": "DE Rantau",
+      "monthly_cost_usd": 1500,
+      "score": 9,
+      "reasons": [{"point": "좋은 이유", "source_url": null}],
+      "realistic_warnings": ["주의사항"]
+    }
+  """
+# 주의: JSON이 잘려 있음 — }]} 없음
+
+
+def test_parse_response_recovers_truncated_json():
+    """잘린 JSON (닫는 }]} 없음)에서도 top_cities 데이터를 복구해야 함."""
+    result = parse_response(TRUNCATED_TOP_CITIES_JSON)
+    assert result["top_cities"][0]["city"] == "Kuala Lumpur"
+    assert result["top_cities"][0]["country_id"] == "MY"
+
+
+def test_parse_response_truncated_json_not_fallback_city():
+    """잘린 JSON 복구 시 '파싱 오류' 도시가 반환되지 않아야 함."""
+    result = parse_response(TRUNCATED_TOP_CITIES_JSON)
+    assert result["top_cities"][0]["city"] != "파싱 오류"

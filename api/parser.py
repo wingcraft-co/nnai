@@ -239,7 +239,19 @@ def parse_response(raw_text: str) -> dict:
             return _inject_visa_urls(json.loads(match))
         except json.JSONDecodeError:
             continue
-    # 3) 파싱 실패 폴백
+    # 3) 잘린 JSON 부분 복구 시도 — suffix를 붙여 강제 완성
+    _stripped = raw_text.rstrip()
+    for suffix in ("}]}", "}}", "}]}", "]}", "}"):
+        try:
+            parsed = json.loads(_stripped + suffix)
+            cities = parsed.get("top_cities", [])
+            if cities and cities[0].get("city"):
+                print(f"\n[PARSE RECOVER] Partial JSON recovered with suffix {suffix!r}, cities={[c.get('city') for c in cities]}\n")
+                return _inject_visa_urls(parsed)
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    # 4) 파싱 실패 폴백
     print(f"\n[PARSE FAIL] raw length={len(raw_text)}, first 500 chars:\n{raw_text[:500]!r}\n")
     return {
         "top_cities": [{"city": "파싱 오류", "country": "-", "visa_type": "-",
