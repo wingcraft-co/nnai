@@ -335,7 +335,9 @@ _STAY_DURATION_GUIDE_HINTS = {
         "장기거주 전환 루트 검토: PR 또는 영주권 경로 존재 여부 명시. "
         "세금 거주자 전환 시점(183일) 반드시 안내 + 한국 비거주자 처리 의무. "
         "현지 은행 계좌 개설 조건 상세 안내. "
-        "장기 임대 계약 협상 팁 포함."
+        "장기 임대 계약 협상 팁 포함. "
+        "first_steps 순서 규칙: ① 건강보험 임의계속가입(기한 엄수) ② 국민연금 납부예외 "
+        "③ 한국 비거주자 전환 신고 계획 수립 (183일 전 세무사 상담 권장) — 반드시 3번 이내에 배치."
     ),
     "5년 이상 초장기 체류": (
         "영주권 또는 시민권 취득 경로 명시. "
@@ -467,13 +469,15 @@ budget_source 필드에 해당 도시의 Numbeo URL을 포함하라.
 
 [비자 체크리스트 생성 규칙 — 반드시 준수]
 1. 한국 여권 기준으로 실제 필요한 서류만 포함한다.
-   - 무비자 입국 국가(MY, TH, ID, VN, PH 등)에서 은행 잔고 증명은 불필요 — 포함하지 않는다.
+   - 무비자 입국 국가(MY, TH, ID, VN, PH, PT 등)에서 은행 잔고 증명·충분한 체류 경비 증명은 불필요 — 포함하지 않는다.
+   - 소득 증명 서류(재직증명서, 급여명세서 등)는 비자 신청(D8, DNV, DE Rantau 등)에서만 포함한다.
    - 한국 국적자에게 면제되는 항목은 명시적으로 제외한다.
 
 2. 다음 항목은 해당 국가·비자 유형에 맞게 반드시 포함한다.
    - 왕복 항공권 소지 여부 (탑승 거부 사례 빈발 국가: MY, TH, ID)
    - 90일 초과 체류 시 비자런 옵션 (비용·리스크·주의사항)
-   - 입국심사 시 원격근무 사실 발설 주의 (관광 비자 취업 오해 리스크)
+   - 쉥겐 국가(유럽) 포함 모든 국가: 입국심사 시 원격근무 사실 발설 금지
+     (취업 비자 없이 원격근무 발각 시 추방·입국 금지 리스크 — 비자 신청 케이스도 동일 적용)
 
 3. 기한이 있는 항목은 기한을 명시한다.
    - 건강보험 임의계속가입: 퇴직 후 2개월 이내 (기한 초과 시 영구 불가)
@@ -586,20 +590,27 @@ def build_detail_prompt(selected_city: dict, user_profile: dict) -> list[dict]:
             hint_label("동반 구성", travel_type) + hint_map_travel[travel_type]
         )
 
-    # 출국 임박 단계: 건강보험 임의계속가입 기한 경고를 user_message에 명시
+    # 출국 임박 단계: 건강보험 임의계속가입 기한 경고 + 초보 정보 제외
     if readiness_stage == "이미 출국했거나 출국 임박":
         if language == "English":
             personalization_parts.append(
                 "[Urgent: Deadline-sensitive items]\n"
                 "Korean health insurance continuation (임의계속가입): must apply within 2 months of resignation/departure — permanently forfeited if deadline missed. "
-                "Place this as the FIRST item in first_steps regardless of other considerations."
+                "Place this as the FIRST item in first_steps regardless of other considerations.\n"
+                "[Advanced nomad — exclude basic travel info]\n"
+                "Do NOT include in first_steps or immigration_guide: SIM card purchase, public transit card, airport-to-city transport, local app installation (Grab etc.). "
+                "Focus instead on: visa application timeline, tax residency strategy, local bank account, long-term accommodation tips."
             )
         else:
             personalization_parts.append(
                 "[긴급: 기한 소멸 위험 항목]\n"
                 "건강보험 임의계속가입 신청: 퇴직/출국 후 2개월 이내 — 기한 초과 시 영구 불가. "
                 "준비 단계가 '이미 출국했거나 출국 임박'이더라도 아직 기한이 남아 있을 수 있음. "
-                "반드시 first_steps[0] 또는 first_steps[1]에 포함할 것."
+                "반드시 first_steps[0] 또는 first_steps[1]에 포함할 것.\n"
+                "[숙련 노마드 — 초보 여행 정보 제외]\n"
+                "first_steps 및 immigration_guide에 다음 항목을 포함하지 않는다: "
+                "SIM 카드 구매 방법, 대중교통 카드 구매, 공항에서 시내 이동 방법, 현지 앱(Grab 등) 설치 안내. "
+                "대신 다음에 집중한다: 비자 신청 타임라인 및 서류, 세금 거주지 전략, 현지 은행 계좌 개설, 장기 숙소 계약 팁."
             )
 
     personalization_block = ("\n\n" + "\n\n".join(personalization_parts)) if personalization_parts else ""

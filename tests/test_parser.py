@@ -782,3 +782,35 @@ def test_parse_response_truncated_json_not_fallback_city():
     """잘린 JSON 복구 시 '파싱 오류' 도시가 반환되지 않아야 함."""
     result = parse_response(TRUNCATED_TOP_CITIES_JSON)
     assert result["top_cities"][0]["city"] != "파싱 오류"
+
+
+# ── #9 insurance 렌더링 테스트 ──────────────────────────────────────────────────
+
+def test_format_step2_insurance_field_rendered():
+    """budget_breakdown에 insurance 필드가 있으면 해외보험 행으로 렌더링되어야 함."""
+    data = dict(SAMPLE_STEP2_DATA)
+    data["budget_breakdown"] = {"rent": 600, "food": 300, "cowork": 100, "insurance": 60, "misc": 150}
+    result = format_step2_markdown(data)
+    assert "해외보험" in result or "insurance" in result.lower()
+    assert "60" in result
+
+
+def test_format_step2_insurance_included_in_total():
+    """insurance가 있으면 합계에 포함되어야 함."""
+    data = dict(SAMPLE_STEP2_DATA)
+    data["budget_breakdown"] = {"rent": 500, "food": 300, "cowork": 100, "insurance": 60, "misc": 150}
+    result = format_step2_markdown(data)
+    # 500+300+100+60+150 = 1110
+    assert "1,110" in result
+
+
+# ── #11 도시 비교 테이블 변별력 — _cost_to_score ─────────────────────────────────
+
+def test_cost_to_score_differentiates_european_cities():
+    """부다페스트($1,300), 프라하($1,600), 포르투($2,000)가 각기 다른 점수를 가져야 함."""
+    from api.parser import _cost_to_score
+    budapest_score = _cost_to_score(1300)
+    prague_score   = _cost_to_score(1600)
+    porto_score    = _cost_to_score(2000)
+    assert budapest_score > prague_score, f"부다페스트({budapest_score}) > 프라하({prague_score}) 이어야 함"
+    assert prague_score > porto_score, f"프라하({prague_score}) > 포르투({porto_score}) 이어야 함"

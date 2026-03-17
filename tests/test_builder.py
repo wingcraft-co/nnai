@@ -265,3 +265,35 @@ def test_build_detail_prompt_imminent_departure_includes_health_insurance():
     msgs = build_detail_prompt(selected_city, profile)
     user_msg = msgs[-1]["content"]
     assert "건강보험" in user_msg or "임의계속가입" in user_msg
+
+
+# ── #12 노마드 전용 — 초보 여행 정보 제외 ──────────────────────────────────────────
+
+def test_build_detail_prompt_nomad_excludes_basic_travel_info():
+    """readiness_stage=이미 출국했거나 출국 임박 → SIM·대중교통 제외 지시 포함."""
+    selected_city = {"city": "Lisbon", "country_id": "PT", "visa_type": "D8", "monthly_cost_usd": 2600}
+    profile = {
+        "nationality": "한국", "income_usd": 4030, "income_krw": 600,
+        "purpose": "현재 노마드", "languages": ["한국어"], "timeline": "90일 이하 (비자 없이 탐색)",
+        "language": "한국어", "income_type": "1인 사업자 (종합소득세 신고 기반)",
+        "travel_type": "혼자 (솔로)", "readiness_stage": "이미 출국했거나 출국 임박",
+    }
+    msgs = build_detail_prompt(selected_city, profile)
+    user_msg = msgs[-1]["content"]
+    assert "SIM" in user_msg or "대중교통" in user_msg or "초보" in user_msg or "포함하지 않는다" in user_msg
+
+
+# ── #13 비거주자 전환 신고 순서 — 3년 장기 체류 ────────────────────────────────────
+
+def test_build_detail_prompt_long_stay_includes_nonresident_order():
+    """timeline=3년 장기 체류 → 비거주자 전환 신고 순서 힌트 포함."""
+    selected_city = {"city": "Kuala Lumpur", "country_id": "MY", "visa_type": "DE Rantau", "monthly_cost_usd": 1500}
+    profile = {
+        "nationality": "한국", "income_usd": 4676, "income_krw": 700,
+        "purpose": "삶의 질 향상", "languages": ["한국어"], "timeline": "3년 장기 체류",
+        "language": "한국어", "income_type": "한국 법인 재직 (재직증명서 + 급여명세서)",
+        "travel_type": "배우자·파트너 동반", "readiness_stage": "",
+    }
+    msgs = build_detail_prompt(selected_city, profile)
+    user_msg = msgs[-1]["content"]
+    assert "비거주자" in user_msg or "183일" in user_msg

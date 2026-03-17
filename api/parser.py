@@ -74,8 +74,8 @@ def _cost_to_score(usd: int) -> int:
     """생활비(USD/월) → 1~5점 (저렴할수록 높음)"""
     if usd < 1000:  return 5
     if usd < 1500:  return 4
-    if usd < 2500:  return 3
-    if usd < 3500:  return 2
+    if usd < 2000:  return 3
+    if usd < 3000:  return 2
     return 1
 
 
@@ -491,7 +491,7 @@ def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
         lines.append("## 💰 한 달 예상 지출 내역\n")
         lines.append("| 항목 | 금액 (USD) |")
         lines.append("|------|-----------|")
-        label_map = [("rent", "주거"), ("food", "식비"), ("cowork", "코워킹"), ("misc", "기타")]
+        label_map = [("rent", "주거"), ("food", "식비"), ("cowork", "코워킹"), ("insurance", "해외보험"), ("misc", "기타")]
         total_usd = 0
         for k, label in label_map:
             val = bd.get(k, 0)
