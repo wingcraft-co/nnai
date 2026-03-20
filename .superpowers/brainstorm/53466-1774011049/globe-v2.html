@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>로딩 컴포넌트 v2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0f1117;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 20px;
+  color: #fff;
+  gap: 40px;
+}
+h2 { font-size: 1.4rem; font-weight: 700; text-align: center; }
+.subtitle { color: #777; font-size: 0.88rem; text-align: center; margin-top: 6px; }
+
+/* === LIVE DEMO === */
+.demo-stage {
+  position: relative;
+  width: 340px;
+  height: 200px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #2a2a3a;
+}
+.demo-app-bg {
+  position: absolute;
+  inset: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1a1e2e;
+}
+.mock-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #2a3050;
+}
+.mock-bar.w40 { width: 40%; }
+.mock-bar.w60 { width: 60%; }
+.mock-bar.w80 { width: 80%; }
+.mock-bar.w100 { width: 100%; }
+.mock-bar.h20 { height: 20px; }
+
+.demo-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0px;
+}
+
+/* === OVERLAY STYLE OPTIONS === */
+.overlay-opts {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.opt-card {
+  cursor: pointer;
+  border: 2px solid #2a2a45;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 140px;
+  background: #1a1a2e;
+  transition: all 0.18s;
+}
+.opt-card:hover { border-color: #6666aa; transform: translateY(-2px); }
+.opt-card.selected { border-color: #9090ff; box-shadow: 0 0 0 3px rgba(144,144,255,0.25); }
+.opt-preview {
+  height: 80px;
+  position: relative;
+  overflow: hidden;
+}
+.mini-bg {
+  position: absolute;
+  inset: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #1a1e2e;
+}
+.mini-bar {
+  height: 7px;
+  border-radius: 3px;
+  background: #2a3050;
+}
+.mini-bar.w60 { width: 60%; }
+.mini-bar.w80 { width: 80%; }
+.mini-bar.w40 { width: 40%; }
+.mini-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.opt-label {
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  color: #aaa;
+  line-height: 1.4;
+}
+.opt-label strong {
+  display: block;
+  font-size: 0.82rem;
+  color: #ddd;
+  margin-bottom: 2px;
+}
+.section-title {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: -20px;
+}
+</style>
+</head>
+<body>
+
+<div>
+  <h2>수정된 로딩 컴포넌트</h2>
+  <p class="subtitle">실제 지구 색감 + 왼쪽으로 걷는 캐릭터</p>
+</div>
+
+<!-- MAIN LIVE DEMO -->
+<div class="demo-stage" id="main-stage">
+  <div class="demo-app-bg">
+    <div class="mock-bar w60 h20"></div>
+    <div class="mock-bar w100"></div>
+    <div class="mock-bar w80"></div>
+    <div class="mock-bar w40"></div>
+    <div class="mock-bar w100"></div>
+    <div class="mock-bar w60"></div>
+    <div class="mock-bar w80"></div>
+    <div class="mock-bar w100"></div>
+    <div class="mock-bar w40"></div>
+    <div class="mock-bar w80"></div>
+  </div>
+  <div class="demo-overlay" id="main-overlay" style="background: rgba(15,17,23,0.5); backdrop-filter: blur(6px);">
+    <canvas id="main-canvas" width="80" height="96"></canvas>
+  </div>
+</div>
+
+<!-- OVERLAY STYLE OPTIONS -->
+<p class="section-title">오버레이 스타일 선택</p>
+
+<div class="overlay-opts">
+  <div class="opt-card" id="ov-a" onclick="selectOverlay('a')">
+    <div class="opt-preview">
+      <div class="mini-bg">
+        <div class="mini-bar w60"></div>
+        <div class="mini-bar w80"></div>
+        <div class="mini-bar w40"></div>
+        <div class="mini-bar w80"></div>
+        <div class="mini-bar w60"></div>
+      </div>
+      <div class="mini-overlay" style="background: rgba(255,255,255,0.25); backdrop-filter: blur(5px);">
+        <canvas class="mini-canvas" data-style="mini" width="36" height="44"></canvas>
+      </div>
+    </div>
+    <div class="opt-label"><strong>A. 밝은 안개</strong>흰 반투명, 낮은 blur<br>앱 색감이 살아있음</div>
+  </div>
+
+  <div class="opt-card" id="ov-b" onclick="selectOverlay('b')">
+    <div class="opt-preview">
+      <div class="mini-bg">
+        <div class="mini-bar w60"></div>
+        <div class="mini-bar w80"></div>
+        <div class="mini-bar w40"></div>
+        <div class="mini-bar w80"></div>
+        <div class="mini-bar w60"></div>
+      </div>
+      <div class="mini-overlay" style="background: rgba(10,12,25,0.6); backdrop-filter: blur(8px);">
+        <canvas class="mini-canvas" data-style="mini" width="36" height="44"></canvas>
+      </div>
+    </div>
+    <div class="opt-label"><strong>B. 어두운 포커스</strong>어두운 반투명, 강한 blur<br>집중도 높음</div>
+  </div>
+
+  <div class="opt-card" id="ov-c" onclick="selectOverlay('c')">
+    <div class="opt-preview">
+      <div class="mini-bg">
+        <div class="mini-bar w60"></div>
+        <div class="mini-bar w80"></div>
+        <div class="mini-bar w40"></div>
+        <div class="mini-bar w80"></div>
+        <div class="mini-bar w60"></div>
+      </div>
+      <div class="mini-overlay" style="background: rgba(30,35,60,0.45); backdrop-filter: blur(6px);">
+        <canvas class="mini-canvas" data-style="mini" width="36" height="44"></canvas>
+      </div>
+    </div>
+    <div class="opt-label"><strong>C. 블루 미스트</strong>파란 반투명, 중간 blur<br>앱 색감과 자연스럽게 어우러짐</div>
+  </div>
+</div>
+
+<script>
+// ── PIXEL COLORS ──────────────────────────────────────────────────
+const O = '#FF8040';   // orange body
+const S = '#CC4800';   // shadow/dark edge
+const W = '#FFFFFF';   // white sclera
+const K = '#1A0A00';   // dark pupil
+const _ = null;        // transparent
+
+// ── CHARACTER SPRITE (8 wide × 10 tall, facing LEFT) ─────────────
+// col 0 = leftmost (direction of travel)
+const BODY_ROWS = [
+  [_,_,O,O,O,_,_,_],   // 0: head top
+  [_,O,O,O,O,O,_,_],   // 1: head
+  [O,O,W,K,O,O,_,_],   // 2: eye (W=white, K=pupil) — left side of face
+  [O,O,O,O,O,_,_,_],   // 3: lower face
+  [_,O,O,O,_,_,_,_],   // 4: chin/neck
+  [_,O,O,O,O,_,_,_],   // 5: torso top
+  [_,O,O,O,O,_,_,_],   // 6: torso bottom
+  [_,_,O,O,_,_,_,_],   // 7: hips
+];
+
+// 4-frame walk cycle for left-facing character
+// Front of body = left → front leg extends to col 0-1
+// Back of body = right → back leg trails to col 3-4
+const WALK_FRAMES = [
+  // frame 0: left leg forward, right leg back (stride A)
+  [[_,O,_,_,_,_,_,_],   // row 8
+   [O,_,_,_,_,_,_,_]],  // row 9: front foot at col 0
+
+  // frame 1: legs passing (both under body)
+  [[_,O,O,_,_,_,_,_],
+   [_,O,O,_,_,_,_,_]],
+
+  // frame 2: right leg now forward, left leg back (stride B)
+  [[_,_,O,_,_,_,_,_],
+   [_,O,_,O,_,_,_,_]],  // row 9: visible stride
+
+  // frame 3: legs passing
+  [[_,O,O,_,_,_,_,_],
+   [_,O,O,_,_,_,_,_]],
+];
+
+// ── DRAW CHARACTER ────────────────────────────────────────────────
+function drawChar(ctx, ox, oy, sc, frame) {
+  const allRows = [...BODY_ROWS, ...WALK_FRAMES[frame % 4]];
+  for (let r = 0; r < allRows.length; r++) {
+    for (let c = 0; c < allRows[r].length; c++) {
+      const color = allRows[r][c];
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(ox + c*sc, oy + r*sc, sc, sc);
+      // bottom shadow line for depth
+      if (color === O) {
+        ctx.fillStyle = S;
+        ctx.fillRect(ox + c*sc, oy + r*sc + sc - 1, sc, 1);
+      }
+    }
+  }
+}
+
+// ── EARTH GLOBE ───────────────────────────────────────────────────
+function drawEarth(ctx, cx, cy, r, angle) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.clip();
+
+  // Ocean gradient
+  const og = ctx.createRadialGradient(cx - r*0.25, cy - r*0.25, r*0.05, cx, cy, r*1.1);
+  og.addColorStop(0,   '#42A5F5');
+  og.addColorStop(0.4, '#1565C0');
+  og.addColorStop(1,   '#0A2A6E');
+  ctx.fillStyle = og;
+  ctx.fillRect(cx - r, cy - r, r*2, r*2);
+
+  // ── Continents (rotating with globe) ──
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);   // counter-clockwise angle
+
+  const continents = [
+    // [ex, ey, erx, ery, erot, fill, fill2]
+    // Eurasia (big, upper)
+    { x:0.18, y:-0.28, rx:0.38, ry:0.20, rot:0.25,  c:'#388E3C' },
+    { x:0.30, y:-0.12, rx:0.14, ry:0.13, rot:0.4,   c:'#43A047' },
+    // Africa
+    { x:0.10, y: 0.12, rx:0.14, ry:0.26, rot:0.05,  c:'#2E7D32' },
+    { x:0.22, y: 0.32, rx:0.08, ry:0.07, rot:0.1,   c:'#388E3C' },
+    // North America
+    { x:-0.40, y:-0.18, rx:0.15, ry:0.25, rot:-0.2, c:'#388E3C' },
+    // South America
+    { x:-0.35, y: 0.24, rx:0.10, ry:0.20, rot:0.15, c:'#2E7D32' },
+    // Australia
+    { x: 0.42, y: 0.28, rx:0.10, ry:0.08, rot:0.0,  c:'#43A047' },
+    // Greenland
+    { x:-0.15, y:-0.70, rx:0.12, ry:0.08, rot:0.0,  c:'#E8F5E9' },
+  ];
+
+  for (const cn of continents) {
+    ctx.fillStyle = cn.c;
+    ctx.beginPath();
+    ctx.ellipse(cn.x*r, cn.y*r, cn.rx*r, cn.ry*r, cn.rot, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Ice cap (north pole)
+  ctx.fillStyle = 'rgba(240,248,255,0.85)';
+  ctx.beginPath();
+  ctx.ellipse(0, -r*0.85, r*0.32, r*0.10, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Antarctica
+  ctx.fillStyle = 'rgba(240,248,255,0.75)';
+  ctx.beginPath();
+  ctx.ellipse(0, r*0.88, r*0.55, r*0.14, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();  // end continent rotation
+
+  // Atmosphere / specular highlight
+  const shine = ctx.createRadialGradient(cx-r*0.35, cy-r*0.38, 0, cx, cy, r);
+  shine.addColorStop(0,   'rgba(255,255,255,0.20)');
+  shine.addColorStop(0.45,'rgba(255,255,255,0.04)');
+  shine.addColorStop(1,   'rgba(0,20,80,0.30)');
+  ctx.fillStyle = shine;
+  ctx.fillRect(cx-r, cy-r, r*2, r*2);
+
+  ctx.restore();
+
+  // Rim
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(120,200,255,0.45)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+}
+
+// ── ANIMATION STATE ───────────────────────────────────────────────
+let angle    = 0;
+let tick     = 0;
+let walkFrame = 0;
+const WALK_SPEED = 10; // frames per walk step
+
+function renderCanvas(canvas, globeR, charSc, frameOffset) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const cy = H - globeR - 4;
+
+  drawEarth(ctx, cx, cy, globeR, angle);
+
+  const charW = 8 * charSc;
+  const charH = 10 * charSc;
+  const charX = cx - charW / 2;
+  const charY = cy - globeR - charH + charSc; // sit just on top
+  drawChar(ctx, charX, charY, charSc, walkFrame + frameOffset);
+}
+
+function loop() {
+  angle -= 0.014; // counter-clockwise
+  tick++;
+  if (tick % WALK_SPEED === 0) walkFrame++;
+
+  // Main large canvas
+  renderCanvas(document.getElementById('main-canvas'), 32, 5, 0);
+
+  // Mini canvases for overlay options
+  document.querySelectorAll('.mini-canvas').forEach(c => {
+    renderCanvas(c, 14, 2, 0);
+  });
+
+  requestAnimationFrame(loop);
+}
+
+// ── OVERLAY SELECTOR ──────────────────────────────────────────────
+const OVERLAY_STYLES = {
+  a: 'rgba(255,255,255,0.25)',
+  b: 'rgba(10,12,25,0.60)',
+  c: 'rgba(30,35,60,0.45)',
+};
+const OVERLAY_BLUR = { a: '5px', b: '8px', c: '6px' };
+
+let selectedOv = null;
+function selectOverlay(key) {
+  if (selectedOv) document.getElementById('ov-' + selectedOv).classList.remove('selected');
+  selectedOv = key;
+  document.getElementById('ov-' + key).classList.add('selected');
+
+  // Apply to main demo
+  const ov = document.getElementById('main-overlay');
+  ov.style.background = OVERLAY_STYLES[key];
+  ov.style.backdropFilter = 'blur(' + OVERLAY_BLUR[key] + ')';
+
+  if (window.__recordEvent) window.__recordEvent(key, 'Overlay ' + key.toUpperCase());
+}
+
+loop();
+</script>
+</body>
+</html>
