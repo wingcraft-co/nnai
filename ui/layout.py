@@ -1,6 +1,7 @@
 # ui/layout.py
 import gradio as gr
 from ui.theme import create_theme
+from ui.loading import get_loading_html, LOADING_CLEAR
 
 # 모듈 레벨 환율 캐싱 (앱 기동 시 1회 조회 — 이후 재사용)
 _EXCHANGE_RATE_USD: float | None = None
@@ -201,6 +202,9 @@ footer{display:none!important}
 
 def create_layout(advisor_fn, detail_fn):
     with gr.Blocks(title="NomadNavigator AI") as demo:
+
+        # ── 로딩 오버레이 (position:fixed — DOM 위치 무관) ───────────────
+        loading_overlay = gr.HTML(elem_id="nnai-loading-overlay")
 
         # ── 헤더 ──────────────────────────────────────────────────────
         with gr.Column(elem_classes="main-header"):
@@ -434,8 +438,17 @@ def create_layout(advisor_fn, detail_fn):
             try:
                 from utils.persona import diagnose_persona
                 persona_type = diagnose_persona(q_motiv, q_euro, None, None, q_concern_val)
+                # Show loading overlay — messages cycle before advisor call.
+                # Loading text moves to overlay; step1_output (pos 0) stays unchanged.
                 for msg in _STEP1_LOADING:
-                    yield msg, gr.update(), gr.update(visible=False), gr.update(), gr.update()
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        gr.update(visible=False),
+                        gr.update(),
+                        gr.update(),
+                        get_loading_html(msg),
+                    )
                 markdown, cities, parsed = advisor_fn(
                     nat, inc, purpose, life, langs, tl, pref_countries, ui_lang, persona_type,
                     dual_nationality=dual_nat,
@@ -455,6 +468,7 @@ def create_layout(advisor_fn, detail_fn):
                     gr.update(visible=True),
                     gr.update(),
                     gr.update(choices=labels, value=labels[0]),
+                    LOADING_CLEAR,
                 )
             except Exception as e:
                 yield (
@@ -463,6 +477,7 @@ def create_layout(advisor_fn, detail_fn):
                     gr.update(visible=False),
                     gr.update(),
                     gr.update(),
+                    LOADING_CLEAR,
                 )
 
         btn_step1.click(
@@ -476,7 +491,7 @@ def create_layout(advisor_fn, detail_fn):
                 travel_type, children_ages,
                 has_spouse_income, spouse_income_krw,
             ],
-            outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice],
+            outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice, loading_overlay],
         )
 
         # ── 경고 이벤트 연결 ────────────────────────────────────────────
@@ -513,7 +528,6 @@ def create_layout(advisor_fn, detail_fn):
         # ── Step 2 이벤트 ──────────────────────────────────────────────
         def run_step2(parsed, choice):
             try:
-                # Support both legacy static labels and new dynamic city labels
                 static_map = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}
                 if choice in static_map:
                     idx = static_map[choice]
@@ -522,18 +536,18 @@ def create_layout(advisor_fn, detail_fn):
                     dynamic_labels = [_city_btn_label(c) for c in cities]
                     idx = dynamic_labels.index(choice) if choice in dynamic_labels else 0
                 for msg in _STEP2_LOADING:
-                    yield msg
+                    yield gr.update(), get_loading_html(msg)
                 markdown = detail_fn(parsed, city_index=idx)
-                yield markdown
+                yield markdown, LOADING_CLEAR
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}"
+                yield f"⚠️ 오류가 발생했습니다: {str(e)}", LOADING_CLEAR
 
         btn_step2.click(
             fn=run_step2,
             inputs=[parsed_state, city_choice],
-            outputs=[step2_output],
+            outputs=[step2_output, loading_overlay],
         )
 
     return demo

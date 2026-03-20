@@ -238,3 +238,21 @@ def test_get_loading_html_different_messages_are_independent():
     assert "메시지1" in html1
     assert "메시지2" in html2
     assert "메시지1" not in html2
+
+
+# ── Loading overlay wired into layout ─────────────────────────────────────────
+
+def test_layout_has_loading_overlay_html_component():
+    """layout must declare a gr.HTML with elem_id='nnai-loading-overlay'."""
+    import gradio as gr
+    from ui.layout import create_layout
+    demo = create_layout(lambda *a, **kw: ("md", [], {}), lambda *a: "detail")
+    elem_ids = {
+        getattr(c, "elem_id", None)
+        for c in demo.blocks.values()
+        if isinstance(c, gr.HTML)
+    }
+    assert "nnai-loading-overlay" in elem_ids, (
+        f"gr.HTML with elem_id='nnai-loading-overlay' not found. "
+        f"Found HTML elem_ids: {elem_ids}"
+    )
