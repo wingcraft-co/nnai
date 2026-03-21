@@ -9,3 +9,9 @@ dist/
 *.egg-info/
 .venv/
 reports/
+*.png
+*.jpg
+*.jpeg
+*.log
+.playwright-mcp/
+.superpowers/

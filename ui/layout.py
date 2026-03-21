@@ -1,6 +1,7 @@
 # ui/layout.py
 import gradio as gr
 from ui.theme import create_theme
+from ui.loading import get_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
 
 # 모듈 레벨 환율 캐싱 (앱 기동 시 1회 조회 — 이후 재사용)
 _EXCHANGE_RATE_USD: float | None = None
@@ -192,9 +193,12 @@ _STEP2_LOADING = [
 
 
 _APP_CSS = """
+:root{--nn-title:#0C447C;--nn-sub:#888780}
+.dark{--nn-title:#60A5FA;--nn-sub:#9CA3AF}
+@media(prefers-color-scheme:dark){:root:not(.light){--nn-title:#60A5FA;--nn-sub:#9CA3AF}}
 .main-header{text-align:center;padding:20px 0 10px}
-.main-header h1{font-size:2rem;color:#0C447C}
-.main-header p{color:#888780;font-size:.95rem}
+.main-header h1{font-size:2rem;color:var(--nn-title)}
+.main-header p{color:var(--nn-sub);font-size:.95rem}
 footer{display:none!important}
 """
 
@@ -202,12 +206,21 @@ footer{display:none!important}
 def create_layout(advisor_fn, detail_fn):
     with gr.Blocks(title="NomadNavigator AI") as demo:
 
+        # ── 로딩 오버레이 (position:fixed — DOM 위치 무관) ───────────────
+        # 초기값: 앱 로딩 중 지구본 애니메이션 표시 → demo.load() 시 클리어
+        loading_overlay = gr.HTML(
+            value=get_loading_html("앱을 불러오는 중이에요..."),
+            elem_id="nnai-loading-overlay",
+        )
+
         # ── 헤더 ──────────────────────────────────────────────────────
+        # js_on_load=: 컴포넌트 마운트 시 Gradio가 직접 JS를 실행해줌
         with gr.Column(elem_classes="main-header"):
-            gr.HTML("""
-                <h1>🌏 NomadNavigator AI</h1>
-                <p>국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>
-            """)
+            gr.HTML(
+                value=HEADER_GLOBE_HTML,
+                js_on_load=HEADER_GLOBE_JS,
+            )
+            gr.HTML('<p style="color:#888780;font-size:.95rem;margin:0;">국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>')
 
         # ── State ──────────────────────────────────────────────────────
         parsed_state = gr.State({})
@@ -434,8 +447,17 @@ def create_layout(advisor_fn, detail_fn):
             try:
                 from utils.persona import diagnose_persona
                 persona_type = diagnose_persona(q_motiv, q_euro, None, None, q_concern_val)
+                # Show loading overlay — messages cycle before advisor call.
+                # Loading text moves to overlay; step1_output (pos 0) stays unchanged.
                 for msg in _STEP1_LOADING:
-                    yield msg, gr.update(), gr.update(visible=False), gr.update(), gr.update()
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        gr.update(visible=False),
+                        gr.update(),
+                        gr.update(),
+                        get_loading_html(msg),
+                    )
                 markdown, cities, parsed = advisor_fn(
                     nat, inc, purpose, life, langs, tl, pref_countries, ui_lang, persona_type,
                     dual_nationality=dual_nat,
@@ -455,6 +477,7 @@ def create_layout(advisor_fn, detail_fn):
                     gr.update(visible=True),
                     gr.update(),
                     gr.update(choices=labels, value=labels[0]),
+                    LOADING_CLEAR,
                 )
             except Exception as e:
                 yield (
@@ -463,6 +486,7 @@ def create_layout(advisor_fn, detail_fn):
                     gr.update(visible=False),
                     gr.update(),
                     gr.update(),
+                    LOADING_CLEAR,
                 )
 
         btn_step1.click(
@@ -476,7 +500,7 @@ def create_layout(advisor_fn, detail_fn):
                 travel_type, children_ages,
                 has_spouse_income, spouse_income_krw,
             ],
-            outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice],
+            outputs=[step1_output, parsed_state, btn_go_step2, tabs, city_choice, loading_overlay],
         )
 
         # ── 경고 이벤트 연결 ────────────────────────────────────────────
@@ -513,7 +537,6 @@ def create_layout(advisor_fn, detail_fn):
         # ── Step 2 이벤트 ──────────────────────────────────────────────
         def run_step2(parsed, choice):
             try:
-                # Support both legacy static labels and new dynamic city labels
                 static_map = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}
                 if choice in static_map:
                     idx = static_map[choice]
@@ -522,18 +545,21 @@ def create_layout(advisor_fn, detail_fn):
                     dynamic_labels = [_city_btn_label(c) for c in cities]
                     idx = dynamic_labels.index(choice) if choice in dynamic_labels else 0
                 for msg in _STEP2_LOADING:
-                    yield msg
+                    yield gr.update(), get_loading_html(msg)
                 markdown = detail_fn(parsed, city_index=idx)
-                yield markdown
+                yield markdown, LOADING_CLEAR
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}"
+                yield f"⚠️ 오류가 발생했습니다: {str(e)}", LOADING_CLEAR
 
         btn_step2.click(
             fn=run_step2,
             inputs=[parsed_state, city_choice],
-            outputs=[step2_output],
+            outputs=[step2_output, loading_overlay],
         )
+
+        # ── 앱 초기 로딩 완료 시 오버레이 클리어 ──────────────────────
+        demo.load(fn=lambda: LOADING_CLEAR, outputs=[loading_overlay])
 
     return demo
