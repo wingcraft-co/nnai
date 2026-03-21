@@ -1,7 +1,7 @@
 # ui/layout.py
 import gradio as gr
 from ui.theme import create_theme
-from ui.loading import get_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
+from ui.loading import get_loading_html, get_cycling_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
 
 # 모듈 레벨 환율 캐싱 (앱 기동 시 1회 조회 — 이후 재사용)
 _EXCHANGE_RATE_USD: float | None = None
@@ -447,17 +447,16 @@ def create_layout(advisor_fn, detail_fn):
             try:
                 from utils.persona import diagnose_persona
                 persona_type = diagnose_persona(q_motiv, q_euro, None, None, q_concern_val)
-                # Show loading overlay — messages cycle before advisor call.
-                # Loading text moves to overlay; step1_output (pos 0) stays unchanged.
-                for msg in _STEP1_LOADING:
-                    yield (
-                        gr.update(),
-                        gr.update(),
-                        gr.update(visible=False),
-                        gr.update(),
-                        gr.update(),
-                        get_loading_html(msg),
-                    )
+                # Show cycling overlay once — JS cycles messages automatically while
+                # advisor_fn blocks. No Python-side sleep needed.
+                yield (
+                    gr.update(),
+                    gr.update(),
+                    gr.update(visible=False),
+                    gr.update(),
+                    gr.update(),
+                    get_cycling_loading_html(_STEP1_LOADING),
+                )
                 markdown, cities, parsed = advisor_fn(
                     nat, inc, purpose, life, langs, tl, pref_countries, ui_lang, persona_type,
                     dual_nationality=dual_nat,
@@ -544,8 +543,7 @@ def create_layout(advisor_fn, detail_fn):
                     cities = parsed.get("top_cities", [])
                     dynamic_labels = [_city_btn_label(c) for c in cities]
                     idx = dynamic_labels.index(choice) if choice in dynamic_labels else 0
-                for msg in _STEP2_LOADING:
-                    yield gr.update(), get_loading_html(msg)
+                yield gr.update(), get_cycling_loading_html(_STEP2_LOADING)
                 markdown = detail_fn(parsed, city_index=idx)
                 yield markdown, LOADING_CLEAR
             except Exception as e:

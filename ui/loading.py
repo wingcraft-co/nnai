@@ -113,7 +113,10 @@ function drawChar(ctx,ox,oy,sc,frame){
 var angle=0,tick=0,wf=0;
 function loop(){
   var canvas=document.getElementById('nnai-globe-canvas');
-  if(!canvas||!canvas.isConnected){window.__nnaiRAF=null;return;}
+  if(!canvas||!canvas.isConnected){
+    if(window.__nnaiMsgInterval){clearInterval(window.__nnaiMsgInterval);window.__nnaiMsgInterval=null;}
+    window.__nnaiRAF=null;return;
+  }
   var ctx=canvas.getContext('2d');
   ctx.imageSmoothingEnabled=false;
   ctx.clearRect(0,0,88,108);
@@ -127,6 +130,54 @@ function loop(){
 window.__nnaiRAF=requestAnimationFrame(loop);
 })();
 </script>"""
+
+
+def get_cycling_loading_html(messages: list, interval_ms: int = 2500) -> str:
+    """Return a full-screen loading overlay that cycles through *messages* automatically.
+
+    The first message is shown immediately; subsequent messages replace it
+    every *interval_ms* milliseconds via JS setInterval running in the browser.
+    When the overlay is cleared (canvas disconnects), the interval is stopped
+    by the RAF loop's isConnected cleanup branch.
+
+    Use this for long-running LLM calls so users see live progress updates
+    without requiring intermediate Python yields.
+    """
+    import json as _json
+    escaped = [_html.escape(m) for m in messages]
+    msgs_json = _json.dumps(escaped)
+    first_msg = escaped[0] if escaped else ""
+
+    _cycle_script = (
+        "<script>(function(){"
+        "if(window.__nnaiMsgInterval)clearInterval(window.__nnaiMsgInterval);"
+        "var msgs=" + msgs_json + ";"
+        "var mi=0;"
+        "window.__nnaiMsgInterval=setInterval(function(){"
+        "mi=(mi+1)%msgs.length;"
+        "var el=document.getElementById('nnai-loading-msg');"
+        "if(el)el.textContent=msgs[mi];"
+        "}," + str(interval_ms) + ");"
+        "})();</script>"
+    )
+
+    return (
+        '<div style="position:fixed;inset:0;z-index:9999;'
+        'background:rgba(18,20,35,0.52);backdrop-filter:blur(7px);'
+        'display:flex;align-items:center;justify-content:center;'
+        'flex-direction:column;gap:12px;">'
+        '<canvas id="nnai-globe-canvas" width="88" height="108" '
+        'style="display:block;image-rendering:pixelated;'
+        'image-rendering:crisp-edges;"></canvas>'
+        '<p id="nnai-loading-msg" '
+        'style="color:rgba(255,255,255,0.75);font-size:0.85rem;'
+        'font-family:Inter,sans-serif;margin:0;text-align:center;">'
+        + first_msg
+        + '</p>'
+        + _ANIM_SCRIPT
+        + _cycle_script
+        + '</div>'
+    )
 
 
 def get_loading_html(message: str) -> str:
