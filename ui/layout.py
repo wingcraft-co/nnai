@@ -1,7 +1,7 @@
 # ui/layout.py
 import gradio as gr
 from ui.theme import create_theme
-from ui.loading import get_loading_html, LOADING_CLEAR
+from ui.loading import get_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
 
 # 모듈 레벨 환율 캐싱 (앱 기동 시 1회 조회 — 이후 재사용)
 _EXCHANGE_RATE_USD: float | None = None
@@ -193,9 +193,12 @@ _STEP2_LOADING = [
 
 
 _APP_CSS = """
+:root{--nn-title:#0C447C;--nn-sub:#888780}
+.dark{--nn-title:#60A5FA;--nn-sub:#9CA3AF}
+@media(prefers-color-scheme:dark){:root:not(.light){--nn-title:#60A5FA;--nn-sub:#9CA3AF}}
 .main-header{text-align:center;padding:20px 0 10px}
-.main-header h1{font-size:2rem;color:#0C447C}
-.main-header p{color:#888780;font-size:.95rem}
+.main-header h1{font-size:2rem;color:var(--nn-title)}
+.main-header p{color:var(--nn-sub);font-size:.95rem}
 footer{display:none!important}
 """
 
@@ -204,14 +207,20 @@ def create_layout(advisor_fn, detail_fn):
     with gr.Blocks(title="NomadNavigator AI") as demo:
 
         # ── 로딩 오버레이 (position:fixed — DOM 위치 무관) ───────────────
-        loading_overlay = gr.HTML(elem_id="nnai-loading-overlay")
+        # 초기값: 앱 로딩 중 지구본 애니메이션 표시 → demo.load() 시 클리어
+        loading_overlay = gr.HTML(
+            value=get_loading_html("앱을 불러오는 중이에요..."),
+            elem_id="nnai-loading-overlay",
+        )
 
         # ── 헤더 ──────────────────────────────────────────────────────
+        # js_on_load=: 컴포넌트 마운트 시 Gradio가 직접 JS를 실행해줌
         with gr.Column(elem_classes="main-header"):
-            gr.HTML("""
-                <h1>🌏 NomadNavigator AI</h1>
-                <p>국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>
-            """)
+            gr.HTML(
+                value=HEADER_GLOBE_HTML,
+                js_on_load=HEADER_GLOBE_JS,
+            )
+            gr.HTML('<p style="color:#888780;font-size:.95rem;margin:0;">국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>')
 
         # ── State ──────────────────────────────────────────────────────
         parsed_state = gr.State({})
@@ -549,5 +558,8 @@ def create_layout(advisor_fn, detail_fn):
             inputs=[parsed_state, city_choice],
             outputs=[step2_output, loading_overlay],
         )
+
+        # ── 앱 초기 로딩 완료 시 오버레이 클리어 ──────────────────────
+        demo.load(fn=lambda: LOADING_CLEAR, outputs=[loading_overlay])
 
     return demo

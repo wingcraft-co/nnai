@@ -5,6 +5,7 @@ Loading overlay component for NomadNavigator AI.
 Exports:
     get_loading_html(message) -> str   Full-screen overlay HTML with canvas animation
     LOADING_CLEAR               str   Empty string — clears the overlay when yielded to gr.HTML
+    HEADER_GLOBE_HTML           str   Small always-on globe canvas for the header logo
 """
 
 import html as _html
@@ -159,3 +160,81 @@ def get_loading_html(message: str) -> str:
         + _ANIM_SCRIPT
         + '</div>'
     )
+
+
+# Header globe — small always-on pixel-art Earth.
+# HEADER_GLOBE_HTML : canvas + h1 title (static value for gr.HTML)
+# HEADER_GLOBE_HEAD : <script> passed via gr.HTML(head=...) so Gradio
+#                     executes it properly through its loadHead() mechanism.
+# Canvas: 48x48px, radius: 22px, pixel size: 3px.
+HEADER_GLOBE_HTML = (
+    '<h1 style="display:flex;align-items:center;justify-content:center;'
+    'font-size:2rem;color:var(--nn-title,#0C447C);margin:0 0 4px;">'
+    '<canvas id="nnai-hdr-globe" width="48" height="48"'
+    ' style="display:inline-block;vertical-align:middle;'
+    'image-rendering:pixelated;image-rendering:crisp-edges;'
+    'margin-right:10px;"></canvas>'
+    'NomadNavigator AI</h1>'
+)
+
+HEADER_GLOBE_JS = """(function(){
+if(window.__nnaiHdrRAF)cancelAnimationFrame(window.__nnaiHdrRAF);
+var W=[
+  [0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+  [1,1,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,1,0,0],
+  [1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],
+  [0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,0,0,0,0,0,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],
+  [0,0,0,0,0,0,0,1,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,0],
+  [0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,1,0,0,0],
+  [0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,1,1,0,0],
+  [0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1,1,0,0],
+  [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+];
+var MC=24,MR=12,PS=3;
+var LAND=['#1B5E20','#2E7D32','#43A047','#66BB6A'];
+var OCEAN=['#0A1F6B','#0D47A1','#1565C0','#1E88E5'];
+var ICE=['#B0C4DE','#D6EAF8','#EBF5FB'];
+function sh(p,l){return p[Math.min(p.length-1,Math.floor(l*p.length))];}
+function drawGlobe(ctx,cx,cy,r,ang){
+  for(var py=-r;py<r;py+=PS){
+    for(var px=-r;px<r;px+=PS){
+      var pc=px+PS/2,pcy=py+PS/2,d2=pc*pc+pcy*pcy;
+      if(d2>r*r)continue;
+      var z=Math.sqrt(r*r-d2);
+      var lat=Math.asin(-pcy/r);
+      var lon=((Math.atan2(pc,z)-ang)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+      var mc=Math.floor(lon/(2*Math.PI)*MC)%MC;
+      var mr=Math.max(0,Math.min(MR-1,Math.floor((Math.PI/2-lat)/Math.PI*MR)));
+      var light=z/r;
+      var col;
+      if(W[mr][mc]===1)col=sh(LAND,light);
+      else col=sh(OCEAN,light);
+      ctx.fillStyle=col;
+      ctx.fillRect(Math.round(cx+px),Math.round(cy+py),PS,PS);
+    }
+  }
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(120,190,255,0.5)';ctx.lineWidth=1;ctx.stroke();
+}
+var angle=0;
+function loop(){
+  var canvas=document.getElementById('nnai-hdr-globe');
+  if(!canvas||!canvas.isConnected){
+    /* Intentional: keep retrying on temporary detach caused by Gradio re-renders.
+       The header globe is always present for the page lifetime, so this loop
+       never intentionally exits. Permanent removal would require a page reload. */
+    window.__nnaiHdrRAF=requestAnimationFrame(loop);
+    return;
+  }
+  var ctx=canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,48,48);
+  angle-=0.014;
+  drawGlobe(ctx,24,24,22,angle);
+  window.__nnaiHdrRAF=requestAnimationFrame(loop);
+}
+window.__nnaiHdrRAF=requestAnimationFrame(loop);
+})();"""
