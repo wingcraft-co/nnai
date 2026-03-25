@@ -96,6 +96,7 @@ def nomad_advisor_v2(payload_json: str) -> str:
     selected_names = payload.get("selected_cities", [])  # city_kr names
 
     db_profile = _map_profile(profile)
+    # Re-add income_krw (만원 단위) for build_detail_prompt() which reads this key
     db_profile["income_krw"] = (profile.get("monthly_income_krw") or 0) // 10000
 
     # Fetch up to 8 cities from DB to find the selected ones by name
@@ -111,6 +112,9 @@ def nomad_advisor_v2(payload_json: str) -> str:
 
     # Preserve selection order; skip any city not found in DB results
     selected_city_dicts = [name_to_city[n] for n in selected_names if n in name_to_city]
+
+    if not selected_city_dicts:
+        return json.dumps({"markdown": "선택된 도시를 찾을 수 없습니다."}, ensure_ascii=False)
 
     parsed_data = {
         "top_cities":    selected_city_dicts,
@@ -141,6 +145,9 @@ def build_layout_v2(nomad_advisor_fn, show_city_detail_fn) -> gr.Blocks:
 
     USE_NEW_UI=1 implies USE_DB_RECOMMENDER=1.
     Both filter_cities and nomad_advisor_v2 expose named API endpoints.
+
+    nomad_advisor_fn and show_city_detail_fn are accepted for interface consistency
+    with create_layout() in layout.py, but this layout uses module-level functions.
     """
     with gr.Blocks(css="body { margin:0; }") as demo:
         gr.HTML(build_ui_html())
