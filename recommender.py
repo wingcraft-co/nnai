@@ -335,7 +335,10 @@ def compute_disabled_options(db_profile: dict) -> dict:
         "lifestyle_tags": [],
     }
 
-    # Test each continent chip in isolation
+    # Continents are tested in isolation (single-select semantics — tests "if only
+    # this continent is selected, do any cities match?").  We override
+    # preferred_countries with just the one continent key so the other active
+    # filters remain in place while the continent varies independently.
     for chip_label, continent_keys in _CHIP_TO_CONTINENTS.items():
         test_profile = {**db_profile, "preferred_countries": continent_keys}
         if not _any_city_passes(test_profile, countries_list, cities_list):
@@ -347,7 +350,11 @@ def compute_disabled_options(db_profile: dict) -> dict:
         if not _any_city_passes(test_profile, countries_list, cities_list):
             disabled["timeline"].append(chip_label)
 
-    # Test each lifestyle chip (added to existing selections)
+    # Lifestyle is a soft filter (affects score only, never hard-excludes cities),
+    # so _any_city_passes() will always return True regardless of the lifestyle
+    # value — meaning lifestyle_tags will always be an empty list here.  The block
+    # is retained for forward-compatibility: if hard lifestyle filters are added
+    # later, the disabled-chip logic will work without further changes.
     current_lifestyle = list(db_profile.get("lifestyle") or [])
     for chip_label, lifestyle_key in _CHIP_TO_LIFESTYLE.items():
         if lifestyle_key in current_lifestyle:
