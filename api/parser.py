@@ -122,7 +122,7 @@ def generate_comparison_table(top_cities: list) -> str:
         return ""
 
     # city_scores.json 로드
-    _scores_path = _data_path("city_scores.json")
+    _scores_path = str(resolve_data_path("city_scores.json"))
     try:
         with open(_scores_path, encoding="utf-8") as f:
             scores_list = json.load(f).get("cities", [])
@@ -205,7 +205,7 @@ def _load_visa_urls() -> dict:
     """Load visa_urls.json once and cache it. Returns empty dict on failure."""
     global _VISA_URLS
     if _VISA_URLS is None:
-        _visa_urls_path = _data_path("visa_urls.json")
+        _visa_urls_path = resolve_data_path("visa_urls.json")
         try:
             with open(_visa_urls_path, encoding="utf-8") as f:
                 _VISA_URLS = json.load(f)
