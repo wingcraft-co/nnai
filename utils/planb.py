@@ -2,8 +2,8 @@
 from __future__ import annotations
 import json
 from pathlib import Path
+from utils.data_paths import resolve_data_path
 
-_VISA_DB_PATH = Path(__file__).parent.parent / "data" / "visa_db.json"
 _visa_db_cache: list | None = None
 
 
@@ -11,7 +11,8 @@ def _load_buffer_countries() -> list[dict]:
     """visa_db.json에서 buffer_zone=True인 국가 목록 반환."""
     global _visa_db_cache
     if _visa_db_cache is None:
-        with open(_VISA_DB_PATH, encoding="utf-8") as f:
+        visa_db_path = resolve_data_path("visa_db.json")
+        with open(visa_db_path, encoding="utf-8") as f:
             all_countries = json.load(f)["countries"]
         _visa_db_cache = [c for c in all_countries if c.get("buffer_zone")]
     return _visa_db_cache
