@@ -9,7 +9,9 @@ from pathlib import Path
 
 import pytest
 
-DATA_PATH = Path(__file__).parent.parent / "data" / "visa_db.json"
+_db = Path(__file__).parent.parent / "database" / "visa_db.json"
+_data = Path(__file__).parent.parent / "data" / "visa_db.json"
+DATA_PATH = _db if _db.exists() else _data
 
 
 @pytest.fixture(scope="module")
@@ -84,7 +86,7 @@ def test_cost_tier_valid_values(visa_db):
 # ===== P0 비자 현행화 검증 테스트 =====
 
 def _country(cid):
-    d = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "visa_db.json")))
+    d = json.load(open(DATA_PATH, encoding="utf-8"))
     return next(c for c in d["countries"] if c["id"] == cid)
 
 
@@ -153,7 +155,7 @@ def test_es_family_income_addition():
 
 def test_all_4_countries_have_data_verified_date():
     """P0 수정 4개국 모두 data_verified_date 필드 있음."""
-    d = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "visa_db.json")))
+    d = json.load(open(DATA_PATH, encoding="utf-8"))
     countries = {c["id"]: c for c in d["countries"]}
     for cid in ["GE", "TH", "PT", "ES"]:
         assert "data_verified_date" in countries[cid], f"{cid} missing data_verified_date"

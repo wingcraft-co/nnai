@@ -7,13 +7,21 @@ load_dotenv()
 import utils.currency
 from api.hf_client      import query_model, query_model_cached
 from api.cache_manager  import get_or_create_cache, invalidate
-from api.parser         import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown
+from api.parser         import parse_response, format_result_markdown, format_step1_markdown, format_step2_markdown, _inject_visa_urls
+from recommender        import recommend_from_db
 from prompts.builder    import build_prompt, build_detail_prompt, build_step1_user_message, validate_user_profile
 from prompts.system     import SYSTEM_PROMPT
 from prompts.system_en  import SYSTEM_PROMPT_EN
 from prompts.data_context import DATA_CONTEXT
 from prompts.few_shots  import FEW_SHOT_EXAMPLES
 from ui.layout          import create_layout
+
+# USE_NEW_UI=1 → custom faceted filter UI (requires USE_DB_RECOMMENDER=1)
+# USE_NEW_UI=0 → original Gradio form (layout.py)
+_USE_NEW_UI = os.getenv("USE_NEW_UI", "0") == "1"
+
+if _USE_NEW_UI:
+    from ui.layout_v2 import build_layout_v2
 
 logger = logging.getLogger(__name__)
 
@@ -100,39 +108,45 @@ def nomad_advisor(
             {},
         )
 
-    # --- 서버사이드 Context Caching 시도 ---
-    # SYSTEM_PROMPT + DATA_CONTEXT + FEW_SHOTS를 Gemini 서버에 캐싱.
-    # 캐시 히트 시 정적 컨텍스트(~7,500 tokens) 재전송 비용/지연 절감.
-    # 캐시 실패(API키 없음·오류) 시 기존 OpenAI-compat 경로로 자동 폴백.
-    cache_key     = f"step1_{'en' if preferred_language == 'English' else 'ko'}"
-    system_prompt = SYSTEM_PROMPT_EN if preferred_language == "English" else SYSTEM_PROMPT
-
-    cache = get_or_create_cache(
-        system_prompt=system_prompt,
-        data_context=DATA_CONTEXT,
-        few_shot_messages=FEW_SHOT_EXAMPLES,
-        cache_key=cache_key,
-    )
-
-    if cache:
-        user_msg = build_step1_user_message(user_profile)
-        raw = query_model_cached(user_msg, cache, max_tokens=8192)
-        if raw.startswith("ERROR"):
-            # 캐시 무효화 후 폴백
-            logger.warning("[app] Cached query failed — invalidating cache, falling back")
-            invalidate(cache_key)
-            messages = build_prompt(user_profile)
-            raw = query_model(messages, max_tokens=8192)
+    if os.getenv("USE_DB_RECOMMENDER", "1") == "1":
+        # DB 기반 추천 경로 (LLM 호출 없음)
+        parsed = recommend_from_db(user_profile)
+        _inject_visa_urls(parsed)
     else:
-        messages = build_prompt(user_profile)
-        raw      = query_model(messages, max_tokens=8192)
+        # 기존 LLM 경로 (롤백용, 삭제 금지)
+        # --- 서버사이드 Context Caching 시도 ---
+        # SYSTEM_PROMPT + DATA_CONTEXT + FEW_SHOTS를 Gemini 서버에 캐싱.
+        # 캐시 히트 시 정적 컨텍스트(~7,500 tokens) 재전송 비용/지연 절감.
+        # 캐시 실패(API키 없음·오류) 시 기존 OpenAI-compat 경로로 자동 폴백.
+        cache_key     = f"step1_{'en' if preferred_language == 'English' else 'ko'}"
+        system_prompt = SYSTEM_PROMPT_EN if preferred_language == "English" else SYSTEM_PROMPT
 
-    if raw.startswith("ERROR"):
-        return f"⚠️ API 오류: {raw}", [], {}
+        cache = get_or_create_cache(
+            system_prompt=system_prompt,
+            data_context=DATA_CONTEXT,
+            few_shot_messages=FEW_SHOT_EXAMPLES,
+            cache_key=cache_key,
+        )
 
-    parsed = parse_response(raw)
+        if cache:
+            user_msg = build_step1_user_message(user_profile)
+            raw = query_model_cached(user_msg, cache, max_tokens=8192)
+            if raw.startswith("ERROR"):
+                # 캐시 무효화 후 폴백
+                logger.warning("[app] Cached query failed — invalidating cache, falling back")
+                invalidate(cache_key)
+                messages = build_prompt(user_profile)
+                raw = query_model(messages, max_tokens=8192)
+        else:
+            messages = build_prompt(user_profile)
+            raw      = query_model(messages, max_tokens=8192)
 
-    # user_profile 주입 (Step 2에서 참조)
+        if raw.startswith("ERROR"):
+            return f"⚠️ API 오류: {raw}", [], {}
+
+        parsed = parse_response(raw)
+
+    # 두 경로 공통: _user_profile 주입
     parsed["_user_profile"] = user_profile
 
     markdown = format_step1_markdown(parsed)
@@ -177,7 +191,10 @@ def show_city_detail(
 from ui.layout import _APP_CSS
 from ui.theme import create_theme
 
-demo = create_layout(nomad_advisor, show_city_detail)
+if _USE_NEW_UI:
+    demo = build_layout_v2(nomad_advisor, show_city_detail)
+else:
+    demo = create_layout(nomad_advisor, show_city_detail)
 
 if __name__ == "__main__":
     _is_hf = bool(os.getenv("SPACE_ID"))

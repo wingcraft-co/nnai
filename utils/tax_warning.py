@@ -3,14 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-_VISA_DB_PATH = Path(__file__).parent.parent / "data" / "visa_db.json"
+from utils.data_paths import resolve_data_path
+
 _visa_db_cache: dict | None = None
 
 
 def _load_visa_db() -> dict:
     global _visa_db_cache
     if _visa_db_cache is None:
-        with open(_VISA_DB_PATH, encoding="utf-8") as f:
+        with open(resolve_data_path("visa_db.json"), encoding="utf-8") as f:
             _visa_db_cache = {c["id"]: c for c in json.load(f)["countries"]}
     return _visa_db_cache
 

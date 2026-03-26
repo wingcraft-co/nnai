@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-_CITY_SCORES_PATH = Path(__file__).parent.parent / "data" / "city_scores.json"
+from utils.data_paths import resolve_data_path
+
 _city_scores_cache: dict | None = None
 
 
@@ -11,7 +12,7 @@ def _load_city_scores() -> dict:
     """city_scores.json을 city name(소문자) → dict로 인덱싱하여 반환."""
     global _city_scores_cache
     if _city_scores_cache is None:
-        with open(_CITY_SCORES_PATH, encoding="utf-8") as f:
+        with open(resolve_data_path("city_scores.json"), encoding="utf-8") as f:
             data = json.load(f)
         _city_scores_cache = {
             c["city"].lower(): c for c in data["cities"]

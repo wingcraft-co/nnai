@@ -1,11 +1,12 @@
 import json, pytest
+from utils.data_paths import resolve_data_path
 
 def load_visa_db():
-    with open("data/visa_db.json", "r", encoding="utf-8") as f:
+    with open(resolve_data_path("visa_db.json"), "r", encoding="utf-8") as f:
         return json.load(f)
 
 def load_city_scores():
-    with open("data/city_scores.json", "r", encoding="utf-8") as f:
+    with open(resolve_data_path("city_scores.json"), "r", encoding="utf-8") as f:
         return json.load(f)
 
 REQUIRED_VISA_FIELDS = {
