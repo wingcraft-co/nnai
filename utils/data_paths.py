@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 def resolve_data_path(filename: str) -> Path:
-    """database/ 우선, 없으면 data/ 폴백."""
     base = Path(__file__).parent.parent
-    db_path = base / "database" / filename
-    return db_path if db_path.exists() else base / "data" / filename
+    db_path = base / "data" / filename
+    return db_path
