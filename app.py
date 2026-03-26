@@ -196,8 +196,9 @@ if _USE_NEW_UI:
 else:
     demo = create_layout(nomad_advisor, show_city_detail)
 
-if __name__ == "__main__":
-    _is_hf = bool(os.getenv("SPACE_ID"))
+_is_hf = bool(os.getenv("SPACE_ID"))
+
+if __name__ == "__main__" or _is_hf:
     demo.launch(
         theme=create_theme(),
         css=_APP_CSS,
