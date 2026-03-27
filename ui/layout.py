@@ -2,6 +2,7 @@
 import gradio as gr
 from ui.theme import create_theme
 from ui.loading import get_loading_html, get_cycling_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
+from ui.globe_map import build_globe_map_html
 
 # 모듈 레벨 환율 캐싱 (앱 기동 시 1회 조회 — 이후 재사용)
 _EXCHANGE_RATE_USD: float | None = None
@@ -212,6 +213,9 @@ def create_layout(advisor_fn, detail_fn):
             value=get_loading_html("앱을 불러오는 중이에요..."),
             elem_id="nnai-loading-overlay",
         )
+
+        # ── 세계지도 모달 (position:fixed — DOM 위치 무관) ──────────────
+        gr.HTML(value=build_globe_map_html(), elem_id="nnai-globe-map-modal")
 
         # ── 헤더 ──────────────────────────────────────────────────────
         # js_on_load=: 컴포넌트 마운트 시 Gradio가 직접 JS를 실행해줌
