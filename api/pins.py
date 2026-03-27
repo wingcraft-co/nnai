@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from utils.db import get_conn
 
 router = APIRouter()
-SESSION_KEY = "nnai_user_id"   # request.state에서 읽음
+SESSION_KEY = "user_id"   # request.state의 속성명 (AuthMiddleware가 설정)
 
 
 class PinIn(BaseModel):
@@ -20,7 +20,7 @@ class PinIn(BaseModel):
 
 
 def _user_id(request: Request) -> str | None:
-    return getattr(request.state, "user_id", None)
+    return getattr(request.state, SESSION_KEY, None)
 
 
 @router.get("/pins")
@@ -56,7 +56,7 @@ def add_pin(request: Request, pin: PinIn):
 def community_pins():
     """전체 사용자 핀을 도시별로 집계."""
     rows = get_conn().execute(
-        "SELECT city, display, ROUND(AVG(lat),4) lat, ROUND(AVG(lng),4) lng, "
+        "SELECT city, MIN(display) display, ROUND(AVG(lat),4) lat, ROUND(AVG(lng),4) lng, "
         "COUNT(*) cnt FROM pins GROUP BY city ORDER BY cnt DESC LIMIT 100"
     ).fetchall()
     return [dict(r) for r in rows]
