@@ -80,16 +80,16 @@ def build_globe_map_html() -> str:
 /* Pin popup (modal inside modal) */
 #nnai-pin-bg{display:none!important;position:fixed!important;inset:0!important;z-index:9500!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.65)!important;backdrop-filter:blur(4px)!important;}
 #nnai-pin-bg.open{display:flex!important;}
-#nnai-pin-box{background:#0d1b2a!important;border:1px solid rgba(79,195,247,.22)!important;border-radius:15px!important;padding:22px 24px!important;width:340px!important;box-shadow:0 16px 48px rgba(0,0,0,.8)!important;}
-#nnai-pin-title{font-size:.95rem!important;font-weight:600!important;margin-bottom:3px!important;color:#fff!important;}
-#nnai-pin-sub{font-size:.72rem!important;color:rgba(255,255,255,.45)!important;margin-bottom:14px!important;}
-.nnai-pp-label{font-size:.72rem!important;color:rgba(255,255,255,.45)!important;margin:10px 0 4px!important;}
-.nnai-pp-input{width:100%!important;background:rgba(255,255,255,.06)!important;border:1px solid rgba(79,195,247,.22)!important;border-radius:7px!important;color:#fff!important;padding:8px 11px!important;font-size:.82rem!important;outline:none!important;box-sizing:border-box!important;}
-.nnai-pp-input:focus{border-color:#4FC3F7!important;}
-#nnai-pin-loc{margin-top:12px!important;border-radius:7px!important;padding:8px 11px!important;font-size:.73rem!important;display:flex!important;align-items:center!important;gap:6px!important;}
+#nnai-pin-box{background:#fff!important;border:1px solid #ddd!important;border-radius:15px!important;padding:22px 24px!important;width:340px!important;box-shadow:0 16px 48px rgba(0,0,0,.2)!important;}
+#nnai-pin-title{font-size:.95rem!important;font-weight:600!important;margin-bottom:3px!important;color:#333!important;}
+#nnai-pin-sub{font-size:.72rem!important;color:#888!important;margin-bottom:14px!important;}
+.nnai-pp-label{font-size:.72rem!important;color:#555!important;margin:10px 0 4px!important;}
+.nnai-pp-input{width:100%!important;background:#f9f9f9!important;border:1px solid #ccc!important;border-radius:7px!important;color:#333!important;padding:8px 11px!important;font-size:.82rem!important;outline:none!important;box-sizing:border-box!important;}
+.nnai-pp-input:focus{border-color:#4FC3F7!important;background:#fff!important;}
+#nnai-pin-loc{margin-top:12px!important;border-radius:7px!important;padding:8px 11px!important;font-size:.73rem!important;display:flex!important;align-items:center!important;gap:6px!important;background:#f5f5f5!important;color:#666!important;}
 .nnai-loc-dot{width:7px!important;height:7px!important;border-radius:50%!important;flex-shrink:0!important;}
 #nnai-pin-actions{display:flex!important;gap:7px!important;margin-top:16px!important;}
-#nnai-pin-cancel{flex:1!important;padding:8px!important;border-radius:7px!important;background:rgba(255,255,255,.07)!important;border:none!important;color:rgba(255,255,255,.55)!important;cursor:pointer!important;font-size:.79rem!important;}
+#nnai-pin-cancel{flex:1!important;padding:8px!important;border-radius:7px!important;background:#f0f0f0!important;border:1px solid #ccc!important;color:#666!important;cursor:pointer!important;font-size:.79rem!important;}
 #nnai-pin-save{flex:2!important;padding:8px!important;border-radius:7px!important;background:linear-gradient(135deg,#FF8C00,#FFA500)!important;border:none!important;color:#fff!important;cursor:pointer!important;font-size:.79rem!important;font-weight:600!important;box-shadow:0 3px 10px rgba(255,140,0,.35)!important;}
 #nnai-pin-save:hover{filter:brightness(1.08)!important;}
 
