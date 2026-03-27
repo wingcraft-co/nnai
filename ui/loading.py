@@ -222,7 +222,7 @@ HEADER_GLOBE_HTML = (
     '<h1 style="display:flex;align-items:center;justify-content:center;'
     'font-size:2rem;color:var(--nn-title,#0C447C);margin:0 0 4px;">'
     '<canvas id="nnai-hdr-globe" width="48" height="48"'
-    ' onclick="var bg=document.getElementById(\'nnai-map-modal-bg\'); if(bg){bg.classList.add(\'open\'); if(typeof initMap!==\'undefined\'){setTimeout(function(){if(!window._map){initMap(); checkAuth(); checkLocation(); loadCommunityPins();}else{_map.invalidateSize();}},200);}}"'
+    ' onclick="if(typeof window.nnaiOpenMap===\'function\'){window.nnaiOpenMap();}"'
     ' title="클릭하면 노마드 방명록 지도가 열려요 🗺️"'
     ' style="display:inline-block;vertical-align:middle;'
     'image-rendering:pixelated;image-rendering:crisp-edges;'
