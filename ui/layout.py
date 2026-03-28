@@ -3,6 +3,7 @@ import gradio as gr
 from ui.theme import create_theme
 from ui.loading import get_loading_html, get_cycling_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
 from ui.globe_map import build_globe_map_html
+from ui.i18n import build_i18n_js
 
 # 모듈 레벨 환율 캐싱 (앱 기동 시 1회 조회 — 이후 재사용)
 _EXCHANGE_RATE_USD: float | None = None
@@ -389,6 +390,28 @@ function requireLoginForStep2(){
   return false;
 }
 
+/* ── STEP2 버튼 로그인 가드 ── */
+(function(){
+  function guardBtn(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('click',function(e){
+      if(!_isLoggedIn){
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        showLoginPopupForStep2();
+      }
+    },true);
+  }
+  var _guard=setInterval(function(){
+    if(document.getElementById('btn-go-step2')||document.getElementById('btn-step2')){
+      guardBtn('btn-go-step2');
+      guardBtn('btn-step2');
+      clearInterval(_guard);
+    }
+  },500);
+})();
+
 /* ── 도시 검색 ── */
 function fuzzyMatch(str,q){
   str=str.toLowerCase(); q=q.toLowerCase();
@@ -587,6 +610,9 @@ setTimeout(function(){
         """
         gr.HTML(value="", js_on_load=init_script)
 
+        # ── i18n (브라우저 언어 자동 감지) ─────────────────────────────
+        gr.HTML(value="", js_on_load=build_i18n_js())
+
         # ── 헤더 ──────────────────────────────────────────────────────
         # js_on_load=: 컴포넌트 마운트 시 Gradio가 직접 JS를 실행해줌
         with gr.Column(elem_classes="main-header"):
@@ -612,8 +638,8 @@ setTimeout(function(){
                         ui_language = gr.Radio(
                             choices=["한국어", "English"],
                             value="한국어",
-                            label="언어 / Language",
-                            info="UI and AI response language",
+                            visible=False,
+                            elem_id="nnai-ui-language",
                         )
 
                         nationality = gr.Dropdown(
@@ -795,6 +821,7 @@ setTimeout(function(){
                     variant="secondary",
                     size="lg",
                     visible=False,
+                    elem_id="btn-go-step2",
                 )
 
             # ── Tab 2: 상세 가이드 ─────────────────────────────────────
@@ -810,6 +837,7 @@ setTimeout(function(){
                             "📖 상세 가이드 받기",
                             variant="primary",
                             size="lg",
+                            elem_id="btn-step2",
                         )
 
                     with gr.Column(scale=2):
@@ -911,7 +939,6 @@ setTimeout(function(){
             fn=lambda: gr.update(selected=1),
             inputs=[],
             outputs=[tabs],
-            js="function(){if(!requireLoginForStep2()){throw new Error('login_required');}}"
         )
 
         # ── Step 2 이벤트 ──────────────────────────────────────────────
@@ -936,7 +963,6 @@ setTimeout(function(){
             fn=run_step2,
             inputs=[parsed_state, city_choice],
             outputs=[step2_output, loading_overlay],
-            js="function(){if(!requireLoginForStep2()){throw new Error('login_required');}}"
         )
 
         # ── 앱 초기 로딩 완료 시 오버레이 클리어 ──────────────────────

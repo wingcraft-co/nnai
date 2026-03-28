@@ -233,7 +233,7 @@ HEADER_GLOBE_HTML = (
     ' onmouseover="this.style.filter=\'drop-shadow(0 0 6px #4FC3F7)\'"'
     ' onmouseout="this.style.filter=\'drop-shadow(0 0 0px #4FC3F7)\'"'
     '></canvas>'
-    'NomadNavigator AI</h1>'
+    'Nomad Navigator ✨</h1>'
     '<div id="nnai-profile-container" style="display:none;align-items:center;gap:12px;padding:0 20px;">'
     '<img id="nnai-profile-pic" src="" alt="프로필" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #4FC3F7;"/>'
     '<div style="text-align:right;font-size:.9rem;">'

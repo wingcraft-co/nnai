@@ -46,9 +46,11 @@ gr.mount_gradio_app(app, demo, path="/")
 if __name__ == "__main__":
     import uvicorn
     _is_hf = bool(os.getenv("SPACE_ID"))
+    _is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+    _is_cloud = _is_hf or _is_railway
     uvicorn.run(
         "server:app",
-        host="0.0.0.0" if _is_hf else "127.0.0.1",
-        port=7860,
-        reload=not _is_hf,
+        host="0.0.0.0" if _is_cloud else "127.0.0.1",
+        port=int(os.getenv("PORT", 7860)),
+        reload=not _is_cloud,
     )
