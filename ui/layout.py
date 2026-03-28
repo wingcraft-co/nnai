@@ -349,10 +349,12 @@ function setLocStatus(ok,txt){
 }
 
 /* ── 인증 상태 확인 ── */
+var _isLoggedIn = false;
 function checkAuth(){
   fetch('/auth/me').then(function(r){return r.json();}).then(function(d){
     var cta=$('nnai-login-cta'), bar=$('nnai-user-bar');
     if(d.logged_in){
+      _isLoggedIn = true;
       _userId=d.uid;
       if(cta) cta.style.display='none';
       if(bar) bar.style.display='flex';
@@ -362,10 +364,29 @@ function checkAuth(){
       if(pic && d.picture) pic.src=d.picture;
       loadMyPins();
     } else {
+      _isLoggedIn = false;
       if(cta) cta.style.display='flex';
       if(bar) bar.style.display='none';
     }
   });
+}
+
+/* ── STEP2 로그인 유도 팝업 ── */
+function showLoginPopupForStep2(){
+  var t1=$('nnai-login-popup-title1');
+  var t2=$('nnai-login-popup-title2');
+  var desc=$('nnai-login-popup-desc');
+  if(t1) t1.textContent='상세 가이드를 받으려면';
+  if(t2) t2.textContent='로그인이 필요합니다';
+  if(desc) desc.innerHTML='AI가 분석한 맞춤형 상세 가이드를<br/>로그인 후 무료로 받아보세요';
+  var bg=$('nnai-login-popup-bg');
+  if(bg) bg.style.display='flex';
+}
+
+function requireLoginForStep2(){
+  if(_isLoggedIn) return true;
+  showLoginPopupForStep2();
+  return false;
 }
 
 /* ── 도시 검색 ── */
@@ -885,11 +906,12 @@ setTimeout(function(){
             outputs=[companion_warning],
         )
 
-        # Step 2 탭으로 이동
+        # Step 2 탭으로 이동 (로그인 체크)
         btn_go_step2.click(
             fn=lambda: gr.update(selected=1),
             inputs=[],
             outputs=[tabs],
+            js="function(){if(!requireLoginForStep2()){throw new Error('login_required');}}"
         )
 
         # ── Step 2 이벤트 ──────────────────────────────────────────────
@@ -914,6 +936,7 @@ setTimeout(function(){
             fn=run_step2,
             inputs=[parsed_state, city_choice],
             outputs=[step2_output, loading_overlay],
+            js="function(){if(!requireLoginForStep2()){throw new Error('login_required');}}"
         )
 
         # ── 앱 초기 로딩 완료 시 오버레이 클리어 ──────────────────────

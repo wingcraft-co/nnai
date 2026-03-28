@@ -185,14 +185,14 @@ def build_globe_map_html() -> str:
 
 <div id="nnai-toast"></div>
 
-<!-- 로그인 유도 팝업 -->
+<!-- 로그인 유도 팝업 (핀 저장) -->
 <div id="nnai-login-popup-bg" style="display:none!important;position:fixed!important;inset:0!important;z-index:9500!important;align-items:center!important;justify-content:center!important;background:rgba(0,5,20,.88)!important;backdrop-filter:blur(8px)!important;">
   <div style="background:#0d1b2a!important;border:1px solid rgba(79,195,247,.22)!important;border-radius:15px!important;padding:28px 24px!important;width:340px!important;box-shadow:0 16px 48px rgba(0,0,0,.4),0 0 0 1px rgba(79,195,247,.12)!important;">
     <div style="text-align:center!important;">
       <div style="font-size:2.5rem!important;margin-bottom:12px!important;">✨</div>
-      <div style="font-size:.95rem!important;font-weight:600!important;margin-bottom:8px!important;color:#fff!important;">핀을 저장하고</div>
-      <div style="font-size:.95rem!important;font-weight:600!important;margin-bottom:16px!important;color:#fff!important;">내 디지털노마드 지도를 완성해보세요!</div>
-      <div style="font-size:.78rem!important;color:rgba(255,255,255,.55)!important;margin-bottom:20px!important;line-height:1.5!important;">방문한 도시의 핀을 저장하고<br/>나만의 노마드 여정을 기록해보세요</div>
+      <div id="nnai-login-popup-title1" style="font-size:.95rem!important;font-weight:600!important;margin-bottom:8px!important;color:#fff!important;">핀을 저장하고</div>
+      <div id="nnai-login-popup-title2" style="font-size:.95rem!important;font-weight:600!important;margin-bottom:16px!important;color:#fff!important;">내 디지털노마드 지도를 완성해보세요!</div>
+      <div id="nnai-login-popup-desc" style="font-size:.78rem!important;color:rgba(255,255,255,.55)!important;margin-bottom:20px!important;line-height:1.5!important;">방문한 도시의 핀을 저장하고<br/>나만의 노마드 여정을 기록해보세요</div>
     </div>
     <div style="display:flex!important;gap:8px!important;margin-top:16px!important;">
       <button id="nnai-login-popup-cancel" style="flex:1!important;padding:10px!important;border-radius:7px!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.1)!important;color:rgba(255,255,255,.7)!important;cursor:pointer!important;font-size:.79rem!important;transition:all .2s!important;font-weight:500!important;">닫기</button>
