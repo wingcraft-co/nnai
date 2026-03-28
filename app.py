@@ -247,22 +247,32 @@ _is_cloud = _is_hf or _is_railway
 
 if __name__ == "__main__" or _is_hf:
     import uvicorn
-    from fastapi import FastAPI as _FastAPI
+    from fastapi import FastAPI as _FastAPI, Request as _Request
     from fastapi.responses import PlainTextResponse as _PlainText, HTMLResponse as _HTML
+    from starlette.middleware.base import BaseHTTPMiddleware as _Middleware
+    from api.auth import router as _auth_router, extract_user_id as _extract_uid
+    from api.pins import router as _pins_router
+    from utils.db import init_db as _init_db
+
+    _init_db()
 
     _ads_txt = "google.com, pub-8452594011595682, DIRECT, f08c47fec0942fa0"
     _privacy_html = open(os.path.join(os.path.dirname(__file__), "docs", "privacy.html"), encoding="utf-8").read() if os.path.exists(os.path.join(os.path.dirname(__file__), "docs", "privacy.html")) else "<h1>Privacy Policy</h1><p>See nnai.app/privacy</p>"
 
-    _fapp = _FastAPI()
+    _fapp = _FastAPI(title="NomadNavigator API")
 
-    @_fapp.get("/ads.txt")
-    async def _serve_ads_txt():
-        return _PlainText(_ads_txt)
+    class _AuthMiddleware(_Middleware):
+        async def dispatch(self, request: _Request, call_next):
+            if request.url.path == "/ads.txt":
+                return _PlainText(_ads_txt)
+            if request.url.path in ("/privacy", "/privacy-policy"):
+                return _HTML(_privacy_html)
+            request.state.user_id = _extract_uid(request)
+            return await call_next(request)
 
-    @_fapp.get("/privacy")
-    @_fapp.get("/privacy-policy")
-    async def _serve_privacy():
-        return _HTML(_privacy_html)
+    _fapp.add_middleware(_AuthMiddleware)
+    _fapp.include_router(_auth_router)
+    _fapp.include_router(_pins_router, prefix="/api")
 
     import gradio as _gr
     _gr.mount_gradio_app(_fapp, demo, path="/")
