@@ -20,7 +20,7 @@ init_db()
 app = FastAPI(title="NomadNavigator API")
 
 
-_ADS_TXT_CONTENT = "google.com, ca-pub-8452594011595682, DIRECT, f08c47fec0942fa0"
+_ADS_TXT_CONTENT = "google.com, pub-8452594011595682, DIRECT, f08c47fec0942fa0"
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
