@@ -136,9 +136,8 @@ ISO2_TO_ISO3 = {
 def _city_btn_label(city_data: dict) -> str:
     code = city_data.get("country_id", "")
     flag = _country_code_to_flag(code) if code else ""
-    iso3 = ISO2_TO_ISO3.get(code, code)
-    city = city_data.get("city", "?")
-    return f"{flag} {city}, {iso3}".strip()
+    city = city_data.get("city_kr") or city_data.get("city", "?")
+    return f"{flag} {city}".strip()
 
 NATIONALITIES = [
     "Korean", "Japanese", "Chinese", "American",
