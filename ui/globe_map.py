@@ -33,13 +33,13 @@ def build_globe_map_html() -> str:
 #nnai-map-close:hover{background:rgba(255,255,255,.28)!important;}
 
 /* Login CTA */
-#nnai-login-cta{background:linear-gradient(90deg,rgba(255,140,0,.12),rgba(255,193,7,.07))!important;border-bottom:1px solid rgba(255,160,0,.2)!important;padding:8px 18px!important;display:flex!important;align-items:center!important;gap:10px!important;}
+#nnai-login-cta{background:linear-gradient(90deg,rgba(255,140,0,.12),rgba(255,193,7,.07))!important;border-bottom:1px solid rgba(255,160,0,.2)!important;padding:8px 18px!important;align-items:center!important;gap:10px!important;}
 #nnai-login-cta span{font-size:.78rem!important;color:rgba(255,255,255,.82)!important;flex:1!important;}
 #nnai-login-cta strong{color:#FFD54F!important;}
 #nnai-google-btn{display:flex!important;align-items:center!important;gap:6px!important;background:#fff!important;color:#333!important;border:none!important;border-radius:20px!important;padding:5px 12px!important;cursor:pointer!important;font-size:.74rem!important;font-weight:600!important;box-shadow:0 2px 8px rgba(0,0,0,.3)!important;white-space:nowrap!important;text-decoration:none!important;}
 
 /* User info (logged in) */
-#nnai-user-bar{background:rgba(79,195,247,.06)!important;border-bottom:1px solid rgba(79,195,247,.12)!important;padding:6px 18px!important;display:none!important;align-items:center!important;gap:10px!important;}
+#nnai-user-bar{background:rgba(79,195,247,.06)!important;border-bottom:1px solid rgba(79,195,247,.12)!important;padding:6px 18px!important;align-items:center!important;gap:10px!important;}
 #nnai-user-bar img{width:26px!important;height:26px!important;border-radius:50%!important;}
 #nnai-user-bar span{font-size:.78rem!important;color:rgba(255,255,255,.8)!important;flex:1!important;}
 #nnai-logout-btn{font-size:.72rem!important;color:rgba(255,255,255,.4)!important;background:none!important;border:none!important;cursor:pointer!important;text-decoration:underline!important;}
@@ -115,7 +115,7 @@ def build_globe_map_html() -> str:
     </div>
 
     <!-- 비로그인 CTA -->
-    <div id="nnai-login-cta" style="display:none!important;">
+    <div id="nnai-login-cta" style="display:none;">
       <span>✨ <strong>로그인하고 나만의 디지털 노마드 지도를 완성해보세요!</strong></span>
       <a id="nnai-google-btn" href="/auth/google">
         <svg width="15" height="15" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@ def build_globe_map_html() -> str:
     </div>
 
     <!-- 로그인 후 유저 바 -->
-    <div id="nnai-user-bar">
+    <div id="nnai-user-bar" style="display:none;">
       <img id="nnai-user-pic" src="" alt=""/>
       <span id="nnai-user-name"></span>
       <a id="nnai-logout-btn" href="/auth/logout">로그아웃</a>
