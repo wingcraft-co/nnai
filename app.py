@@ -246,11 +246,29 @@ _is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
 _is_cloud = _is_hf or _is_railway
 
 if __name__ == "__main__" or _is_hf:
-    demo.launch(
-        theme=create_theme(),
-        css=_APP_CSS,
-        server_name="0.0.0.0" if _is_cloud else "127.0.0.1",
-        server_port=int(os.getenv("PORT", 7860)),
-        inbrowser=not _is_cloud,
-        ssr_mode=False,
+    import uvicorn
+    from fastapi import FastAPI as _FastAPI
+    from fastapi.responses import PlainTextResponse as _PlainText, HTMLResponse as _HTML
+
+    _ads_txt = "google.com, pub-8452594011595682, DIRECT, f08c47fec0942fa0"
+    _privacy_html = open(os.path.join(os.path.dirname(__file__), "docs", "privacy.html"), encoding="utf-8").read() if os.path.exists(os.path.join(os.path.dirname(__file__), "docs", "privacy.html")) else "<h1>Privacy Policy</h1><p>See nnai.app/privacy</p>"
+
+    _fapp = _FastAPI()
+
+    @_fapp.get("/ads.txt")
+    async def _serve_ads_txt():
+        return _PlainText(_ads_txt)
+
+    @_fapp.get("/privacy")
+    @_fapp.get("/privacy-policy")
+    async def _serve_privacy():
+        return _HTML(_privacy_html)
+
+    import gradio as _gr
+    _gr.mount_gradio_app(_fapp, demo, path="/")
+
+    uvicorn.run(
+        _fapp,
+        host="0.0.0.0" if _is_cloud else "127.0.0.1",
+        port=int(os.getenv("PORT", 7860)),
     )
