@@ -184,4 +184,28 @@ def build_globe_map_html() -> str:
 </div>
 
 <div id="nnai-toast"></div>
+
+<!-- 로그인 유도 팝업 -->
+<div id="nnai-login-popup-bg" style="display:none!important;position:fixed!important;inset:0!important;z-index:9500!important;align-items:center!important;justify-content:center!important;background:rgba(0,5,20,.88)!important;backdrop-filter:blur(8px)!important;">
+  <div style="background:#0d1b2a!important;border:1px solid rgba(79,195,247,.22)!important;border-radius:15px!important;padding:28px 24px!important;width:340px!important;box-shadow:0 16px 48px rgba(0,0,0,.4),0 0 0 1px rgba(79,195,247,.12)!important;">
+    <div style="text-align:center!important;">
+      <div style="font-size:2.5rem!important;margin-bottom:12px!important;">✨</div>
+      <div style="font-size:.95rem!important;font-weight:600!important;margin-bottom:8px!important;color:#fff!important;">핀을 저장하고</div>
+      <div style="font-size:.95rem!important;font-weight:600!important;margin-bottom:16px!important;color:#fff!important;">내 디지털노마드 지도를 완성해보세요!</div>
+      <div style="font-size:.78rem!important;color:rgba(255,255,255,.55)!important;margin-bottom:20px!important;line-height:1.5!important;">방문한 도시의 핀을 저장하고<br/>나만의 노마드 여정을 기록해보세요</div>
+    </div>
+    <div style="display:flex!important;gap:8px!important;margin-top:16px!important;">
+      <button id="nnai-login-popup-cancel" style="flex:1!important;padding:10px!important;border-radius:7px!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.1)!important;color:rgba(255,255,255,.7)!important;cursor:pointer!important;font-size:.79rem!important;transition:all .2s!important;font-weight:500!important;">닫기</button>
+      <a href="/auth/google" style="flex:1.5!important;padding:10px!important;border-radius:7px!important;background:linear-gradient(135deg,#FF8C00,#FFA500)!important;border:none!important;color:#fff!important;cursor:pointer!important;font-size:.79rem!important;font-weight:600!important;box-shadow:0 3px 10px rgba(255,140,0,.35)!important;text-decoration:none!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;transition:all .2s!important;">
+        <svg width="14" height="14" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#fff"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#fff"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#fff"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#fff"/>
+        </svg>
+        로그인
+      </a>
+    </div>
+  </div>
+</div>
 """

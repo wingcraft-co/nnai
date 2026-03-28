@@ -475,14 +475,19 @@ function openPinPopup(){
 }
 function closePinPopup(){$('nnai-pin-bg').classList.remove('open');}
 
+/* ── 로그인 팝업 제어 ── */
+function showLoginPopup(){
+  $('nnai-login-popup-bg').style.display='flex';
+}
+function closeLoginPopup(){
+  $('nnai-login-popup-bg').style.display='none';
+}
+
 /* ── 핀 저장 ── */
 function savePin(){
   var c=_selCity; if(!c) return;
   if(!_userId){
-    var btn=$('nnai-pin-save');
-    btn.style.animation='none';
-    setTimeout(function(){btn.style.animation='nnaiLoginShake .4s';},10);
-    showToast('핀을 저장하려면 로그인하세요');
+    showLoginPopup();
     return;
   }
   var note=$('nnai-pp-note').value.trim();
@@ -540,6 +545,8 @@ function setupNomadMap(){
   $('nnai-pin-cancel').onclick = closePinPopup;
   $('nnai-pin-save').onclick = savePin;
   $('nnai-pp-note').addEventListener('keydown', function(e){if(e.key==='Enter')savePin();});
+  $('nnai-login-popup-cancel').onclick = closeLoginPopup;
+  $('nnai-login-popup-bg').addEventListener('click', function(e){if(e.target === this) closeLoginPopup();});
 
   console.log('✓ Nomad Map ready');
 }
