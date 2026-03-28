@@ -1,4 +1,6 @@
 # ui/layout.py
+import json
+import os
 import gradio as gr
 from ui.theme import create_theme
 from ui.loading import get_loading_html, get_cycling_loading_html, LOADING_CLEAR, HEADER_GLOBE_HTML, HEADER_GLOBE_JS
@@ -202,11 +204,48 @@ _APP_CSS = """
 .main-header h1{font-size:2rem;color:var(--nn-title)}
 .main-header p{color:var(--nn-sub);font-size:.95rem}
 footer{display:none!important}
+.ad-sidebar{width:300px;min-height:600px;padding:8px;background-color:#f9f9f9;border-left:1px solid #e0e0e0;border-radius:4px;box-sizing:border-box;}
+@media(max-width:1023px){.ad-sidebar{display:none!important}}
+@media(min-width:1024px){.ad-sidebar{display:block!important}}
 """
 
 
+def _create_ad_sidebar_html():
+    """Generate Google AdSense sidebar HTML. Returns placeholder div if config missing/disabled."""
+    ads_config_path = os.path.join(os.path.dirname(__file__), '../data/ads_config.json')
+
+    if not os.path.exists(ads_config_path):
+        return '<div class="ad-sidebar"></div>'
+
+    with open(ads_config_path, 'r') as f:
+        ads_config = json.load(f)
+
+    if not ads_config.get('enabled', False):
+        return '<div class="ad-sidebar"></div>'
+
+    publisher_id = ads_config.get('google_adsense', {}).get('publisher_id', '')
+    ad_slot = ads_config.get('google_adsense', {}).get('ad_slot_vertical', '')
+
+    if not publisher_id or not ad_slot or 'xxxxxxxx' in publisher_id:
+        return '<div class="ad-sidebar"><p style="color:#aaa;font-size:12px;text-align:center;padding-top:20px;">광고 영역</p></div>'
+
+    return f"""<div class="ad-sidebar">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={publisher_id}"
+            crossorigin="anonymous"></script>
+        <ins class="adsbygoogle"
+            style="display:block"
+            data-ad-client="{publisher_id}"
+            data-ad-slot="{ad_slot}"
+            data-ad-format="auto"
+            data-full-width-responsive="true"></ins>
+        <script>
+            (adsbygoogle = window.adsbygoogle || []).push({{}});
+        </script>
+    </div>"""
+
+
 def create_layout(advisor_fn, detail_fn):
-    with gr.Blocks(title="NomadNavigator AI") as demo:
+    with gr.Blocks(title="NomadNavigator AI", css=_APP_CSS) as demo:
 
         # ── 로딩 오버레이 (position:fixed — DOM 위치 무관) ───────────────
         # 초기값: 앱 로딩 중 지구본 애니메이션 표시 → demo.load() 시 클리어
@@ -613,237 +652,242 @@ setTimeout(function(){
         # ── i18n (브라우저 언어 자동 감지) ─────────────────────────────
         gr.HTML(value="", js_on_load=build_i18n_js())
 
-        # ── 헤더 ──────────────────────────────────────────────────────
-        # js_on_load=: 컴포넌트 마운트 시 Gradio가 직접 JS를 실행해줌
-        with gr.Column(elem_classes="main-header"):
-            gr.HTML(
-                value=HEADER_GLOBE_HTML,
-                js_on_load=HEADER_GLOBE_JS,
-            )
-            gr.HTML('<p style="color:#888780;font-size:.95rem;margin:0;">국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>')
+        with gr.Row():
+            with gr.Column(scale=4):
+                # ── 헤더 ──────────────────────────────────────────────────────
+                # js_on_load=: 컴포넌트 마운트 시 Gradio가 직접 JS를 실행해줌
+                with gr.Column(elem_classes="main-header"):
+                    gr.HTML(
+                        value=HEADER_GLOBE_HTML,
+                        js_on_load=HEADER_GLOBE_JS,
+                    )
+                    gr.HTML('<p style="color:#888780;font-size:.95rem;margin:0;">국적 · 소득 · 체류 목적을 입력하면 AI가 최적의 장기 체류 도시를 제안합니다</p>')
 
-        # ── State ──────────────────────────────────────────────────────
-        parsed_state = gr.State({})
+                # ── State ──────────────────────────────────────────────────────
+                parsed_state = gr.State({})
 
-        # ── Tabs ───────────────────────────────────────────────────────
-        with gr.Tabs() as tabs:
+                # ── Tabs ───────────────────────────────────────────────────────
+                with gr.Tabs() as tabs:
 
-            # ── Tab 1: 도시 추천 ───────────────────────────────────────
-            with gr.Tab("🔍 도시 추천", id=0):
-                with gr.Row():
-                    # 입력 패널
-                    with gr.Column(scale=1):
-                        gr.Markdown("### 📋 내 프로필 입력")
+                    # ── Tab 1: 도시 추천 ───────────────────────────────────────
+                    with gr.Tab("🔍 도시 추천", id=0):
+                        with gr.Row():
+                            # 입력 패널
+                            with gr.Column(scale=1):
+                                gr.Markdown("### 📋 내 프로필 입력")
 
-                        ui_language = gr.Radio(
-                            choices=["한국어", "English"],
-                            value="한국어",
-                            visible=False,
-                            elem_id="nnai-ui-language",
-                        )
+                                ui_language = gr.Radio(
+                                    choices=["한국어", "English"],
+                                    value="한국어",
+                                    visible=False,
+                                    elem_id="nnai-ui-language",
+                                )
 
-                        nationality = gr.Dropdown(
-                            choices=NATIONALITIES, value="Korean",
-                            label="국적", info="여권 발급 국가 기준",
-                        )
-                        # P2-1: 복수국적 여부
-                        dual_nationality = gr.Checkbox(
-                            label="복수국적 보유 (예: 한국-미국 이중국적)",
-                            value=False,
-                            info="복수국적 보유 시 보조 여권 기준 체류 가능 여부를 추가 안내합니다.",
-                        )
+                                nationality = gr.Dropdown(
+                                    choices=NATIONALITIES, value="Korean",
+                                    label="국적", info="여권 발급 국가 기준",
+                                )
+                                # P2-1: 복수국적 여부
+                                dual_nationality = gr.Checkbox(
+                                    label="복수국적 보유 (예: 한국-미국 이중국적)",
+                                    value=False,
+                                    info="복수국적 보유 시 보조 여권 기준 체류 가능 여부를 추가 안내합니다.",
+                                )
 
-                        # P1-1: 동반 여부 + 자녀 연령대
-                        travel_type = gr.Radio(
-                            label="동반 여부",
-                            choices=["혼자 (솔로)", "배우자·파트너 동반", "자녀 동반 (배우자 없이)", "가족 전체 동반 (배우자 + 자녀)"],
-                            value="혼자 (솔로)",
-                        )
-                        with gr.Column(visible=False) as children_info_col:
-                            children_ages = gr.CheckboxGroup(
-                                label="자녀 연령대 (해당 항목 모두 선택)",
-                                choices=["영유아 (7세 이하)", "초등 (8~13세)", "중고등 (14~18세)"],
-                            )
+                                # P1-1: 동반 여부 + 자녀 연령대
+                                travel_type = gr.Radio(
+                                    label="동반 여부",
+                                    choices=["혼자 (솔로)", "배우자·파트너 동반", "자녀 동반 (배우자 없이)", "가족 전체 동반 (배우자 + 자녀)"],
+                                    value="혼자 (솔로)",
+                                )
+                                with gr.Column(visible=False) as children_info_col:
+                                    children_ages = gr.CheckboxGroup(
+                                        label="자녀 연령대 (해당 항목 모두 선택)",
+                                        choices=["영유아 (7세 이하)", "초등 (8~13세)", "중고등 (14~18세)"],
+                                    )
 
-                        # 변경 4: 배우자 소득 입력 (배우자 동반 시 노출)
-                        with gr.Column(visible=False) as spouse_income_col:
-                            has_spouse_income = gr.Radio(
-                                label="배우자/파트너 수입이 있나요?",
-                                choices=["있음", "없음"],
-                                value="없음",
-                            )
-                            spouse_income_krw = gr.Slider(
-                                label="배우자 월 수입 (만원)",
-                                value=300,
-                                minimum=0,
-                                maximum=5000,
-                                step=100,
-                                visible=False,
-                            )
+                                # 변경 4: 배우자 소득 입력 (배우자 동반 시 노출)
+                                with gr.Column(visible=False) as spouse_income_col:
+                                    has_spouse_income = gr.Radio(
+                                        label="배우자/파트너 수입이 있나요?",
+                                        choices=["있음", "없음"],
+                                        value="없음",
+                                    )
+                                    spouse_income_krw = gr.Slider(
+                                        label="배우자 월 수입 (만원)",
+                                        value=300,
+                                        minimum=0,
+                                        maximum=5000,
+                                        step=100,
+                                        visible=False,
+                                    )
 
-                        # 변경 4: 성인 자녀 소득 (가족 전체 동반 시 노출)
-                        with gr.Column(visible=False) as adult_child_income_col:
-                            has_adult_child_income = gr.Radio(
-                                label="자녀가 20세 이상이며 소득이 있나요?",
-                                choices=["있음", "없음"],
-                                value="없음",
-                            )
+                                # 변경 4: 성인 자녀 소득 (가족 전체 동반 시 노출)
+                                with gr.Column(visible=False) as adult_child_income_col:
+                                    has_adult_child_income = gr.Radio(
+                                        label="자녀가 20세 이상이며 소득이 있나요?",
+                                        choices=["있음", "없음"],
+                                        value="없음",
+                                    )
 
-                        # P0-1: Slider for income
-                        income_krw = gr.Slider(
-                            label="월 소득 (만원)",
-                            value=500,
-                            minimum=100,
-                            maximum=5000,
-                            step=100,
-                            info="세전 월 소득 기준. 비자 신청 소득 기준 검토에 사용됩니다.",
-                        )
-                        # P0-2 / 변경 5-Q4: 소득 증빙 형태 (아코디언 Q4 통합, 5개 선택지)
-                        income_type = gr.Dropdown(
-                            label="원격근무 계약 형태",
-                            choices=[
-                                "한국 법인 재직 (재직증명서 + 급여명세서)",
-                                "해외 법인 재직",
-                                "프리랜서 (계약서·해외 송금 내역)",
-                                "1인 사업자 (종합소득세 신고 기반)",
-                                "무소득 / 은퇴",
-                            ],
-                            value="한국 법인 재직 (재직증명서 + 급여명세서)",
-                            info="비자 신청 시 소득 증빙 방식이 신청 가능 비자를 결정합니다.",
-                        )
-                        immigration_purpose = gr.Dropdown(
-                            choices=STAY_PURPOSES,
-                            value=STAY_PURPOSES[0],
-                            label="장기 체류 목적",
-                        )
+                                # P0-1: Slider for income
+                                income_krw = gr.Slider(
+                                    label="월 소득 (만원)",
+                                    value=500,
+                                    minimum=100,
+                                    maximum=5000,
+                                    step=100,
+                                    info="세전 월 소득 기준. 비자 신청 소득 기준 검토에 사용됩니다.",
+                                )
+                                # P0-2 / 변경 5-Q4: 소득 증빙 형태 (아코디언 Q4 통합, 5개 선택지)
+                                income_type = gr.Dropdown(
+                                    label="원격근무 계약 형태",
+                                    choices=[
+                                        "한국 법인 재직 (재직증명서 + 급여명세서)",
+                                        "해외 법인 재직",
+                                        "프리랜서 (계약서·해외 송금 내역)",
+                                        "1인 사업자 (종합소득세 신고 기반)",
+                                        "무소득 / 은퇴",
+                                    ],
+                                    value="한국 법인 재직 (재직증명서 + 급여명세서)",
+                                    info="비자 신청 시 소득 증빙 방식이 신청 가능 비자를 결정합니다.",
+                                )
+                                immigration_purpose = gr.Dropdown(
+                                    choices=STAY_PURPOSES,
+                                    value=STAY_PURPOSES[0],
+                                    label="장기 체류 목적",
+                                )
 
-                        # 변경 2: 준비 단계 질문 신규 추가
-                        readiness_stage = gr.Radio(
-                            label="현재 준비 단계",
-                            choices=[
-                                "막연하게 고민 중 (6개월+ 후 실행 예상)",
-                                "구체적으로 준비 중 (3~6개월 내 출국 목표)",
-                                "이미 출국했거나 출국 임박",
-                            ],
-                            value="막연하게 고민 중 (6개월+ 후 실행 예상)",
-                        )
+                                # 변경 2: 준비 단계 질문 신규 추가
+                                readiness_stage = gr.Radio(
+                                    label="현재 준비 단계",
+                                    choices=[
+                                        "막연하게 고민 중 (6개월+ 후 실행 예상)",
+                                        "구체적으로 준비 중 (3~6개월 내 출국 목표)",
+                                        "이미 출국했거나 출국 임박",
+                                    ],
+                                    value="막연하게 고민 중 (6개월+ 후 실행 예상)",
+                                )
 
-                        # P1-4: "90일 이하" 옵션 추가
-                        timeline = gr.Radio(
-                            choices=["90일 이하 (비자 없이 탐색)", "1년 단기 체험", "3년 장기 체류", "5년 이상 초장기 체류"],
-                            value="1년 단기 체험",
-                            label="목표 체류 기간",
-                        )
+                                # P1-4: "90일 이하" 옵션 추가
+                                timeline = gr.Radio(
+                                    choices=["90일 이하 (비자 없이 탐색)", "1년 단기 체험", "3년 장기 체류", "5년 이상 초장기 체류"],
+                                    value="1년 단기 체험",
+                                    label="목표 체류 기간",
+                                )
 
-                        lifestyle = gr.CheckboxGroup(
-                            choices=LIFESTYLE_OPTIONS,
-                            label="라이프스타일 선호",
-                            info="해당 항목 모두 선택",
-                        )
-                        languages = gr.CheckboxGroup(
-                            choices=LANGUAGE_OPTIONS,
-                            label="사용 가능 언어",
-                            info="가능한 언어 모두 선택",
-                        )
-                        preferred_countries = gr.CheckboxGroup(
-                            choices=CONTINENT_OPTIONS,
-                            label="관심 대륙 선택",
-                            info="선택한 대륙의 도시가 추천에 우선 반영됩니다. 선택하지 않으면 전체 대상으로 추천합니다.",
-                        )
+                                lifestyle = gr.CheckboxGroup(
+                                    choices=LIFESTYLE_OPTIONS,
+                                    label="라이프스타일 선호",
+                                    info="해당 항목 모두 선택",
+                                )
+                                languages = gr.CheckboxGroup(
+                                    choices=LANGUAGE_OPTIONS,
+                                    label="사용 가능 언어",
+                                    info="가능한 언어 모두 선택",
+                                )
+                                preferred_countries = gr.CheckboxGroup(
+                                    choices=CONTINENT_OPTIONS,
+                                    label="관심 대륙 선택",
+                                    info="선택한 대륙의 도시가 추천에 우선 반영됩니다. 선택하지 않으면 전체 대상으로 추천합니다.",
+                                )
 
-                        # 변경 5: 아코디언 개편 — Q1 CheckboxGroup 전환, Q5 선택지 확인
-                        with gr.Accordion("🔍 내 노마드 유형 진단 (선택사항)", open=False):
-                            gr.Markdown("_질문으로 AI가 당신의 노마드 스타일을 파악합니다._")
+                                # 변경 5: 아코디언 개편 — Q1 CheckboxGroup 전환, Q5 선택지 확인
+                                with gr.Accordion("🔍 내 노마드 유형 진단 (선택사항)", open=False):
+                                    gr.Markdown("_질문으로 AI가 당신의 노마드 스타일을 파악합니다._")
 
-                            # Q1: Radio → CheckboxGroup, 선택지 순화
-                            q_motivation = gr.CheckboxGroup(
-                                choices=[
-                                    "생활비 절감 / FIRE",
-                                    "번아웃 회복 / 환경 전환",
-                                    "유럽 장기 체류 (쉥겐 루프)",
-                                    "한국 생활 리셋",
-                                    "사업/프리랜서 거점 이전",
-                                ],
-                                label="Q1. 노마드 생활을 고려하는 주된 이유 (복수 선택, 선택사항)",
-                                value=[],
-                            )
-                            # Q2: 유지
-                            q_europe = gr.Radio(
-                                choices=["예 (유럽 루트 계획 있음)", "아니오"],
-                                label="Q2. 유럽에서 활동할 계획이 있나요?",
-                                value="아니오",
-                            )
-                            # Q5: 선택지 PM 문서 기준으로 확인 (·로 통일)
-                            q_concern = gr.CheckboxGroup(
-                                choices=["비자·체류일 관리", "생활비 예산", "세금·법적 문제", "건강보험 공백", "외로움·커뮤니티", "숙소 구하기"],
-                                label="걱정되는 항목을 모두 선택하세요",
-                                value=["생활비 예산"],
-                            )
+                                    # Q1: Radio → CheckboxGroup, 선택지 순화
+                                    q_motivation = gr.CheckboxGroup(
+                                        choices=[
+                                            "생활비 절감 / FIRE",
+                                            "번아웃 회복 / 환경 전환",
+                                            "유럽 장기 체류 (쉥겐 루프)",
+                                            "한국 생활 리셋",
+                                            "사업/프리랜서 거점 이전",
+                                        ],
+                                        label="Q1. 노마드 생활을 고려하는 주된 이유 (복수 선택, 선택사항)",
+                                        value=[],
+                                    )
+                                    # Q2: 유지
+                                    q_europe = gr.Radio(
+                                        choices=["예 (유럽 루트 계획 있음)", "아니오"],
+                                        label="Q2. 유럽에서 활동할 계획이 있나요?",
+                                        value="아니오",
+                                    )
+                                    # Q5: 선택지 PM 문서 기준으로 확인 (·로 통일)
+                                    q_concern = gr.CheckboxGroup(
+                                        choices=["비자·체류일 관리", "생활비 예산", "세금·법적 문제", "건강보험 공백", "외로움·커뮤니티", "숙소 구하기"],
+                                        label="걱정되는 항목을 모두 선택하세요",
+                                        value=["생활비 예산"],
+                                    )
 
-                        # event handlers — 동반 구성에 따라 관련 컬럼 표시/숨김
-                        travel_type.change(
-                            fn=lambda t: (
-                                gr.update(visible=t in ["자녀 동반 (배우자 없이)", "가족 전체 동반 (배우자 + 자녀)"]),
-                                gr.update(visible=t in ["배우자·파트너 동반", "가족 전체 동반 (배우자 + 자녀)"]),
-                                gr.update(visible=t == "가족 전체 동반 (배우자 + 자녀)"),
-                            ),
-                            inputs=[travel_type],
-                            outputs=[children_info_col, spouse_income_col, adult_child_income_col],
-                        )
-                        has_spouse_income.change(
-                            fn=lambda v: gr.update(visible=v == "있음"),
-                            inputs=[has_spouse_income],
-                            outputs=[spouse_income_krw],
-                        )
+                                # event handlers — 동반 구성에 따라 관련 컬럼 표시/숨김
+                                travel_type.change(
+                                    fn=lambda t: (
+                                        gr.update(visible=t in ["자녀 동반 (배우자 없이)", "가족 전체 동반 (배우자 + 자녀)"]),
+                                        gr.update(visible=t in ["배우자·파트너 동반", "가족 전체 동반 (배우자 + 자녀)"]),
+                                        gr.update(visible=t == "가족 전체 동반 (배우자 + 자녀)"),
+                                    ),
+                                    inputs=[travel_type],
+                                    outputs=[children_info_col, spouse_income_col, adult_child_income_col],
+                                )
+                                has_spouse_income.change(
+                                    fn=lambda v: gr.update(visible=v == "있음"),
+                                    inputs=[has_spouse_income],
+                                    outputs=[spouse_income_krw],
+                                )
 
-                        # 소득·동반 인라인 경고 (입력 변경 시 즉시 노출)
-                        income_warning = gr.Markdown(visible=False, value="")
-                        companion_warning = gr.Markdown(visible=False, value="")
+                                # 소득·동반 인라인 경고 (입력 변경 시 즉시 노출)
+                                income_warning = gr.Markdown(visible=False, value="")
+                                companion_warning = gr.Markdown(visible=False, value="")
 
-                        # 하드 경고 — 제출 버튼 바로 위
-                        submit_warning = gr.Markdown(visible=False, value="")
+                                # 하드 경고 — 제출 버튼 바로 위
+                                submit_warning = gr.Markdown(visible=False, value="")
 
-                        btn_step1 = gr.Button(
-                            "🚀 도시 추천 받기", variant="primary", size="lg",
-                        )
-                        gr.Markdown("_⚠️ 본 서비스는 참고용이며 법적 비자/체류 조언이 아닙니다._")
+                                btn_step1 = gr.Button(
+                                    "🚀 도시 추천 받기", variant="primary", size="lg",
+                                )
+                                gr.Markdown("_⚠️ 본 서비스는 참고용이며 법적 비자/체류 조언이 아닙니다._")
 
-                    # 결과 패널
-                    with gr.Column(scale=1):
-                        gr.Markdown("### 📊 추천 도시 TOP 3")
-                        step1_output = gr.Markdown(
-                            "← 왼쪽에서 프로필을 입력하고 분석을 시작하세요."
-                        )
+                            # 결과 패널
+                            with gr.Column(scale=1):
+                                gr.Markdown("### 📊 추천 도시 TOP 3")
+                                step1_output = gr.Markdown(
+                                    "← 왼쪽에서 프로필을 입력하고 분석을 시작하세요."
+                                )
 
-                # Step 1 완료 후 등장하는 Tab 2 진입 버튼
-                btn_go_step2 = gr.Button(
-                    "📖 상세 가이드 받기 →",
-                    variant="secondary",
-                    size="lg",
-                    visible=False,
-                    elem_id="btn-go-step2",
-                )
-
-            # ── Tab 2: 상세 가이드 ─────────────────────────────────────
-            with gr.Tab("📖 상세 가이드", id=1):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        city_choice = gr.Radio(
-                            choices=["1순위 도시", "2순위 도시", "3순위 도시"],
-                            value="1순위 도시",
-                            label="상세 가이드를 받을 도시 선택",
-                        )
-                        btn_step2 = gr.Button(
-                            "📖 상세 가이드 받기",
-                            variant="primary",
+                        # Step 1 완료 후 등장하는 Tab 2 진입 버튼
+                        btn_go_step2 = gr.Button(
+                            "📖 상세 가이드 받기 →",
+                            variant="secondary",
                             size="lg",
-                            elem_id="btn-step2",
+                            visible=False,
+                            elem_id="btn-go-step2",
                         )
 
-                    with gr.Column(scale=2):
-                        step2_output = gr.Markdown(
-                            "← Step 1을 먼저 완료한 후 도시를 선택하세요."
-                        )
+                    # ── Tab 2: 상세 가이드 ─────────────────────────────────────
+                    with gr.Tab("📖 상세 가이드", id=1):
+                        with gr.Row():
+                            with gr.Column(scale=1):
+                                city_choice = gr.Radio(
+                                    choices=["1순위 도시", "2순위 도시", "3순위 도시"],
+                                    value="1순위 도시",
+                                    label="상세 가이드를 받을 도시 선택",
+                                )
+                                btn_step2 = gr.Button(
+                                    "📖 상세 가이드 받기",
+                                    variant="primary",
+                                    size="lg",
+                                    elem_id="btn-step2",
+                                )
+
+                            with gr.Column(scale=2):
+                                step2_output = gr.Markdown(
+                                    "← Step 1을 먼저 완료한 후 도시를 선택하세요."
+                                )
+
+            with gr.Column(scale=1, min_width=320):
+                gr.HTML(_create_ad_sidebar_html())
 
         # ── Step 1 이벤트 ──────────────────────────────────────────────
         _FALLBACK_LABELS = ["1순위 도시", "2순위 도시", "3순위 도시"]
