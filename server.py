@@ -34,11 +34,6 @@ app.include_router(pins_router, prefix="/api")
 # Gradio demo 임포트 (app.py에서 demo 객체만 꺼냄)
 def _build_gradio():
     from app import nomad_advisor, show_city_detail
-    import os
-    _USE_NEW_UI = os.getenv("USE_NEW_UI", "0") == "1"
-    if _USE_NEW_UI:
-        from ui.layout_v2 import build_layout_v2
-        return build_layout_v2(nomad_advisor, show_city_detail)
     from ui.layout import create_layout
     return create_layout(nomad_advisor, show_city_detail)
 

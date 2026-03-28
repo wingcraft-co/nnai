@@ -16,13 +16,6 @@ from prompts.data_context import DATA_CONTEXT
 from prompts.few_shots  import FEW_SHOT_EXAMPLES
 from ui.layout          import create_layout
 
-# USE_NEW_UI=1 → custom faceted filter UI (requires USE_DB_RECOMMENDER=1)
-# USE_NEW_UI=0 → original Gradio form (layout.py)
-_USE_NEW_UI = os.getenv("USE_NEW_UI", "0") == "1"
-
-if _USE_NEW_UI:
-    from ui.layout_v2 import build_layout_v2
-
 logger = logging.getLogger(__name__)
 
 _VISA_DB_CACHE: dict | None = None
@@ -246,11 +239,7 @@ def show_city_detail_with_nationality(
 from ui.layout import _APP_CSS
 from ui.theme import create_theme
 
-if _USE_NEW_UI:
-    from ui.layout_v2 import build_layout_v2
-    demo = build_layout_v2(nomad_advisor, show_city_detail_with_nationality)
-else:
-    demo = create_layout(nomad_advisor, show_city_detail_with_nationality)
+demo = create_layout(nomad_advisor, show_city_detail_with_nationality)
 
 _is_hf = bool(os.getenv("SPACE_ID"))
 
