@@ -219,8 +219,10 @@ def get_loading_html(message: str) -> str:
 #                     executes it properly through its loadHead() mechanism.
 # Canvas: 48x48px, radius: 22px, pixel size: 3px.
 HEADER_GLOBE_HTML = (
-    '<h1 style="display:flex;align-items:center;justify-content:center;'
-    'font-size:2rem;color:var(--nn-title,#0C447C);margin:0 0 4px;">'
+    '<div style="display:flex;align-items:center;justify-content:space-between;'
+    'padding:0;margin:0 0 4px;">'
+    '<h1 style="display:flex;align-items:center;justify-content:flex-start;'
+    'font-size:2rem;color:var(--nn-title,#0C447C);margin:0;flex:1;">'
     '<canvas id="nnai-hdr-globe" width="48" height="48"'
     ' onclick="if(typeof window.nnaiOpenMap===\'function\'){window.nnaiOpenMap();}"'
     ' title="클릭하면 노마드 방명록 지도가 열려요 🗺️"'
@@ -232,9 +234,32 @@ HEADER_GLOBE_HTML = (
     ' onmouseout="this.style.filter=\'drop-shadow(0 0 0px #4FC3F7)\'"'
     '></canvas>'
     'NomadNavigator AI</h1>'
+    '<div id="nnai-profile-container" style="display:none;align-items:center;gap:12px;padding:0 20px;">'
+    '<img id="nnai-profile-pic" src="" alt="프로필" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #4FC3F7;"/>'
+    '<div style="text-align:right;font-size:.9rem;">'
+    '<div style="color:#888;font-size:.75rem;margin-bottom:2px;">환영합니다</div>'
+    '<div id="nnai-profile-name" style="color:#0C447C;font-weight:600;"></div>'
+    '</div>'
+    '</div>'
+    '</div>'
 )
 
 HEADER_GLOBE_JS = """(function(){
+/* 로그인 상태 확인 및 프로필 표시 */
+fetch('/auth/me').then(function(r){return r.json();}).then(function(data){
+  if(data.logged_in){
+    var container=document.getElementById('nnai-profile-container');
+    var pic=document.getElementById('nnai-profile-pic');
+    var name=document.getElementById('nnai-profile-name');
+    if(container&&pic&&name){
+      if(data.picture)pic.src=data.picture;
+      name.textContent=data.name||'사용자';
+      container.style.display='flex';
+    }
+  }
+}).catch(function(){});
+
+/* 지구본 애니메이션 */
 if(window.__nnaiHdrRAF)cancelAnimationFrame(window.__nnaiHdrRAF);
 var W=[
   [0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
