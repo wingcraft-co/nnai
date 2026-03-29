@@ -113,7 +113,7 @@ def _lookup_city_scores(city_name: str, scores_list: list) -> dict:
     return {}
 
 
-def generate_comparison_table(top_cities: list) -> str:
+def generate_comparison_table(top_cities: list, language: str = "한국어") -> str:
     """
     TOP 3 도시 데이터를 받아 HTML 테이블 형식의 비교표 반환.
     city_scores.json을 직접 로드하여 참조.
@@ -130,7 +130,8 @@ def generate_comparison_table(top_cities: list) -> str:
         return ""
 
     cities = top_cities[:3]
-    city_names = [c.get("city", f"도시{i+1}") for i, c in enumerate(cities)]
+    is_en = language == "English"
+    city_names = [c.get("city", f"City{i+1}" if is_en else f"도시{i+1}") for i, c in enumerate(cities)]
     city_scores_rows = [_lookup_city_scores(name, scores_list) for name in city_names]
 
     # HTML 테이블 시작
@@ -156,11 +157,14 @@ def generate_comparison_table(top_cities: list) -> str:
         '<table class="comparison-table">',
         '<thead>',
         '<tr>',
-        '<th style="text-align: left;">항목</th>',
+        f'<th style="text-align: left;">{"Category" if is_en else "항목"}</th>',
     ]
 
     # 헤더 (도시명)
-    header_names = [f"{c.get('city_kr', name)}" for c, name in zip(cities, city_names)]
+    header_names = [
+        c.get("city", name) if is_en else c.get("city_kr", name)
+        for c, name in zip(cities, city_names)
+    ]
     for name in header_names:
         html_lines.append(f'<th>{name}</th>')
     html_lines.append('</tr>')
@@ -169,43 +173,43 @@ def generate_comparison_table(top_cities: list) -> str:
 
     # 인터넷 속도
     html_lines.append('<tr>')
-    html_lines.append('<td class="label-col">인터넷 속도</td>')
+    html_lines.append(f'<td class="label-col">{"Internet Speed" if is_en else "인터넷 속도"}</td>')
     for s in city_scores_rows:
         mbps = s.get("internet_mbps")
-        val = _score_to_dots(_internet_to_score(mbps)) if mbps else "정보 없음"
+        val = _score_to_dots(_internet_to_score(mbps)) if mbps else ("N/A" if is_en else "정보 없음")
         html_lines.append(f'<td>{val}</td>')
     html_lines.append('</tr>')
 
     # 치안
     html_lines.append('<tr>')
-    html_lines.append('<td class="label-col">치안 수준</td>')
+    html_lines.append(f'<td class="label-col">{"Safety" if is_en else "치안 수준"}</td>')
     for s in city_scores_rows:
         sv = s.get("safety_score")
-        val = _score_to_dots(_safety_to_score(sv)) if sv is not None else "정보 없음"
+        val = _score_to_dots(_safety_to_score(sv)) if sv is not None else ("N/A" if is_en else "정보 없음")
         html_lines.append(f'<td>{val}</td>')
     html_lines.append('</tr>')
 
     # 생활비
     html_lines.append('<tr>')
-    html_lines.append('<td class="label-col">생활비</td>')
+    html_lines.append(f'<td class="label-col">{"Cost of Living" if is_en else "생활비"}</td>')
     for s, c in zip(city_scores_rows, cities):
         usd = s.get("monthly_cost_usd") or c.get("monthly_cost_usd", 0)
-        val = _score_to_dots(_cost_to_score(usd)) if usd else "정보 없음"
+        val = _score_to_dots(_cost_to_score(usd)) if usd else ("N/A" if is_en else "정보 없음")
         html_lines.append(f'<td>{val}</td>')
     html_lines.append('</tr>')
 
     # 한국어 접근성
     html_lines.append('<tr>')
-    html_lines.append('<td class="label-col">한국어 커뮤니티</td>')
+    html_lines.append(f'<td class="label-col">{"Korean Community" if is_en else "한국어 커뮤니티"}</td>')
     for s in city_scores_rows:
         ks = _korean_to_score(s.get("korean_community_size", ""))
-        val = _score_to_dots(ks) if ks is not None else "정보 없음"
+        val = _score_to_dots(ks) if ks is not None else ("N/A" if is_en else "정보 없음")
         html_lines.append(f'<td>{val}</td>')
     html_lines.append('</tr>')
 
     # 시차
     html_lines.append('<tr>')
-    html_lines.append('<td class="label-col">시차 (KST 기준)</td>')
+    html_lines.append(f'<td class="label-col">{"Time Difference (vs KST)" if is_en else "시차 (KST 기준)"}</td>')
     tz_vals = [_get_timezone_diff(name) for name in city_names]
     for tz in tz_vals:
         html_lines.append(f'<td>{tz}</td>')
@@ -213,7 +217,7 @@ def generate_comparison_table(top_cities: list) -> str:
 
     # 비자 유형
     html_lines.append('<tr>')
-    html_lines.append('<td class="label-col">비자 유형</td>')
+    html_lines.append(f'<td class="label-col">{"Visa Type" if is_en else "비자 유형"}</td>')
     for c in cities:
         vt = c.get("visa_type", "-")
         visa_short = vt[:20] + "..." if len(vt) > 20 else vt
@@ -366,9 +370,17 @@ def _usd_to_krw(usd_amount: float) -> int:
 def format_step1_markdown(data: dict) -> str:
     """Step 1 결과(TOP 3 도시 추천)를 마크다운으로 포맷팅합니다."""
     if not data:
-        return "추천 결과를 불러올 수 없습니다."
+        language = data.get("_user_profile", {}).get("language", "한국어") if isinstance(data, dict) else "한국어"
+        return "Could not load recommendation results." if language == "English" else "추천 결과를 불러올 수 없습니다."
 
-    lines = ["## 🌍 맞춤 장기 체류 설계 — 추천 도시 TOP 3\n"]
+    language = data.get("_user_profile", {}).get("language", "한국어")
+    is_en = language == "English"
+
+    lines = [
+        "## 🌍 Personalized Long-Stay Plan — Top 3 Recommended Cities\n"
+        if is_en else
+        "## 🌍 맞춤 장기 체류 설계 — 추천 도시 TOP 3\n"
+    ]
 
     # 카드 스타일 CSS
     lines.append("""<style>
@@ -424,25 +436,46 @@ def format_step1_markdown(data: dict) -> str:
 
         # 카드 시작
         lines.append('<div class="city-card">')
-        lines.append(f'<div class="city-card-header">#{i}. {city_kr} ({city_en}), {country}</div>')
-        lines.append(f'<div class="city-card-score">⭐ 추천 점수: {score}/10</div>')
+        header_city = f"{city_en}, {country}" if is_en else f"{city_kr} ({city_en}), {country}"
+        lines.append(f'<div class="city-card-header">#{i}. {header_city}</div>')
+        lines.append(
+            f'<div class="city-card-score">⭐ Recommendation Score: {score}/10</div>'
+            if is_en else
+            f'<div class="city-card-score">⭐ 추천 점수: {score}/10</div>'
+        )
 
         # 비자 유형 (HTML 링크 사용)
         if visa_url:
             if "google.com/search" in visa_url:
-                lines.append(f'**비자 유형**: {visa_type} — <a href="{visa_url}">공식 링크 확인 중</a>')
+                lines.append(
+                    f'**Visa Type**: {visa_type} — <a href="{visa_url}">Official link pending verification</a>'
+                    if is_en else
+                    f'**비자 유형**: {visa_type} — <a href="{visa_url}">공식 링크 확인 중</a>'
+                )
             else:
-                lines.append(f'**비자 유형**: <a href="{visa_url}">{visa_type}</a>')
+                lines.append(
+                    f'**Visa Type**: <a href="{visa_url}">{visa_type}</a>'
+                    if is_en else
+                    f'**비자 유형**: <a href="{visa_url}">{visa_type}</a>'
+                )
         else:
-            lines.append(f'**비자 유형**: {visa_type}')
+            lines.append(
+                f'**Visa Type**: {visa_type}'
+                if is_en else
+                f'**비자 유형**: {visa_type}'
+            )
 
         # 월 예상 비용
-        lines.append(f'**월 예상 비용**: ${cost_usd:,} (약 {cost_krw:,}원)')
+        lines.append(
+            f'**Estimated Monthly Cost**: ${cost_usd:,} (about ₩{cost_krw:,})'
+            if is_en else
+            f'**월 예상 비용**: ${cost_usd:,} (약 {cost_krw:,}원)'
+        )
 
         # 추천 근거
         reasons = city.get("reasons", [])
         if reasons:
-            lines.append("**✅ 추천 근거**")
+            lines.append("**✅ Why This City**" if is_en else "**✅ 추천 근거**")
             for reason in reasons:
                 point = reason.get("point", "")
                 lines.append(f"- {point}")
@@ -450,7 +483,7 @@ def format_step1_markdown(data: dict) -> str:
         # 현실적 고려 사항
         warnings = city.get("realistic_warnings", [])
         if warnings:
-            lines.append("**⚠️ 현실적 고려 사항**")
+            lines.append("**⚠️ Practical Considerations**" if is_en else "**⚠️ 현실적 고려 사항**")
             for w in warnings:
                 lines.append(f"- {w}")
 
@@ -470,7 +503,7 @@ def format_step1_markdown(data: dict) -> str:
         if references:
             valid_refs = [r for r in references if r.get("url")]
             if valid_refs:
-                lines.append("**📚 참고 자료**")
+                lines.append("**📚 References**" if is_en else "**📚 참고 자료**")
                 for ref in valid_refs:
                     lines.append(f"- <a href=\"{ref['url']}\">{ref.get('title', ref['url'])}</a>")
 
@@ -483,13 +516,17 @@ def format_step1_markdown(data: dict) -> str:
         language = data.get("_user_profile", {}).get("language", "한국어")
         table_header = "### 📊 도시 비교" if language != "English" else "### 📊 City Comparison"
         lines.append("\n" + table_header)
-        lines.append(generate_comparison_table(top_cities))
+        lines.append(generate_comparison_table(top_cities, language=language))
 
     # 전체 경고
     overall = data.get("overall_warning", "")
     if overall:
         lines.append("---")
-        lines.append(f"> ⚠️ **주의사항**: {overall}")
+        lines.append(
+            f"> ⚠️ **Important Note**: {overall}"
+            if is_en else
+            f"> ⚠️ **주의사항**: {overall}"
+        )
 
     return _clean_output("\n".join(lines))
 
@@ -531,9 +568,12 @@ def _normalize_string_list(value) -> list:
 def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
     """Step 2 결과(상세 정착 가이드)를 마크다운으로 포맷팅합니다."""
     if not data:
-        return "상세 가이드를 불러올 수 없습니다."
+        language = data.get("_user_profile", {}).get("language", "한국어") if isinstance(data, dict) else "한국어"
+        return "Could not load the detailed guide." if language == "English" else "상세 가이드를 불러올 수 없습니다."
 
     lines = []
+    language = data.get("_user_profile", {}).get("language", "한국어")
+    is_en = language == "English"
 
     city = data.get("city", "")
     guide = data.get("immigration_guide", {})
@@ -553,7 +593,7 @@ def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
     # 비자 체크리스트 (type defense: str / list[str] / list[dict] 모두 처리)
     checklist = _normalize_string_list(data.get("visa_checklist", []))
     if checklist:
-        lines.append("## 📄 비자 준비 체크리스트\n")
+        lines.append("## 📄 Visa Checklist\n" if is_en else "## 📄 비자 준비 체크리스트\n")
         for item in checklist:
             lines.append(f"- [ ] {item}")
         lines.append("")
@@ -561,29 +601,37 @@ def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
     # 예산 테이블 (USD + KRW)
     bd = data.get("budget_breakdown", {})
     if bd:
-        lines.append("## 💰 한 달 예상 지출 내역\n")
-        lines.append("| 항목 | 금액 (USD) |")
+        lines.append("## 💰 Estimated Monthly Budget\n" if is_en else "## 💰 한 달 예상 지출 내역\n")
+        lines.append("| Category | Amount (USD) |" if is_en else "| 항목 | 금액 (USD) |")
         lines.append("|------|-----------|")
-        label_map = [("rent", "주거"), ("food", "식비"), ("cowork", "코워킹"), ("insurance", "해외보험"), ("misc", "기타")]
+        label_map = (
+            [("rent", "Rent"), ("food", "Food"), ("cowork", "Coworking"), ("insurance", "Insurance"), ("misc", "Misc")]
+            if is_en else
+            [("rent", "주거"), ("food", "식비"), ("cowork", "코워킹"), ("insurance", "해외보험"), ("misc", "기타")]
+        )
         total_usd = 0
         for k, label in label_map:
             val = bd.get(k, 0)
             total_usd += val
             lines.append(f"| {label} | ${val:,} |")
-        lines.append(f"| **합계** | **${total_usd:,}** |")
+        lines.append(f"| **Total** | **${total_usd:,}** |" if is_en else f"| **합계** | **${total_usd:,}** |")
         budget_source = data.get("budget_source", "")
         if budget_source:
             # Extract city name from URL for display label
             # e.g. https://www.numbeo.com/cost-of-living/in/Chiang-Mai → Chiang-Mai
             city_slug = budget_source.rstrip("/").rsplit("/", 1)[-1]
             city_display = city_slug.replace("-", " ")
-            lines.append(f"\n> 출처: [Numbeo — {city_display} 생활비]({budget_source})")
+            lines.append(
+                f"\n> Source: [Numbeo — {city_display} Cost of Living]({budget_source})"
+                if is_en else
+                f"\n> 출처: [Numbeo — {city_display} 생활비]({budget_source})"
+            )
         lines.append("")
 
     # 첫 번째 실행 스텝 (type defense: str / list[str] / list[dict] 모두 처리)
     first_steps = _normalize_string_list(data.get("first_steps", []))
     if first_steps:
-        lines.append("### 첫 번째 실행 스텝\n")
+        lines.append("### First Action Steps\n" if is_en else "### 첫 번째 실행 스텝\n")
         for j, step in enumerate(first_steps, 1):
             lines.append(f"{j}. {step}")
         lines.append("")
@@ -595,19 +643,30 @@ def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
         accom_parts = []
         if links["flatio_url"]:
             rent_note = f" (평균 ${links['mid_term_rent_usd']:,}/월)" if links["mid_term_rent_usd"] else ""
-            accom_parts.append(f"- 🏠 [Flatio — 중기 임대{rent_note}]({links['flatio_url']})")
+            if is_en:
+                rent_note = f" (avg ${links['mid_term_rent_usd']:,}/month)" if links["mid_term_rent_usd"] else ""
+                accom_parts.append(f"- 🏠 [Flatio — Mid-term Rentals{rent_note}]({links['flatio_url']})")
+            else:
+                accom_parts.append(f"- 🏠 [Flatio — 중기 임대{rent_note}]({links['flatio_url']})")
         if links["anyplace_url"]:
-            accom_parts.append(f"- 🏡 [Anyplace — 가구 완비 원룸]({links['anyplace_url']})")
+            accom_parts.append(
+                f"- 🏡 [Anyplace — Furnished Stays]({links['anyplace_url']})"
+                if is_en else
+                f"- 🏡 [Anyplace — 가구 완비 원룸]({links['anyplace_url']})"
+            )
         if links["nomad_meetup_url"]:
-            accom_parts.append(f"- 🤝 [노마드 밋업 그룹]({links['nomad_meetup_url']})")
+            accom_parts.append(
+                f"- 🤝 [Nomad Meetup Groups]({links['nomad_meetup_url']})"
+                if is_en else
+                f"- 🤝 [노마드 밋업 그룹]({links['nomad_meetup_url']})"
+            )
         if accom_parts:
-            lines.append("\n---\n\n### 🏠 중기 숙소 & 커뮤니티\n")
+            lines.append("\n---\n\n### 🏠 Mid-Term Housing & Community\n" if is_en else "\n---\n\n### 🏠 중기 숙소 & 커뮤니티\n")
             lines.extend(accom_parts)
             lines.append("")
 
     # 플랜B 섹션 (쉥겐 국가 선택 시만)
     country_id = data.get("country_id", "")
-    language = data.get("_user_profile", {}).get("language", "한국어") if "_user_profile" in data else "한국어"
     if country_id in SCHENGEN_COUNTRIES:
         suggestions = get_planb_suggestions(country_id, language=language, max_suggestions=3)
         if suggestions:
@@ -631,12 +690,16 @@ def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
 
     # 출처 및 기준일 블록 (visa_data 전달 시)
     if visa_data is not None:
-        verified_date = visa_data.get("data_verified_date", "정보 없음") or "정보 없음"
+        verified_date = visa_data.get("data_verified_date", "N/A" if is_en else "정보 없음") or ("N/A" if is_en else "정보 없음")
         source = visa_data.get("source", "")
         lines.append("\n---")
-        lines.append(f"**데이터 기준일**: {verified_date}")
+        lines.append(f"**Data Verified Date**: {verified_date}" if is_en else f"**데이터 기준일**: {verified_date}")
         if source:
-            lines.append(f"**출처**: {source}")
-        lines.append("\n※ 비자 규정은 수시로 변경될 수 있습니다. 최종 신청 전 해당국 공식 기관에서 재확인을 권장합니다.")
+            lines.append(f"**Source**: {source}" if is_en else f"**출처**: {source}")
+        lines.append(
+            "\n※ Visa rules can change at any time. Verify with the official authority before final application."
+            if is_en else
+            "\n※ 비자 규정은 수시로 변경될 수 있습니다. 최종 신청 전 해당국 공식 기관에서 재확인을 권장합니다."
+        )
 
     return _clean_output("\n".join(lines))

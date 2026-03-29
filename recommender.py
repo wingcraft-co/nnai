@@ -6,14 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from utils.data_paths import resolve_data_path
+from api.schengen_calculator import SCHENGEN_COUNTRIES
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-_SCHENGEN_IDS: set[str] = {
-    "DE", "PT", "EE", "ES", "GR", "HR", "CZ", "HU", "SI", "MT", "CY", "AL", "RS", "MK"
-}
+_SCHENGEN_IDS: set[str] = set(SCHENGEN_COUNTRIES)
 
 _CONTINENT_TO_IDS: dict[str, set[str]] = {
     "아시아":       {"TH", "MY", "ID", "VN", "PH", "JP"},
@@ -28,11 +27,16 @@ _TIMELINE_FILTER: dict[str, tuple[int, bool]] = {
     "90일 단기 체험":     (1,  False),
     "6개월 단기 체험":    (6,  False),
     "1년 단기 체험":      (12, False),
-    "3년 이상 장기 이민": (12, True),
-    "5년 이상 장기 이민": (12, True),
+    "3년 장기 체류":      (12, True),
+    "5년 이상 초장기 체류": (12, True),
 }
 
-_LONG_STAY_TIMELINES: set[str] = {"3년 이상 장기 이민", "5년 이상 장기 이민"}
+_LONG_STAY_TIMELINES: set[str] = {"3년 장기 체류", "5년 이상 초장기 체류"}
+
+_TIMELINE_ALIASES: dict[str, str] = {
+    "3년 이상 장기 이민": "3년 장기 체류",
+    "5년 이상 장기 이민": "5년 이상 초장기 체류",
+}
 
 # Schengen long-stay income threshold (USD/month)
 _SCHENGEN_LONG_STAY_INCOME_THRESHOLD = 2849
@@ -164,10 +168,12 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
     countries_list, cities_list = _load_data()
 
     income_usd = float(user_profile.get("income_usd") or 0)
-    timeline   = user_profile.get("timeline", "")
+    timeline_raw = user_profile.get("timeline", "")
+    timeline   = _TIMELINE_ALIASES.get(timeline_raw, timeline_raw)
     lifestyle  = user_profile.get("lifestyle") or []
     preferred  = user_profile.get("preferred_countries") or []
     nationality = user_profile.get("nationality", "")
+    language = user_profile.get("language", "한국어")
 
     # Build country lookup
     country_map: dict[str, dict] = {c["id"]: c for c in countries_list}
@@ -239,22 +245,40 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
     warnings: list[str] = []
 
     if nationality == "한국":
-        warnings.append(
-            "한국 국민건강보험 유지 여부를 반드시 확인하세요. "
-            "장기 해외 체류 시 건강보험 자격이 상실될 수 있습니다."
-        )
+        if language == "English":
+            warnings.append(
+                "Check Korean National Health Insurance continuity. "
+                "Long-term overseas stays can affect your insurance eligibility."
+            )
+        else:
+            warnings.append(
+                "한국 국민건강보험 유지 여부를 반드시 확인하세요. "
+                "장기 해외 체류 시 건강보험 자격이 상실될 수 있습니다."
+            )
 
     if result_country_ids & _SCHENGEN_IDS:
-        warnings.append(
-            "솅겐 지역 입국 시 EES(유럽입국관리시스템)가 2025년부터 시행됩니다. "
-            "90/180일 규칙을 반드시 준수하세요."
-        )
+        if language == "English":
+            warnings.append(
+                "EES (EU Entry/Exit System) applies in the Schengen area. "
+                "Follow the 90/180-day rule strictly."
+            )
+        else:
+            warnings.append(
+                "솅겐 지역 입국 시 EES(유럽입국관리시스템)가 2025년부터 시행됩니다. "
+                "90/180일 규칙을 반드시 준수하세요."
+            )
 
     if "GE" in result_country_ids:
-        warnings.append(
-            "조지아는 비자 없이 365일 체류 가능하나, "
-            "세금 거주지 문제와 한국과의 이중과세협약 부재에 유의하세요."
-        )
+        if language == "English":
+            warnings.append(
+                "Georgia allows 365-day visa-free stay, but watch tax residency risks "
+                "and the absence of a double-tax treaty with Korea."
+            )
+        else:
+            warnings.append(
+                "조지아는 비자 없이 365일 체류 가능하나, "
+                "세금 거주지 문제와 한국과의 이중과세협약 부재에 유의하세요."
+            )
 
     overall_warning = " ".join(warnings)
 
@@ -281,7 +305,7 @@ _CHIP_TO_TIMELINE: dict[str, str] = {
     "90일":  "90일 단기 체험",
     "6개월": "6개월 단기 체험",
     "1년":   "1년 단기 체험",
-    "3년+":  "3년 이상 장기 이민",
+    "3년+":  "3년 장기 체류",
 }
 
 # JS chip label → _LIFESTYLE_MATCH key
@@ -297,7 +321,8 @@ _CHIP_TO_LIFESTYLE: dict[str, str] = {
 def _any_city_passes(profile: dict, countries_list: list, cities_list: list) -> bool:
     """Return True if any city passes all hard filters for the given profile."""
     income_usd = float(profile.get("income_usd") or 0)
-    timeline   = profile.get("timeline", "")
+    timeline_raw = profile.get("timeline", "")
+    timeline   = _TIMELINE_ALIASES.get(timeline_raw, timeline_raw)
     preferred  = profile.get("preferred_countries") or []
     country_map = {c["id"]: c for c in countries_list}
     for city in cities_list:

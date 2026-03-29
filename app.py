@@ -95,6 +95,12 @@ def nomad_advisor(
     validation = validate_user_profile(user_profile)
     if validation["hard_block"]:
         block_msg = validation["warnings"][0] if validation["warnings"] else "입력 조건 불충족"
+        if preferred_language == "English":
+            return (
+                f"🚫 {block_msg}\n\nIncrease income, or adjust your target duration/continent.",
+                [],
+                {},
+            )
         return (
             f"🚫 {block_msg}\n\n소득을 높이거나 체류 기간 또는 대륙을 변경해주세요.",
             [],
@@ -135,7 +141,11 @@ def nomad_advisor(
             raw      = query_model(messages, max_tokens=8192)
 
         if raw.startswith("ERROR"):
-            return f"⚠️ API 오류: {raw}", [], {}
+            return (
+                (f"⚠️ API error: {raw}" if preferred_language == "English" else f"⚠️ API 오류: {raw}"),
+                [],
+                {},
+            )
 
         parsed = parse_response(raw)
 
@@ -156,8 +166,9 @@ def show_city_detail(
     Step 2 파이프라인: 선택된 도시 → LLM → 상세 가이드 마크다운
     """
     top_cities = parsed_data.get("top_cities", [])
+    language = parsed_data.get("_user_profile", {}).get("language", "한국어")
     if not top_cities or city_index >= len(top_cities):
-        return "선택한 도시를 찾을 수 없습니다."
+        return "Selected city was not found." if language == "English" else "선택한 도시를 찾을 수 없습니다."
 
     selected_city = top_cities[city_index]
     user_profile  = parsed_data.get("_user_profile", {})
@@ -170,9 +181,10 @@ def show_city_detail(
     raw = query_model(step2_messages, max_tokens=6144)
 
     if raw.startswith("ERROR"):
-        return f"⚠️ API 오류: {raw}"
+        return f"⚠️ API error: {raw}" if language == "English" else f"⚠️ API 오류: {raw}"
 
     detail_parsed = parse_response(raw)
+    detail_parsed["_user_profile"] = user_profile
 
     # visa_db에서 출처·기준일 조회
     visa_data = _lookup_visa_data(selected_city.get("country_id", ""))
@@ -199,23 +211,25 @@ def _get_language_by_nationality(nationality: str) -> str:
     return nationality_to_lang.get(nationality, "English")
 
 
-# Step 2 함수를 래핑하여 nationality 기반 언어 사용
+# Step 2 함수 래퍼: Step 1에서 확정된 UI 언어를 그대로 사용
 def show_city_detail_with_nationality(
     parsed_data: dict,
     city_index: int = 0,
 ) -> str:
-    """Step 2: 국적 기반 언어로 상세 가이드 제공."""
+    """Step 2: Step 1에서 선택된 UI 언어로 상세 가이드 제공."""
     top_cities = parsed_data.get("top_cities", [])
+    language = parsed_data.get("_user_profile", {}).get("language", "한국어")
     if not top_cities or city_index >= len(top_cities):
-        return "선택한 도시를 찾을 수 없습니다."
+        return "Selected city was not found." if language == "English" else "선택한 도시를 찾을 수 없습니다."
 
     selected_city = top_cities[city_index]
     user_profile  = parsed_data.get("_user_profile", {})
 
-    # 국적 기반 언어로 덮어쓰기
+    # Step 1에서 저장된 언어를 우선 사용. 없으면 국적 기반으로 폴백.
+    selected_language = user_profile.get("language")
     nationality = user_profile.get("nationality", "Other")
     user_profile_for_step2 = user_profile.copy()
-    user_profile_for_step2["language"] = _get_language_by_nationality(nationality)
+    user_profile_for_step2["language"] = selected_language or _get_language_by_nationality(nationality)
 
     step2_messages = build_detail_prompt(
         selected_city,
@@ -225,9 +239,11 @@ def show_city_detail_with_nationality(
     raw = query_model(step2_messages, max_tokens=6144)
 
     if raw.startswith("ERROR"):
-        return f"⚠️ API 오류: {raw}"
+        lang = user_profile_for_step2.get("language", language)
+        return f"⚠️ API error: {raw}" if lang == "English" else f"⚠️ API 오류: {raw}"
 
     detail_parsed = parse_response(raw)
+    detail_parsed["_user_profile"] = user_profile_for_step2
 
     # visa_db에서 출처·기준일 조회
     visa_data = _lookup_visa_data(selected_city.get("country_id", ""))

@@ -441,7 +441,13 @@ def validate_user_profile(user_profile: dict) -> dict:
     income_usd          = user_profile.get("income_usd", 0)
     preferred_countries = user_profile.get("preferred_countries", []) or []
     travel_type         = user_profile.get("travel_type", "")
-    timeline            = user_profile.get("timeline", "")
+    timeline_raw        = user_profile.get("timeline", "")
+    language            = user_profile.get("language", "한국어")
+    timeline_aliases = {
+        "3년 이상 장기 이민": "3년 장기 체류",
+        "5년 이상 장기 이민": "5년 이상 초장기 체류",
+    }
+    timeline = timeline_aliases.get(timeline_raw, timeline_raw)
 
     warnings: list[str] = []
     hard_block = False
@@ -453,14 +459,22 @@ def validate_user_profile(user_profile: dict) -> dict:
         and timeline in ["3년 장기 체류", "5년 이상 초장기 체류"]
     ):
         hard_block = True
-        warnings.append(
-            "유럽 장기 비자 소득 기준($2,849~/월) 대비 현재 소득이 현저히 부족합니다. "
-            "추천 가능한 도시가 없습니다."
-        )
+        if language == "English":
+            warnings.append(
+                "Your income is significantly below common Europe long-stay visa thresholds "
+                "($2,849+/month). No eligible city can be recommended."
+            )
+        else:
+            warnings.append(
+                "유럽 장기 비자 소득 기준($2,849~/월) 대비 현재 소득이 현저히 부족합니다. "
+                "추천 가능한 도시가 없습니다."
+            )
 
     # 가족 동반 소득 경고 (soft — hard_block 아님)
     if "가족 전체 동반" in travel_type and income_usd < 1500:
         warnings.append(
+            "Family-visa income thresholds may not be met — recommendations will be limited, mostly in Asia."
+            if language == "English" else
             "가족 동반 비자 소득 기준 미달 가능성 — 아시아 중심으로 추천이 제한됩니다."
         )
 

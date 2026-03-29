@@ -11,6 +11,16 @@ from ui.i18n import build_i18n_js
 _EXCHANGE_RATE_USD: float | None = None
 
 
+def _resolve_ui_language(request: gr.Request | None = None, explicit: str | None = None) -> str:
+    """Resolve UI language from explicit value first, then request headers."""
+    if explicit in ("한국어", "English"):
+        return explicit
+    if request is None:
+        return "한국어"
+    accept_language = (request.headers.get("accept-language") or "").lower()
+    return "한국어" if accept_language.startswith("ko") else "English"
+
+
 def _get_exchange_rate_usd() -> float:
     """USD/KRW 환율을 캐싱하여 반환. 실패 시 기본값(0.000714 ≈ 1,400원/달러) 사용."""
     global _EXCHANGE_RATE_USD
@@ -29,7 +39,9 @@ def check_income_warning(
     preferred_countries: list,
     travel_type: str,
     timeline: str,
-    exchange_rate_usd: float | None = None,
+    exchange_rate_usd: float | str | None = None,
+    ui_language: str | None = None,
+    request: gr.Request | None = None,
 ) -> tuple:
     """
     입력값 조합을 평가하여 경고 문구 반환. LLM 호출 없음.
@@ -44,28 +56,45 @@ def check_income_warning(
     Returns:
         tuple: (income_warning_update, submit_warning_update, btn_interactive_update)
     """
+    # Backward compatibility:
+    # - old callers: arg5=exchange_rate_usd (float)
+    # - new UI wiring: arg5=ui_language ("한국어"/"English")
+    if isinstance(exchange_rate_usd, str):
+        ui_language = exchange_rate_usd
+        exchange_rate_usd = None
+
+    ui_language = _resolve_ui_language(request=request, explicit=ui_language)
     usd_rate = exchange_rate_usd if exchange_rate_usd is not None else _get_exchange_rate_usd()
     income_usd = (income_krw or 0) * 10000 * usd_rate
 
     income_warnings: list[str] = []
     submit_warnings: list[str] = []
     hard_block = False
+    is_en = ui_language == "English"
 
     # Case 1: 유럽 소득 기준
     if "유럽" in (preferred_countries or []):
         if income_usd < 1000 and timeline in ["3년 장기 체류", "5년 이상 초장기 체류"]:
             hard_block = True
             submit_warnings.append(
+                "🚫 No eligible cities with current conditions. Increase income, or adjust target duration/continent."
+                if is_en else
                 "🚫 현재 조건으로는 추천 가능한 도시가 없어요. "
                 "소득을 높이거나 체류 기간 또는 대륙을 변경해주세요."
             )
         elif income_usd < 1500:
             income_warnings.append(
+                "⚠️ Your current income may be too low for long-stay Europe visas. "
+                "Try Asia/Latin America or cities with lower income thresholds."
+                if is_en else
                 "⚠️ 현재 소득으로는 유럽 장기 비자 신청이 어려울 수 있어요. "
                 "아시아·중남미로 대륙을 변경하거나 소득 기준이 낮은 도시를 추천받아보세요."
             )
         elif income_usd < 2849:
             income_warnings.append(
+                "⚠️ You may fall below common Europe visa income thresholds ($2,849-$3,680/month). "
+                "Recommendations may be limited."
+                if is_en else
                 "⚠️ 유럽 비자 최소 소득 기준($2,849~$3,680/월)에 미달할 수 있어요. "
                 "추천 결과가 제한될 수 있어요."
             )
@@ -73,12 +102,17 @@ def check_income_warning(
     # Case 1: 중남미 소득 기준
     if "중남미" in (preferred_countries or []) and income_usd < 1000:
         income_warnings.append(
+            "⚠️ You may fall below visa income thresholds in some Latin American countries ($1,000-$3,000/month)."
+            if is_en else
             "⚠️ 중남미 일부 국가의 비자 소득 기준($1,000~$3,000/월)에 미달할 수 있어요."
         )
 
     # Case 2: 가족 전체 동반 소득
     if "가족 전체 동반" in (travel_type or "") and income_usd < 3000:
         income_warnings.append(
+            "⚠️ With family + current income, long-stay visa options are limited. "
+            "Recommendations will skew toward Asia."
+            if is_en else
             "⚠️ 가족 동반 + 현재 소득 조건으로는 추천 가능한 장기 비자가 제한돼요. "
             "아시아 지역을 중심으로 추천이 진행됩니다."
         )
@@ -86,6 +120,8 @@ def check_income_warning(
     # Case 3: 90일 이하
     if timeline == "90일 이하 (비자 없이 탐색)":
         income_warnings.append(
+            "ℹ️ For stays under 90 days, recommendations focus on visa-free destinations."
+            if is_en else
             "ℹ️ 90일 이하 체류는 무비자 국가를 중심으로 추천돼요. "
             "비자 신청 없이 입국 가능한 도시를 안내해드려요."
         )
@@ -103,19 +139,31 @@ def check_income_warning(
     )
 
 
-def check_companion_warning(travel_type: str, has_spouse_income: str) -> dict:
+def check_companion_warning(
+    travel_type: str,
+    has_spouse_income: str,
+    ui_language: str | None = None,
+    request: gr.Request | None = None,
+) -> dict:
     """
     배우자/가족 동반 시 소득 미입력 경고.
 
     Returns:
         gr.update dict (visible, value)
     """
+    ui_language = _resolve_ui_language(request=request, explicit=ui_language)
+
     if travel_type in ["배우자·파트너 동반", "가족 전체 동반 (배우자 + 자녀)"]:
         if has_spouse_income != "있음":
             return gr.update(
                 visible=True,
-                value="ℹ️ 배우자 동반 시 일부 국가는 합산 소득 기준을 적용해요. "
-                      "배우자 소득을 입력하면 더 정확한 추천이 가능해요.",
+                value=(
+                    "ℹ️ Some countries allow combined household income for spouse/family visas. "
+                    "Adding spouse income improves recommendation accuracy."
+                    if ui_language == "English" else
+                    "ℹ️ 배우자 동반 시 일부 국가는 합산 소득 기준을 적용해요. "
+                    "배우자 소득을 입력하면 더 정확한 추천이 가능해요."
+                ),
             )
     return gr.update(visible=False, value="")
 
@@ -133,10 +181,10 @@ ISO2_TO_ISO3 = {
 }
 
 
-def _city_btn_label(city_data: dict) -> str:
+def _city_btn_label(city_data: dict, prefer_english: bool = False) -> str:
     code = city_data.get("country_id", "")
     flag = _country_code_to_flag(code) if code else ""
-    city = city_data.get("city_kr") or city_data.get("city", "?")
+    city = city_data.get("city", "?") if prefer_english else (city_data.get("city_kr") or city_data.get("city", "?"))
     return f"{flag} {city}".strip()
 
 NATIONALITIES = [
@@ -188,10 +236,22 @@ _STEP1_LOADING = [
     "✨ 거의 다 됐어요!",
 ]
 
+_STEP1_LOADING_EN = [
+    "🔍 Analyzing your profile...",
+    "🌍 Scanning global visa data...",
+    "🤖 AI is selecting the best-fit cities...",
+    "✨ Almost done...",
+]
+
 # Step 2 로딩 메시지 시퀀스
 _STEP2_LOADING = [
     "🏙️ 선택한 도시 정보를 불러오는 중이에요...",
     "📋 맞춤 가이드를 작성하는 중이에요...",
+]
+
+_STEP2_LOADING_EN = [
+    "🏙️ Loading selected city details...",
+    "📋 Building your personalized guide...",
 ]
 
 
@@ -264,6 +324,7 @@ def create_layout(advisor_fn, detail_fn):
         init_script = """
 (function(){
 'use strict';
+var _sysKo = /^ko/i.test(navigator.language || navigator.userLanguage || 'en');
 
 /* ── Leaflet 동적 로드 ── */
 function loadLeaflet(){
@@ -401,7 +462,7 @@ function checkAuth(){
       if(cta) cta.style.display='none';
       if(bar) bar.style.display='flex';
       var nameEl=$('nnai-user-name');
-      if(nameEl) nameEl.textContent=d.name+' 님의 지도';
+      if(nameEl) nameEl.textContent=_sysKo ? (d.name+' 님의 지도') : (d.name+"'s map");
       var pic=$('nnai-user-pic');
       if(pic && d.picture) pic.src=d.picture;
       loadMyPins();
@@ -418,9 +479,11 @@ function showLoginPopupForStep2(){
   var t1=$('nnai-login-popup-title1');
   var t2=$('nnai-login-popup-title2');
   var desc=$('nnai-login-popup-desc');
-  if(t1) t1.textContent='상세 가이드를 받으려면';
-  if(t2) t2.textContent='로그인이 필요합니다';
-  if(desc) desc.innerHTML='AI가 분석한 맞춤형 상세 가이드를<br/>로그인 후 무료로 받아보세요';
+  if(t1) t1.textContent=_sysKo ? '상세 가이드를 받으려면' : 'To get a detailed guide';
+  if(t2) t2.textContent=_sysKo ? '로그인이 필요합니다' : 'Login is required';
+  if(desc) desc.innerHTML=_sysKo
+    ? 'AI가 분석한 맞춤형 상세 가이드를<br/>로그인 후 무료로 받아보세요'
+    : 'Get an AI-personalized detailed guide<br/>free after login';
   var bg=$('nnai-login-popup-bg');
   if(bg) bg.style.display='flex';
 }
@@ -476,9 +539,10 @@ function onSearchInput(){
 }
 
 function nominatimSearch(q){
+  var langHeader = _sysKo ? 'ko,en' : 'en';
   var url='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)
-    +'&format=json&limit=6&accept-language=ko,en&addressdetails=1';
-  fetch(url,{headers:{'Accept-Language':'ko,en'}})
+    +'&format=json&limit=6&accept-language='+encodeURIComponent(langHeader)+'&addressdetails=1';
+  fetch(url,{headers:{'Accept-Language':langHeader}})
     .then(function(r){return r.json();})
     .then(function(data){
       setSearchStatus('');
@@ -677,13 +741,6 @@ setTimeout(function(){
                             # 입력 패널
                             with gr.Column(scale=1):
                                 gr.Markdown("### 📋 내 프로필 입력")
-
-                                ui_language = gr.Radio(
-                                    choices=["한국어", "English"],
-                                    value="한국어",
-                                    visible=False,
-                                    elem_id="nnai-ui-language",
-                                )
 
                                 nationality = gr.Dropdown(
                                     choices=NATIONALITIES, value="Korean",
@@ -892,14 +949,14 @@ setTimeout(function(){
                 gr.HTML(_create_ad_sidebar_html())
 
         # ── Step 1 이벤트 ──────────────────────────────────────────────
-        _FALLBACK_LABELS = ["1순위 도시", "2순위 도시", "3순위 도시"]
-
         def run_step1(nat, dual_nat, inc, inc_type, purpose, readiness_stage_val, life, langs, tl,
-                      pref_countries, ui_lang, q_motiv, q_euro, q_concern_val,
+                      pref_countries, q_motiv, q_euro, q_concern_val,
                       travel_type_val, children_ages_val,
-                      has_spouse_income_val, spouse_income_krw_val):
+                      has_spouse_income_val, spouse_income_krw_val,
+                      request: gr.Request | None = None):
             try:
                 from utils.persona import diagnose_persona
+                ui_lang = _resolve_ui_language(request=request)
                 persona_type = diagnose_persona(q_motiv, q_euro, None, None, q_concern_val)
                 # Show cycling overlay once — JS cycles messages automatically while
                 # advisor_fn blocks. No Python-side sleep needed.
@@ -909,7 +966,7 @@ setTimeout(function(){
                     gr.update(visible=False),
                     gr.update(),
                     gr.update(),
-                    get_cycling_loading_html(_STEP1_LOADING),
+                    get_cycling_loading_html(_STEP1_LOADING_EN if ui_lang == "English" else _STEP1_LOADING),
                 )
                 markdown, cities, parsed = advisor_fn(
                     nat, inc, purpose, life, langs, tl, pref_countries, ui_lang, persona_type,
@@ -920,8 +977,13 @@ setTimeout(function(){
                     has_spouse_income=has_spouse_income_val,
                     spouse_income_krw=spouse_income_krw_val,
                 )
+                fallback_labels = (
+                    ["1st city", "2nd city", "3rd city"]
+                    if ui_lang == "English" else
+                    ["1순위 도시", "2순위 도시", "3순위 도시"]
+                )
                 labels = [
-                    _city_btn_label(cities[i]) if i < len(cities) else _FALLBACK_LABELS[i]
+                    _city_btn_label(cities[i], prefer_english=(ui_lang == "English")) if i < len(cities) else fallback_labels[i]
                     for i in range(3)
                 ]
                 yield (
@@ -934,7 +996,7 @@ setTimeout(function(){
                 )
             except Exception as e:
                 yield (
-                    f"⚠️ 오류가 발생했습니다: {str(e)}",
+                    (f"⚠️ An error occurred: {str(e)}" if ui_lang == "English" else f"⚠️ 오류가 발생했습니다: {str(e)}"),
                     {},
                     gr.update(visible=False),
                     gr.update(),
@@ -948,7 +1010,6 @@ setTimeout(function(){
                 nationality, dual_nationality, income_krw, income_type, immigration_purpose,
                 readiness_stage,
                 lifestyle, languages, timeline, preferred_countries,
-                ui_language,
                 q_motivation, q_europe, q_concern,
                 travel_type, children_ages,
                 has_spouse_income, spouse_income_krw,
@@ -990,20 +1051,29 @@ setTimeout(function(){
         # ── Step 2 이벤트 ──────────────────────────────────────────────
         def run_step2(parsed, choice):
             try:
-                static_map = {"1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2}
+                ui_lang = parsed.get("_user_profile", {}).get("language", "한국어") if isinstance(parsed, dict) else "한국어"
+                static_map = {
+                    "1순위 도시": 0, "2순위 도시": 1, "3순위 도시": 2,
+                    "1st city": 0, "2nd city": 1, "3rd city": 2,
+                }
                 if choice in static_map:
                     idx = static_map[choice]
                 else:
                     cities = parsed.get("top_cities", [])
-                    dynamic_labels = [_city_btn_label(c) for c in cities]
+                    dynamic_labels = [
+                        _city_btn_label(c, prefer_english=(ui_lang == "English"))
+                        for c in cities
+                    ]
                     idx = dynamic_labels.index(choice) if choice in dynamic_labels else 0
-                yield gr.update(), get_cycling_loading_html(_STEP2_LOADING)
+                yield gr.update(), get_cycling_loading_html(_STEP2_LOADING_EN if ui_lang == "English" else _STEP2_LOADING)
                 markdown = detail_fn(parsed, city_index=idx)
                 yield markdown, LOADING_CLEAR
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                yield f"⚠️ 오류가 발생했습니다: {str(e)}", LOADING_CLEAR
+                ui_lang = parsed.get("_user_profile", {}).get("language", "한국어") if isinstance(parsed, dict) else "한국어"
+                msg = f"⚠️ An error occurred: {str(e)}" if ui_lang == "English" else f"⚠️ 오류가 발생했습니다: {str(e)}"
+                yield msg, LOADING_CLEAR
 
         btn_step2.click(
             fn=run_step2,
