@@ -5,10 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import gradio as gr
 
+from pydantic import BaseModel
 from api.auth import router as auth_router, extract_user_id
 from api.pins import router as pins_router
 from utils.db import init_db
@@ -18,6 +20,21 @@ init_db()
 
 # FastAPI 앱
 app = FastAPI(title="NomadNavigator API")
+
+# CORS — Vercel 프론트엔드에서 백엔드 API 호출 허용
+_ALLOWED_ORIGINS = [
+    "https://nnai.app",
+    "https://www.nnai.app",
+    os.getenv("FRONTEND_URL", ""),       # Vercel 프리뷰 배포용
+    "http://localhost:3000",              # 로컬 개발
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o for o in _ALLOWED_ORIGINS if o],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 _ADS_TXT_CONTENT = "google.com, pub-8452594011595682, DIRECT, f08c47fec0942fa0"
@@ -97,6 +114,69 @@ app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 app.include_router(pins_router, prefix="/api")
 
+
+# ── Frontend API Endpoints ─────────────────────────────────────
+
+
+class RecommendRequest(BaseModel):
+    nationality: str
+    income_krw: int
+    immigration_purpose: str
+    lifestyle: list[str]
+    languages: list[str]
+    timeline: str
+    preferred_countries: list[str] = []
+    preferred_language: str = "한국어"
+    persona_type: str = ""
+    income_type: str = ""
+    travel_type: str = "혼자 (솔로)"
+    children_ages: list[str] | None = None
+    dual_nationality: bool = False
+    readiness_stage: str = ""
+    has_spouse_income: str = "없음"
+    spouse_income_krw: int = 0
+
+
+class DetailRequest(BaseModel):
+    parsed_data: dict
+    city_index: int = 0
+
+
+@app.post("/api/recommend")
+async def api_recommend(req: RecommendRequest):
+    from app import nomad_advisor
+    markdown, cities, parsed = nomad_advisor(
+        nationality=req.nationality,
+        income_krw=req.income_krw,
+        immigration_purpose=req.immigration_purpose,
+        lifestyle=req.lifestyle,
+        languages=req.languages,
+        timeline=req.timeline,
+        preferred_countries=req.preferred_countries,
+        preferred_language=req.preferred_language,
+        persona_type=req.persona_type,
+        income_type=req.income_type,
+        travel_type=req.travel_type,
+        children_ages=req.children_ages,
+        dual_nationality=req.dual_nationality,
+        readiness_stage=req.readiness_stage,
+        has_spouse_income=req.has_spouse_income,
+        spouse_income_krw=req.spouse_income_krw,
+    )
+    return {"markdown": markdown, "cities": cities, "parsed": parsed}
+
+
+@app.post("/api/detail")
+async def api_detail(req: DetailRequest):
+    from app import show_city_detail_with_nationality
+    markdown = show_city_detail_with_nationality(
+        parsed_data=req.parsed_data,
+        city_index=req.city_index,
+    )
+    return {"markdown": markdown}
+
+
+# ── Gradio demo ────────────────────────────────────────────────
 
 # Gradio demo 임포트 (app.py에서 demo 객체만 꺼냄)
 def _build_gradio():
