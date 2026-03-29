@@ -5,15 +5,16 @@
 NomadNavigator AI (NNAI) — AI 기반 디지털 노마드 이민 설계 서비스.
 Gemini 2.5 Flash로 최적 거주 도시 TOP 3 추천 + 비자/예산/세금 상세 가이드 제공.
 
-**Repository:** https://github.com/wingcraft-co/nnai.git
-**Domain:** nnai.app
+**Repository:** git@github.com:wingcraft-co/nnai.git (SSH)
+**Domain:** nnai.app (Vercel) / api.nnai.app (Railway)
+**Company:** Wingcraft (wingcraft.co)
 
 ## Architecture
 
 ```
 nnai/
-├── app.py                  # Gradio 진입점: nomad_advisor(), show_city_detail()
-├── server.py               # FastAPI + Gradio mount (production entry)
+├── app.py                  # 핵심 로직: nomad_advisor(), show_city_detail()
+├── server.py               # FastAPI 서버 (production entry) + API 엔드포인트 + CORS
 ├── recommender.py          # DB 기반 도시 필터링 & 랭킹
 │
 ├── api/                    # LLM 호출, 파싱, 인증, 핀
@@ -47,9 +48,9 @@ nnai/
 │   ├── city_scores.json    # 50개 도시
 │   └── visa_urls.json      # 공식 비자 URL
 │
-├── tests/                  # pytest (256 passed, 4 skipped)
+├── tests/                  # pytest
 │
-└── frontend/               # Next.js 프론트엔드 (신규)
+└── frontend/               # Next.js 프론트엔드
     ├── src/app/            # App Router 페이지
     ├── src/components/ui/  # shadcn/ui (card, button)
     └── src/lib/            # 유틸리티
@@ -78,20 +79,25 @@ python server.py                                   # FastAPI 서버 실행
 SKIP_RAG_INIT=1 .venv/bin/pytest tests/ -v        # 테스트
 
 # Frontend
-cd frontend && npm run dev                         # Next.js 개발 서버
+cd frontend && npm run dev                         # Next.js 개발 서버 (localhost:3000)
 cd frontend && npm run build                       # 프로덕션 빌드
 ```
 
 ## Environment Variables
 
-```
+```bash
+# Backend (Railway)
 GEMINI_API_KEY          # LLM + Context Caching
 DATABASE_URL            # PostgreSQL
 GOOGLE_CLIENT_ID        # OAuth
 GOOGLE_CLIENT_SECRET    # OAuth
 OAUTH_REDIRECT_URI      # OAuth callback
 SECRET_KEY              # 세션 서명
+FRONTEND_URL            # CORS 허용 origin (https://nnai.app)
 SKIP_RAG_INIT=1         # 테스트 시 필수
+
+# Frontend (Vercel)
+NEXT_PUBLIC_API_URL     # 백엔드 URL (https://api.nnai.app)
 ```
 
 ## Backend API Endpoints
@@ -103,7 +109,7 @@ GET  /auth/google/callback     → OAuth 콜백
 GET  /auth/me                  → 현재 유저 정보
 GET  /auth/logout              → 로그아웃
 
-# Recommend (Frontend용, server.py에 추가됨)
+# Recommend (Frontend용, server.py)
 POST /api/recommend            → Step 1 도시 추천
 POST /api/detail               → Step 2 상세 가이드
 
@@ -188,6 +194,13 @@ Response:
 - 인증: `/auth/google`, `/auth/me`, `/auth/logout`
 - 핀: `/api/pins`, `/api/pins/community`
 
+### 프론트엔드 현재 상태 (2026-03-29)
+- ✅ Next.js 16 스캐폴드 생성 + Vercel 배포 완료
+- ✅ Tailwind CSS 4, shadcn/ui (card, button), Framer Motion 설치
+- ✅ 백엔드 API 엔드포인트 추가 (POST /api/recommend, /api/detail)
+- ✅ CORS 설정 완료
+- ⏳ UI 구현 미착수 (다음 세션에서 진행)
+
 ## LLM Response Schema (Step 1)
 
 ```json
@@ -210,15 +223,15 @@ Response:
 
 ## Conventions
 
-- 커밋 메시지: `feat:`, `fix:`, `chore:`, `test:` prefix 사용
+- 커밋 메시지: `feat:`, `fix:`, `chore:`, `test:`, `docs:` prefix 사용
 - 한국어 우선 (UI 텍스트, 프롬프트, 문서)
 - 백엔드 변경 시 반드시 `SKIP_RAG_INIT=1 pytest` 실행
 - frontend/ 작업 시 backend API 스키마 변경 금지 (별도 협의 필요)
-- 시스템 언어 정책 변경 반영 완료 (2026-03-29 pull) — test_language_policy.py 참조
+- 시스템 언어 정책: 국적 기반 답변 언어 결정 (test_language_policy.py 참조)
 
 ## Deployment
 
-### 배포 구조 (Option B: Vercel + Railway)
+### 배포 구조 (Vercel + Railway)
 
 ```
 Vercel
@@ -228,24 +241,35 @@ Vercel
 
 Railway Project (nnai)
 ├── backend (Python FastAPI)
-│   └── 공개 도메인: api.nnai.app (또는 Railway 기본 URL)
+│   └── 공개 도메인: api.nnai.app
 └── Database: PostgreSQL
 ```
 
 **트래픽 흐름:** 사용자 → `nnai.app` (Vercel) → `api.nnai.app` (Railway) → DB
 
-**환경변수:**
-- Vercel: `NEXT_PUBLIC_API_URL=https://api.nnai.app`
-- Railway: `FRONTEND_URL=https://nnai.app` (CORS 허용 origin)
+**DNS (Cloudflare):**
+- A `@` → `76.76.21.21` (Vercel), Proxy OFF
+- CNAME `api` → Railway CNAME, Proxy OFF
 
-**CORS:** server.py에 설정 완료 (nnai.app, localhost:3000, FRONTEND_URL)
+**CORS:** server.py에 설정 완료 (nnai.app, www.nnai.app, localhost:3000, FRONTEND_URL)
 
-**Railway GitHub 연동:** wingcraft-co/nnai (2026-03-29 변경 완료)
+**GitHub 연동:**
+- Vercel: wingcraft-co/nnai (Root: /frontend, auto-deploy)
+- Railway: wingcraft-co/nnai (Root: /, auto-deploy)
+
+**CI:** GitHub Actions (.github/workflows/main-tests.yml) — push/PR 시 core regression tests
 
 ### 기타 배포
 
 ```bash
-# HuggingFace Spaces (Gradio 버전)
+# HuggingFace Spaces (Gradio 버전, 레거시)
 git push origin main
 git push "https://flexxiblethinking:{HUGGINGFACE_TOKEN}@huggingface.co/spaces/flexxiblethinking/nomad-navigator-ai" main
 ```
+
+## 관련 문서
+
+- `CONTEXT.md` — 기술 참조 (파이프라인, 함수 시그니처, 스키마)
+- `IMPLEMENTATION_STATUS.md` — Phase별 구현 현황
+- `nnai-project-reference.md` — Agent Team 공통 참조
+- `docs/frontguide.docx` (iCloud) — 프론트엔드 워크플로우 가이드
