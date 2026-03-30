@@ -13,6 +13,7 @@ import gradio as gr
 from pydantic import BaseModel
 from api.auth import router as auth_router, extract_user_id
 from api.pins import router as pins_router
+from api.visits import router as visits_router
 from utils.db import init_db
 
 # DB 초기화 (앱 시작 시 1회)
@@ -113,6 +114,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 app.include_router(pins_router, prefix="/api")
+app.include_router(visits_router, prefix="/api")
 
 
 # ── Frontend API Endpoints ─────────────────────────────────────

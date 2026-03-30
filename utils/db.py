@@ -37,6 +37,13 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 created_at TEXT NOT NULL
             );
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS visits (
+                path       TEXT PRIMARY KEY,
+                count      BIGINT NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            );
+        """)
     conn.commit()
     return conn
 

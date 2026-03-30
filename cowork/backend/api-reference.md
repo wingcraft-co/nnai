@@ -12,8 +12,9 @@
 1. [인증 (Auth)](#인증)
 2. [추천 API](#추천-api)
 3. [핀 API](#핀-api)
-4. [공통 에러](#공통-에러)
-5. [CORS & 쿠키 정책](#cors--쿠키-정책)
+4. [방문자 카운터 API](#방문자-카운터-api)
+5. [공통 에러](#공통-에러)
+6. [CORS & 쿠키 정책](#cors--쿠키-정책)
 
 ---
 
@@ -379,6 +380,66 @@ GET /api/pins/community
 ```
 
 > `cnt` — 해당 도시를 저장한 유저 수. 내림차순 정렬, 최대 100개.
+
+---
+
+## 방문자 카운터 API
+
+페이지 방문 횟수를 DB(PostgreSQL)에 집계합니다. **인증 불필요.**
+
+### POST /api/visits/ping
+
+페이지 방문 시 호출. 해당 경로의 카운트를 1 증가시키고 최신값을 반환합니다.
+
+```
+POST /api/visits/ping
+Content-Type: application/json
+```
+
+**요청 바디:**
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `path` | string | ❌ | `"/dev"` | 집계할 경로 |
+
+**응답 (200 OK):**
+```json
+{ "path": "/dev", "count": 42 }
+```
+
+**프론트엔드 사용 예시:**
+```js
+// 페이지 마운트 시 호출
+const res = await fetch(`${API_BASE}/api/visits/ping`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ path: '/dev' }),
+});
+const { count } = await res.json();
+```
+
+---
+
+### GET /api/visits
+
+경로별 누적 방문자 수를 조회합니다.
+
+```
+GET /api/visits?path=/dev
+```
+
+**쿼리 파라미터:**
+
+| 파라미터 | 기본값 | 설명 |
+|----------|--------|------|
+| `path` | `"/dev"` | 조회할 경로 |
+
+**응답 (200 OK):**
+```json
+{ "path": "/dev", "count": 42 }
+```
+
+> 방문 기록이 없는 경로는 `count: 0`을 반환합니다.
 
 ---
 

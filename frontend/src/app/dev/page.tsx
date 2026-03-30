@@ -217,20 +217,26 @@ function AnimatedDigit({ digit, delay }: { digit: string; delay: number }) {
 
 // ── 메인 페이지 ───────────────────────────────────────────────
 export default function DevPage() {
-  // ── 방문자 카운터 ──────────────────────────────────────────
+  // ── 방문자 카운터 (DB 기반) ────────────────────────────────
   const [visitCount, setVisitCount] = useState(0);
-  const [firstVisit, setFirstVisit] = useState('');
   const [animCount, setAnimCount] = useState(0);
 
   useEffect(() => {
-    const stored = parseInt(localStorage.getItem('nnai_dev_visits') ?? '0');
-    const count = stored + 1;
-    if (!localStorage.getItem('nnai_dev_first')) {
-      localStorage.setItem('nnai_dev_first', new Date().toISOString());
-    }
-    localStorage.setItem('nnai_dev_visits', String(count));
-    setVisitCount(count);
-    setFirstVisit(localStorage.getItem('nnai_dev_first') ?? '');
+    // 방문 기록 + 최신 카운트 조회
+    fetch(`${API_BASE}/api/visits/ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/dev' }),
+    })
+      .then((r) => r.json())
+      .then((data) => setVisitCount(data.count))
+      .catch(() => {
+        // 백엔드 미연결 시 GET으로 폴백
+        fetch(`${API_BASE}/api/visits?path=/dev`)
+          .then((r) => r.json())
+          .then((data) => setVisitCount(data.count))
+          .catch(() => {});
+      });
   }, []);
 
   useEffect(() => {
@@ -449,14 +455,7 @@ export default function DevPage() {
               ))}
             </div>
 
-            {firstVisit && (
-              <p className="text-xs text-[#3a4560] mt-3">
-                첫 방문:{' '}
-                {new Date(firstVisit).toLocaleDateString('ko-KR', {
-                  year: 'numeric', month: 'long', day: 'numeric',
-                })}
-              </p>
-            )}
+            <p className="text-xs text-[#3a4560] mt-3">전체 사용자 누적 방문 횟수</p>
 
             {/* 요약 통계 */}
             <div className="mt-8 flex items-center justify-center gap-8">

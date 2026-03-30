@@ -30,7 +30,7 @@ jobs:
 
       - name: Syntax check
         run: |
-          python -m py_compile app.py server.py recommender.py api/parser.py ui/layout.py prompts/builder.py
+          python -m py_compile app.py server.py recommender.py api/parser.py ui/layout.py prompts/builder.py api/visits.py
 
       - name: Core regression tests
         run: |
@@ -48,4 +48,5 @@ jobs:
             tests/test_data_schema.py \
             tests/test_link_validator.py \
             tests/test_server_endpoints.py \
-            tests/test_pins_api.py
+            tests/test_pins_api.py \
+            tests/test_visits_api.py

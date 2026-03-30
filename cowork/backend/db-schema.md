@@ -13,6 +13,7 @@
 |--------|------|
 | `users` | Google OAuth 로그인 유저 |
 | `pins` | 유저가 저장한 관심 도시 |
+| `visits` | 경로별 방문자 수 집계 |
 
 ---
 
@@ -76,11 +77,35 @@ CREATE TABLE IF NOT EXISTS pins (
 
 ---
 
+## visits
+
+경로별 누적 방문 횟수. `POST /api/visits/ping` 호출 시 UPSERT로 관리됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS visits (
+    path       TEXT PRIMARY KEY,       -- 집계 경로 (예: "/dev")
+    count      BIGINT NOT NULL DEFAULT 0,  -- 누적 방문 횟수
+    updated_at TEXT NOT NULL           -- 마지막 방문 시각 (ISO 8601 UTC)
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `path` | TEXT PK | 집계 경로 (예: `"/dev"`, `"/"`) |
+| `count` | BIGINT | 누적 방문 횟수 (UPSERT로 +1) |
+| `updated_at` | TEXT | 마지막 ping 시각 (ISO 8601 UTC) |
+
+**참고:** 유저 인증 없이 집계됩니다. 경로별 독립 집계.
+
+---
+
 ## 관계
 
 ```
 users (id)
   └── pins (user_id) — 1:N
+
+visits — 독립 테이블 (외래키 없음)
 ```
 
 ---
