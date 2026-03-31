@@ -1,5 +1,38 @@
 # CLAUDE.md — NomadNavigator AI
 
+## Project Rules
+
+### cowork 문서 동기화 (필수)
+
+아래 두 문서는 항상 코드와 동기화 상태를 유지한다. 관련 코드 변경 시 **같은 작업 내에서** 반드시 업데이트한다.
+
+| 문서 | 업데이트 트리거 |
+|------|----------------|
+| `cowork/backend/api-reference.md` | 엔드포인트 추가/수정/삭제, 요청·응답 스키마 변경, 인증 로직 변경 |
+| `cowork/backend/db-schema.md` | 테이블 추가/삭제, 컬럼 추가/수정/삭제, 외래키 변경 (`utils/db.py` DDL 변경) |
+
+### GitHub Actions 테스트
+
+새 테스트 파일을 추가할 때마다 `.github/workflows/main-tests.yml`의 테스트 목록에 함께 등록한다.
+
+### Git 브랜치 전략
+
+| 브랜치 | 용도 | Railway 환경 |
+|--------|------|-------------|
+| `main` | 프로덕션 (사용자 페이지) | production |
+| `develop` | 개발/테스트 | develop |
+
+- **push는 항상 `develop` 브랜치**로 한다. `main`으로의 병합은 별도 협의 후 진행.
+- Railway는 각 브랜치에 대응하는 환경(production / develop)으로 자동 배포된다.
+
+### 로컬 환경 설정 분리
+
+CLAUDE.md는 git으로 추적되는 팀 공유 파일이다.
+개인 환경별 설정 및 세션 문서 관리 규칙은 `.claude/CLAUDE.local.md`에 분리 보관한다.
+`.claude/CLAUDE.local.md`는 `.gitignore`에 포함되어 git으로 추적되지 않는다.
+
+---
+
 ## Project Overview
 
 NomadNavigator AI (NNAI) — AI 기반 디지털 노마드 이민 설계 서비스.
@@ -229,21 +262,6 @@ Response:
 - frontend/ 작업 시 backend API 스키마 변경 금지 (별도 협의 필요)
 - 시스템 언어 정책: 국적 기반 답변 언어 결정 (test_language_policy.py 참조)
 
-## Project Rules
-
-### cowork 문서 동기화 (필수)
-
-아래 두 문서는 항상 코드와 동기화 상태를 유지한다. 관련 코드 변경 시 **같은 작업 내에서** 반드시 업데이트한다.
-
-| 문서 | 업데이트 트리거 |
-|------|----------------|
-| `cowork/backend/api-reference.md` | 엔드포인트 추가/수정/삭제, 요청·응답 스키마 변경, 인증 로직 변경 |
-| `cowork/backend/db-schema.md` | 테이블 추가/삭제, 컬럼 추가/수정/삭제, 외래키 변경 (`utils/db.py` DDL 변경) |
-
-### GitHub Actions 테스트
-
-새 테스트 파일을 추가할 때마다 `.github/workflows/main-tests.yml`의 테스트 목록에 함께 등록한다.
-
 ## Deployment
 
 ### 배포 구조 (Vercel + Railway)
@@ -284,7 +302,9 @@ git push "https://flexxiblethinking:{HUGGINGFACE_TOKEN}@huggingface.co/spaces/fl
 
 ## 관련 문서
 
-- `CONTEXT.md` — 기술 참조 (파이프라인, 함수 시그니처, 스키마)
+- `.claude/session/CONTEXT.md` — 프로젝트 전체 현황 (단일 진실 공급원)
+- `.claude/session/CHANGELOG.md` — 작업 이력 누적 로그
 - `IMPLEMENTATION_STATUS.md` — Phase별 구현 현황
 - `nnai-project-reference.md` — Agent Team 공통 참조
 - `docs/frontguide.docx` (iCloud) — 프론트엔드 워크플로우 가이드
+

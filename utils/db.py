@@ -44,6 +44,75 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 updated_at TEXT NOT NULL
             );
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verified_sources (
+                id            TEXT PRIMARY KEY,
+                name          TEXT NOT NULL,
+                publisher     TEXT,
+                url           TEXT NOT NULL,
+                metric_scope  JSONB NOT NULL DEFAULT '[]'::jsonb,
+                last_checked  TEXT,
+                updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verified_countries (
+                country_id                 TEXT PRIMARY KEY,
+                name                       TEXT NOT NULL,
+                name_kr                    TEXT,
+                visa_type                  TEXT NOT NULL,
+                min_income_usd             DOUBLE PRECISION,
+                stay_months                INTEGER,
+                renewable                  BOOLEAN,
+                visa_fee_usd               DOUBLE PRECISION,
+                source_url                 TEXT,
+                data_verified_date         TEXT,
+                is_verified                BOOLEAN NOT NULL DEFAULT TRUE,
+                raw_data                   JSONB NOT NULL,
+                updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verified_cities (
+                city_id                    TEXT PRIMARY KEY,
+                city                       TEXT NOT NULL,
+                city_kr                    TEXT,
+                country                    TEXT,
+                country_id                 TEXT NOT NULL,
+                monthly_cost_usd           DOUBLE PRECISION,
+                internet_mbps              DOUBLE PRECISION,
+                safety_score               DOUBLE PRECISION,
+                english_score              DOUBLE PRECISION,
+                nomad_score                DOUBLE PRECISION,
+                tax_residency_days         INTEGER,
+                data_verified_date         TEXT,
+                is_verified                BOOLEAN NOT NULL DEFAULT TRUE,
+                raw_data                   JSONB NOT NULL,
+                updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verified_city_sources (
+                city_id       TEXT NOT NULL REFERENCES verified_cities(city_id) ON DELETE CASCADE,
+                source_id     TEXT NOT NULL REFERENCES verified_sources(id) ON DELETE CASCADE,
+                linked_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (city_id, source_id)
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verification_logs (
+                id            BIGSERIAL PRIMARY KEY,
+                entity_type   TEXT NOT NULL,
+                entity_id     TEXT NOT NULL,
+                action        TEXT NOT NULL,
+                source_id     TEXT,
+                verified_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                notes         TEXT,
+                payload       JSONB NOT NULL DEFAULT '{}'::jsonb
+            );
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_cities_country_id ON verified_cities(country_id);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_verification_logs_entity ON verification_logs(entity_type, entity_id);")
     conn.commit()
     return conn
 

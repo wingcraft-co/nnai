@@ -17,3 +17,4 @@ reports/
 .playwright-mcp/
 .superpowers/
 docs/superpowers/
+.claude/CLAUDE.local.md

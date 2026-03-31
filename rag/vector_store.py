@@ -2,12 +2,14 @@ import os, json, pickle
 import faiss
 import numpy as np
 from rag.embedder import embed_texts
+from utils.data_paths import resolve_data_path
 
 INDEX_PATH = "rag/index.faiss"
 DOCS_PATH  = "rag/documents.pkl"
 
 
-def _chunk_visa_db(path: str = "data/visa_db.json") -> list[dict]:
+def _chunk_visa_db(path: str | None = None) -> list[dict]:
+    path = path or str(resolve_data_path("visa_db.json"))
     with open(path, "r", encoding="utf-8") as f:
         db = json.load(f)
     chunks = []
@@ -36,7 +38,8 @@ def _chunk_visa_db(path: str = "data/visa_db.json") -> list[dict]:
     return chunks
 
 
-def _chunk_city_scores(path: str = "data/city_scores.json") -> list[dict]:
+def _chunk_city_scores(path: str | None = None) -> list[dict]:
+    path = path or str(resolve_data_path("city_scores.json"))
     with open(path, "r", encoding="utf-8") as f:
         db = json.load(f)
     chunks = []

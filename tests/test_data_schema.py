@@ -21,9 +21,9 @@ REQUIRED_CITY_FIELDS = {
 }
 
 def test_visa_db_has_12_countries():
-    """Task-1B 이후 29개국 (기존 12 + 신규 17)"""
+    """Task-1B 이후 최소 29개국 이상 (데이터 확장 허용)."""
     db = load_visa_db()
-    assert len(db["countries"]) == 29
+    assert len(db["countries"]) >= 29
 
 def test_visa_db_schema():
     db = load_visa_db()

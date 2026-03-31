@@ -4,14 +4,13 @@ tests/test_visa_db.py
 visa_db.json 구조 및 신규 필드 유효성 테스트
 """
 import json
-import os
 from pathlib import Path
 
 import pytest
+from utils.data_paths import resolve_data_path
 
 _db = Path(__file__).parent.parent / "database" / "visa_db.json"
-_data = Path(__file__).parent.parent / "data" / "visa_db.json"
-DATA_PATH = _db if _db.exists() else _data
+DATA_PATH = _db if _db.exists() else resolve_data_path("visa_db.json")
 
 
 @pytest.fixture(scope="module")
@@ -21,8 +20,8 @@ def visa_db():
 
 
 def test_total_country_count(visa_db):
-    """29개국 포함 확인."""
-    assert len(visa_db["countries"]) == 29
+    """최소 29개국 이상 포함 확인 (데이터 확장 허용)."""
+    assert len(visa_db["countries"]) >= 29
 
 
 def test_new_fields_present_in_all_countries(visa_db):

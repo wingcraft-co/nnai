@@ -8,17 +8,16 @@
 
 import json
 import logging
-import os
 import urllib.parse
 
 import requests
+from utils.data_paths import resolve_data_path
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-_DIR = os.path.dirname(os.path.abspath(__file__))
-_VISA_URLS_PATH = os.path.join(_DIR, "..", "data", "visa_urls.json")
-_VISA_DB_PATH   = os.path.join(_DIR, "..", "data", "visa_db.json")
+_VISA_URLS_PATH = str(resolve_data_path("visa_urls.json"))
+_VISA_DB_PATH   = str(resolve_data_path("visa_db.json"))
 
 
 def _load_visa_db() -> dict[str, dict]:
@@ -32,10 +31,17 @@ def _load_visa_db() -> dict[str, dict]:
 
 
 def validate_url(url: str) -> bool:
-    """HTTP HEAD 요청으로 URL 유효성 확인. status < 400 → True, 그 외 → False."""
+    """URL 유효성 확인.
+
+    일부 정부 사이트는 HEAD를 차단하거나 봇 탐지로 403/405를 반환하므로,
+    보수적으로 HEAD -> GET 순서로 재시도한다.
+    """
     try:
         resp = requests.head(url, timeout=5, allow_redirects=True)
-        return resp.status_code < 400
+        if resp.status_code < 400 or resp.status_code in (403, 405, 429):
+            return True
+        resp = requests.get(url, timeout=8, allow_redirects=True, stream=True)
+        return resp.status_code < 400 or resp.status_code in (403, 405, 429)
     except (requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
             requests.exceptions.RequestException):

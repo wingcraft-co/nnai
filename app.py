@@ -15,6 +15,7 @@ from prompts.system_en  import SYSTEM_PROMPT_EN
 from prompts.data_context import DATA_CONTEXT
 from prompts.few_shots  import FEW_SHOT_EXAMPLES
 from ui.layout          import create_layout
+from utils.data_paths   import resolve_data_path
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,8 @@ def _lookup_visa_data(country_id: str) -> dict | None:
     """visa_db.json에서 country_id에 해당하는 항목 반환. 없으면 None."""
     global _VISA_DB_CACHE
     if _VISA_DB_CACHE is None:
-        import json, os
-        path = os.path.join(os.path.dirname(__file__), "data", "visa_db.json")
+        import json
+        path = resolve_data_path("visa_db.json")
         try:
             with open(path, encoding="utf-8") as f:
                 _VISA_DB_CACHE = {c["id"]: c for c in json.load(f)["countries"]}

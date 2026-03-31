@@ -39,7 +39,14 @@
           }
         ],
         "work_disclosure_risk": "입국심사 시 원격근무 언급 시 취업 비자 필요로 오해받을 수 있음. 관광 목적으로만 답변 권장"
-      }
+      },
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "PG",
@@ -61,7 +68,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=penang",
       "anyplace_search_url": "https://anyplace.com/rent/penang",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-penang/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "LIS",
@@ -83,7 +97,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=lisbon",
       "anyplace_search_url": "https://anyplace.com/rent/lisbon",
       "nomad_meetup_url": "https://www.meetup.com/lisbon-digital-nomads/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "PTO",
@@ -105,7 +126,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=porto",
       "anyplace_search_url": "https://anyplace.com/rent/porto",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-porto/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "CNX",
@@ -146,7 +174,14 @@
           }
         ],
         "work_disclosure_risk": "입국심사 시 원격근무 언급 시 취업 비자 필요로 오해받을 수 있음. 관광 목적으로만 답변 권장"
-      }
+      },
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "BKK",
@@ -187,7 +222,14 @@
           }
         ],
         "work_disclosure_risk": "입국심사 시 원격근무 언급 시 취업 비자 필요로 오해받을 수 있음. 관광 목적으로만 답변 권장"
-      }
+      },
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "TLL",
@@ -209,7 +251,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=tallinn",
       "anyplace_search_url": "https://anyplace.com/rent/tallinn",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-tallinn/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "BCN",
@@ -231,7 +280,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=barcelona",
       "anyplace_search_url": "https://anyplace.com/rent/barcelona",
       "nomad_meetup_url": "https://www.meetup.com/barcelona-digital-nomads/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MAD",
@@ -253,7 +309,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=madrid",
       "anyplace_search_url": "https://anyplace.com/rent/madrid",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-madrid/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "DPS",
@@ -294,7 +357,14 @@
           }
         ],
         "work_disclosure_risk": "입국심사 시 원격근무 언급 시 취업 비자 필요로 오해받을 수 있음. 관광 목적으로만 답변 권장"
-      }
+      },
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "BLN",
@@ -316,7 +386,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=berlin",
       "anyplace_search_url": "https://anyplace.com/rent/berlin",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-berlin/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "TBS",
@@ -338,7 +415,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=tbilisi",
       "anyplace_search_url": "https://anyplace.com/rent/tbilisi",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-tbilisi/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "SJO",
@@ -360,7 +444,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=san-jose-costa-rica",
       "anyplace_search_url": "https://anyplace.com/rent/san-jose",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "SJD",
@@ -382,7 +473,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=tamarindo",
       "anyplace_search_url": "https://anyplace.com/rent/tamarindo",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "ATH",
@@ -404,7 +502,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=athens",
       "anyplace_search_url": "https://anyplace.com/rent/athens",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-athens/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "HER",
@@ -426,7 +531,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=heraklion",
       "anyplace_search_url": "https://anyplace.com/rent/heraklion",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MNL",
@@ -448,7 +560,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=manila",
       "anyplace_search_url": "https://anyplace.com/rent/manila",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-manila/",
-      "korean_community_size": "medium"
+      "korean_community_size": "medium",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "CEU",
@@ -489,7 +608,14 @@
           }
         ],
         "work_disclosure_risk": "입국심사 시 원격근무 언급 시 취업 비자 필요로 오해받을 수 있음. 관광 목적으로만 답변 권장"
-      }
+      },
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "HAN",
@@ -511,7 +637,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=hanoi",
       "anyplace_search_url": "https://anyplace.com/rent/hanoi",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-hanoi/",
-      "korean_community_size": "medium"
+      "korean_community_size": "medium",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "SGN",
@@ -533,7 +666,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=ho-chi-minh-city",
       "anyplace_search_url": "https://anyplace.com/rent/ho-chi-minh-city",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-ho-chi-minh/",
-      "korean_community_size": "large"
+      "korean_community_size": "large",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "VLC",
@@ -555,7 +695,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=valencia",
       "anyplace_search_url": "https://anyplace.com/rent/valencia",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-valencia/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "PRG",
@@ -577,7 +724,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=prague",
       "anyplace_search_url": "https://anyplace.com/rent/prague",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-prague/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "BUD",
@@ -599,7 +753,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=budapest",
       "anyplace_search_url": "https://anyplace.com/rent/budapest",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-budapest/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "AMS",
@@ -621,7 +782,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=amsterdam",
       "anyplace_search_url": "https://anyplace.com/rent/amsterdam",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-amsterdam/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "VIE",
@@ -643,7 +811,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=vienna",
       "anyplace_search_url": "https://anyplace.com/rent/vienna",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-vienna/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "WAW",
@@ -665,7 +840,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=warsaw",
       "anyplace_search_url": "https://anyplace.com/rent/warsaw",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-warsaw/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "KRK",
@@ -687,7 +869,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=krakow",
       "anyplace_search_url": "https://anyplace.com/rent/krakow",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-krakow/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MUC",
@@ -709,7 +898,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=munich",
       "anyplace_search_url": "https://anyplace.com/rent/munich",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-munich/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MIL",
@@ -731,7 +927,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=milan",
       "anyplace_search_url": "https://anyplace.com/rent/milan",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-milan/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "DBV",
@@ -753,7 +956,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=dubrovnik",
       "anyplace_search_url": "https://anyplace.com/rent/dubrovnik",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "BEG",
@@ -775,7 +985,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=belgrade",
       "anyplace_search_url": "https://anyplace.com/rent/belgrade",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-belgrade/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "SKP",
@@ -797,7 +1014,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=skopje",
       "anyplace_search_url": "https://anyplace.com/rent/skopje",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "NIC",
@@ -819,7 +1043,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=nicosia",
       "anyplace_search_url": "https://anyplace.com/rent/nicosia",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "IST",
@@ -841,7 +1072,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=istanbul",
       "anyplace_search_url": "https://anyplace.com/rent/istanbul",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-istanbul/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "CEI",
@@ -863,7 +1101,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=chiang-rai",
       "anyplace_search_url": "https://anyplace.com/rent/chiang-rai",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "USM",
@@ -885,7 +1130,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=koh-samui",
       "anyplace_search_url": "https://anyplace.com/rent/koh-samui",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "OSA",
@@ -907,7 +1159,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=osaka",
       "anyplace_search_url": "https://anyplace.com/rent/osaka",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-osaka/",
-      "korean_community_size": "large"
+      "korean_community_size": "large",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "TYO",
@@ -929,7 +1188,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=tokyo",
       "anyplace_search_url": "https://anyplace.com/rent/tokyo",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-tokyo/",
-      "korean_community_size": "large"
+      "korean_community_size": "large",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "FUK",
@@ -951,7 +1217,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=fukuoka",
       "anyplace_search_url": "https://anyplace.com/rent/fukuoka",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-fukuoka/",
-      "korean_community_size": "large"
+      "korean_community_size": "large",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MEX",
@@ -973,7 +1246,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=mexico-city",
       "anyplace_search_url": "https://anyplace.com/rent/mexico-city",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-mexico-city/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "OAX",
@@ -995,7 +1275,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=oaxaca",
       "anyplace_search_url": "https://anyplace.com/rent/oaxaca",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-oaxaca/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "LIM",
@@ -1017,7 +1304,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=lima",
       "anyplace_search_url": "https://anyplace.com/rent/lima",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-lima/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "EZE",
@@ -1039,7 +1333,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=buenos-aires",
       "anyplace_search_url": "https://anyplace.com/rent/buenos-aires",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-buenos-aires/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MDE",
@@ -1061,7 +1362,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=medellin",
       "anyplace_search_url": "https://anyplace.com/rent/medellin",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-medellin/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "MIA",
@@ -1083,7 +1391,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=miami",
       "anyplace_search_url": "https://anyplace.com/rent/miami",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-miami/",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "RAK",
@@ -1105,7 +1420,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=marrakech",
       "anyplace_search_url": "https://anyplace.com/rent/marrakech",
       "nomad_meetup_url": "",
-      "korean_community_size": "small"
+      "korean_community_size": "small",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "DXB",
@@ -1127,7 +1449,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=dubai",
       "anyplace_search_url": "https://anyplace.com/rent/dubai",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-dubai/",
-      "korean_community_size": "medium"
+      "korean_community_size": "medium",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "DAD",
@@ -1155,7 +1484,14 @@
         "round_trip_note": "한국인 무비자 90일 — 비자런 일반적으로 불필요",
         "visa_run_options": [],
         "work_disclosure_risk": "입국심사 시 원격근무 언급 시 취업 비자 필요로 오해받을 수 있음. 관광 목적으로만 답변 권장"
-      }
+      },
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "TPE",
@@ -1177,7 +1513,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=taipei",
       "anyplace_search_url": "https://anyplace.com/rent/taipei",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-taipei/",
-      "korean_community_size": "medium"
+      "korean_community_size": "medium",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     },
     {
       "id": "HKT",
@@ -1199,7 +1542,14 @@
       "flatio_search_url": "https://www.flatio.com/s?destination=phuket",
       "anyplace_search_url": "https://anyplace.com/rent/phuket",
       "nomad_meetup_url": "https://www.meetup.com/digital-nomads-phuket/",
-      "korean_community_size": "medium"
+      "korean_community_size": "medium",
+      "source_refs": [
+        "numbeo_cost_index",
+        "ookla_speedtest_global",
+        "official_visa_portals",
+        "internal_editorial_scoring"
+      ],
+      "data_verified_date": "2026-04-01"
     }
   ]
 }

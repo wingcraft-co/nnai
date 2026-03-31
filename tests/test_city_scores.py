@@ -2,10 +2,10 @@
 import json
 from pathlib import Path
 import pytest
+from utils.data_paths import resolve_data_path
 
 _db = Path(__file__).parent.parent / "database" / "city_scores.json"
-_data = Path(__file__).parent.parent / "data" / "city_scores.json"
-DATA_PATH = _db if _db.exists() else _data
+DATA_PATH = _db if _db.exists() else resolve_data_path("city_scores.json")
 
 @pytest.fixture(scope="module")
 def city_db():
