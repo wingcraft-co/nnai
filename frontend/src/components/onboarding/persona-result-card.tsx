@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { PERSONAS, type PersonaType } from "@/data/personas";
 
 interface PersonaResultCardProps {
@@ -16,9 +17,14 @@ export function PersonaResultCard({ personaType }: PersonaResultCardProps) {
     { label: "이런 순간이 행복해요", content: persona.moment },
   ].filter((s) => s.content && s.content !== "TBD");
 
+  const fadeUp = (delay: number) => ({
+    initial: { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const, delay } },
+  });
+
   return (
     <div className="flex flex-col items-center gap-8 text-center">
-      <div className="space-y-3">
+      <motion.div className="space-y-3" {...fadeUp(0)}>
         <p className="text-sm text-[var(--onboarding-text-secondary)]">
           당신은
         </p>
@@ -28,12 +34,13 @@ export function PersonaResultCard({ personaType }: PersonaResultCardProps) {
         <p className="font-serif text-sm text-[var(--onboarding-text-secondary)] leading-relaxed">
           {persona.description}
         </p>
-      </div>
+      </motion.div>
 
       <div className="w-full space-y-3">
-        {sections.map((section) => (
-          <div
+        {sections.map((section, i) => (
+          <motion.div
             key={section.label}
+            {...fadeUp(0.3 + i * 0.3)}
             className="rounded-lg border border-[var(--onboarding-card-border)] bg-[var(--onboarding-card-bg)] px-4 py-4 text-left"
           >
             <p className="text-xs text-[var(--onboarding-accent)] mb-2">
@@ -42,7 +49,7 @@ export function PersonaResultCard({ personaType }: PersonaResultCardProps) {
             <p className="font-serif text-sm text-[var(--onboarding-text-primary)] leading-relaxed">
               {section.content}
             </p>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
