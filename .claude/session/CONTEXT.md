@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-03-31 (KST)_
+_Last updated: 2026-04-03 (KST)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -13,19 +13,18 @@ _Last updated: 2026-03-31 (KST)_
 - Infra: Vercel (frontend, nnai.app) + Railway (backend, api.nnai.app) + Cloudflare DNS
 
 ## 현재 상태
-백엔드 API 완성 및 운영 중. 프론트엔드는 온보딩 플로우 골격 + 스타일링 완료.
-라우팅 6개 (/onboarding/quiz, /onboarding/quiz/result, /onboarding/form,
-/result, /result/[id]) 구현 완료. Framer Motion 인터랙션 및 API 연결은 미착수.
+백엔드 API 완성 및 운영 중. 프론트엔드는 온보딩 플로우 골격 + 스타일링 + 페르소나 결과 페이지 콘텐츠까지 완료. Framer Motion 인터랙션 및 API 연결은 미착수.
 
 ## 최근 변경
-- 온보딩 플로우 전체 구현 (트랙1: 퀴즈, 트랙2: 6-step 정밀 입력)
-- 다크 테마 + Playfair Display + 골드 액센트 스타일링 적용
-- 투트랙 구조 확정 (페르소나 진단 → 정밀 분석)
+- 페르소나 5종 4개 축 콘텐츠 확정 (도시/일/가치/순간)
+- 퀴즈 7문항 재설계 + 페르소나 매핑 순서 섞기 적용
+- persona-result-card 구조 변경
 
 ## 진행 중인 작업
 - [x] 프론트엔드 온보딩 플로우 골격 + 스타일링
-- [ ] Framer Motion 인터랙션 (퀴즈 슬라이드, 결과 등장)
-- [ ] 백엔드 API 연결 (/onboarding/form → POST /api/recommend)
+- [x] 페르소나 결과 페이지 콘텐츠
+- [ ] Framer Motion 인터랙션
+- [ ] 백엔드 API 연결
 - [ ] 페르소나 결과 공유 기능
 - [ ] Google OAuth 프론트엔드 연동
 

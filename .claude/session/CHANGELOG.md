@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## [2026-04-03 KST] — 페르소나 결과 페이지 콘텐츠 + 퀴즈 데이터 업데이트
+
+### 변경 파일
+- `data/personas.ts` : 페르소나 5종 전체 콘텐츠 업데이트 (description, city, work, value, moment)
+- `data/quiz-questions.ts` : 퀴즈 7문항 재설계 + 페르소나 매핑 순서 섞기 적용
+- `components/onboarding/persona-result-card.tsx` : traits 3개 → 4개 축 구조로 변경
+
+### 작업 요약
+- 무엇을: 페르소나별 4개 축 콘텐츠 확정 및 결과 페이지 구조 변경
+- 왜: UX 논의에서 확정된 "도시/일/가치/순간" 4축 구조 반영
+- 영향 범위: 퀴즈 결과 페이지 전체 경험
+
+### 다음 세션 참고사항
+- 다음 작업: Framer Motion 인터랙션 (퀴즈 슬라이드, 결과 등장)
+- 다음 작업: /onboarding/form → 백엔드 API 연결
+- 페르소나 결과 공유 기능 미구현 (자리만 잡혀 있음)
+
+---
+
 ## [2026-03-30 KST] — 온보딩 플로우 골격 + 스타일링 구현
 
 ### 변경 파일
