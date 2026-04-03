@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## [2026-04-03 KST] — UI 리디자인 + API 연결 완료
+
+### 변경 파일
+- `app/[locale]/layout.tsx` : 폰트 Noto Serif KR 단일 폰트로 교체
+- `app/globals.css` : 세계之外 테마 토큰 전면 교체, dark 강제 해제
+- `app/[locale]/onboarding/quiz/page.tsx` : 이전 버튼 추가, 레이아웃 수정, max-w-sm
+- `app/[locale]/onboarding/result/page.tsx` : 결과 카드 위계 재설계, 카드 순서 변경 (도시→일→순간→가치)
+- `components/onboarding/persona-result-card.tsx` : description/city/work/value/moment string→string[] 배열 구조로 변경
+- `data/personas.ts` : 전체 필드 string[] 배열 구조로 변환
+- `app/api/recommend/route.ts` : Next.js API Route 프록시 신규 생성
+- `app/[locale]/onboarding/form/page.tsx` : API 호출 연결, 로딩/에러 처리
+- `app/[locale]/result/page.tsx` : 도시 카드 3개 + 비교표 구현, 마크다운 제거
+
+### 작업 요약
+- 무엇을: 테마 라이트 모드 전환 + Noto Serif KR 폰트 확정 + 퀴즈/결과 UX 개선 + 백엔드 API 연결
+- 왜: 다크 테마 감성 미달, 한글 폰트 미지원, API 연결 CORS 문제 해결
+- 영향 범위: 프론트엔드 전체 + 백엔드 API 연결
+
+### 다음 세션 참고사항
+- 퀴즈 페이지 수직 정렬 마무리 필요
+- 폼 페이지 UX 디테일 미완
+- 페르소나 결과 공유 기능 미구현
+- Google OAuth 프론트엔드 연동 미착수
+- 테마 재선정 보류 (Noto Serif KR 확정, 컬러는 추후 판단)
+- 로컬 테스트는 production 빌드 권장 (dev 서버 hydration 이슈)
+
+---
+
 ## [2026-04-03 KST] — 디자인 시스템 전면 교체 + 퀴즈/결과 페이지 리디자인
 
 ### 변경 파일

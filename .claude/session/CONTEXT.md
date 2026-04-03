@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-03 22:00 (KST)_
+_Last updated: 2026-04-03 (KST)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -13,19 +13,22 @@ _Last updated: 2026-04-03 22:00 (KST)_
 - Infra: Vercel (frontend, nnai.app) + Railway (backend, api.nnai.app) + Cloudflare DNS
 
 ## 현재 상태
-백엔드 API 완성 및 운영 중. 프론트엔드는 디자인 시스템 전면 교체 완료 (Instrument Serif, oklch 색상, 라이트 모드 기본). 온보딩 퀴즈/결과 페이지 리디자인 + Framer Motion 인터랙션 완료. API 연결은 미착수.
+백엔드 API 연결 완료. 퀴즈 → 페르소나 결과 → 폼 → 도시 추천 결과까지 전체 플로우 동작 중. 테마는 라이트 모드(세계之外) + Noto Serif KR로 확정. result 페이지 도시 카드 3개 + 비교표 구현 완료.
 
 ## 최근 변경
-- 디자인 시스템 전면 교체 (Instrument Serif 단일 폰트, oklch 색상, 라이트 모드 기본)
-- 퀴즈/결과 페이지 레이아웃 리디자인 (max-w-sm, 이전 버튼, 처음부터 다시하기)
-- 선택지 스타일 통일 (text-foreground, font-medium)
-- 기존 --onboarding-* CSS 변수 완전 삭제
+- Noto Serif KR 단일 폰트 확정, 라이트 모드 전환
+- Next.js API Route 프록시로 CORS 해결
+- 퀴즈 이전 버튼 + 레이아웃 수정
+- 결과 페이지 카드 위계 재설계 (도시→일→순간→가치)
+- result 페이지 도시 카드 + 비교표 구현
 
 ## 진행 중인 작업
 - [x] 프론트엔드 온보딩 플로우 골격 + 스타일링
 - [x] 페르소나 결과 페이지 콘텐츠
 - [x] Framer Motion 인터랙션
-- [ ] 백엔드 API 연결
+- [x] 백엔드 API 연결
+- [ ] 퀴즈 페이지 수직 정렬 마무리
+- [ ] 폼 페이지 UX 디테일
 - [ ] 페르소나 결과 공유 기능
 - [ ] Google OAuth 프론트엔드 연동
 
