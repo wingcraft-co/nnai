@@ -15,21 +15,21 @@ export interface QuizQuestion {
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: 1,
-    question: "어느 날 문득, 짐을 싸고 싶다는 생각이 들었어.\n그 순간 떠오른 건?",
+    question: "어느 날 갑자기 떠나고 싶은 생각이 들었어.\n그 순간 떠오른 건?",
     options: [
       { label: "비행기가 곧 이륙할거야", value: "A", persona: "schengen_loop" },
-      { label: "외국 친구들과 신나게 놀고 있는 내 모습", value: "B", persona: "slow_nomad" },
-      { label: "글쎄. 일단 계획부터 세워야지", value: "C", persona: "fire_optimizer" },
-      { label: "내 삶이 달라질 것만 같아", value: "D", persona: "burnout_escape" },
-      { label: "한국은 이제 돌아오지 않을거야", value: "E", persona: "expat_freedom" },
+      { label: "외국인 친구들과 어울리는 내 모습", value: "B", persona: "slow_nomad" },
+      { label: "글쎄, 일단 계획부터 세워야지", value: "C", persona: "fire_optimizer" },
+      { label: "내 삶이 달라질 것 같아", value: "D", persona: "burnout_escape" },
+      { label: "이제 한국은 돌아오지 않을거야", value: "E", persona: "expat_freedom" },
     ],
   },
   {
     id: 2,
-    question: "숙소 체크인 완료. 가방을 내려놓고 제일 먼저?",
+    question: "숙소 체크인 완료.\n가방을 내려놓고 제일 먼저 할 일은?",
     options: [
       { label: "일단 나가서 뭐가 있는지 볼래", value: "A", persona: "schengen_loop" },
-      { label: "현지 마트 먼저 찾아볼래", value: "B", persona: "slow_nomad" },
+      { label: "동네 마트 먼저 가볼거야", value: "B", persona: "slow_nomad" },
       { label: "유심 구매하고 환전부터 해야해", value: "C", persona: "fire_optimizer" },
       { label: "창문 열고 바깥 풍경부터 볼래", value: "D", persona: "burnout_escape" },
       { label: "현지 식당 찾아서 로컬 음식 먹을거야", value: "E", persona: "expat_freedom" },
@@ -37,13 +37,13 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 3,
-    question: "노마드 시작 첫 날 아침이야. 오늘 아침에 뭘 하고 싶어?",
+    question: "노마드 시작 첫 날이야.\n오늘 아침에 뭘 하고 싶어?",
     options: [
       { label: "느긋하게 브런치 먹으러 갈거야", value: "A", persona: "burnout_escape" },
-      { label: "미라클 모닝! 일어나서 운동먼저 할거야", value: "B", persona: "expat_freedom" },
-      { label: "미리 찾아둔 핫플을 갈거야", value: "C", persona: "schengen_loop" },
-      { label: "이불 정리하고 밀린 일 먼저 해치울래", value: "D", persona: "fire_optimizer" },
-      { label: "골목 골목 로컬 탐방할래", value: "E", persona: "slow_nomad" },
+      { label: "미라클 모닝. 일어나서 운동부터 해야지", value: "B", persona: "expat_freedom" },
+      { label: "미리 찾아둔 장소에 가볼거야", value: "C", persona: "schengen_loop" },
+      { label: "짐 정리하고 밀린 일을 먼저 해치울래", value: "D", persona: "fire_optimizer" },
+      { label: "골목 골목 동네를 둘러볼래", value: "E", persona: "slow_nomad" },
     ],
   },
   {
@@ -59,29 +59,29 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 5,
-    question: "어느덧 노마드 6개월차, 요즘 자주 하는 생각은?",
+    question: "어느덧 노마드 6개월차,\n요즘 자주 하는 생각은?",
     options: [
       { label: "벌써 떠나야해? 아직 아쉬운데", value: "A", persona: "slow_nomad" },
       { label: "나 요즘 너무 행복한 것 같아", value: "B", persona: "burnout_escape" },
       { label: "여기 살아도 되겠는데?", value: "C", persona: "expat_freedom" },
-      { label: "이제 여기도 떠날때가 됐군", value: "D", persona: "schengen_loop" },
-      { label: "계획대로 잘 지내고 있네", value: "E", persona: "fire_optimizer" },
+      { label: "이제 여기도 떠날때가 된 것 같아", value: "D", persona: "schengen_loop" },
+      { label: "내 계획대로 잘 지내고 있어", value: "E", persona: "fire_optimizer" },
     ],
   },
   {
     id: 6,
-    question: "드디어 내 최애 도시 발견! 이제 어떻게 할래?",
+    question: "드디어 내 최애 도시 발견!\n이제 어떻게 할래?",
     options: [
       { label: "영주권 알아볼거야. 진지하게", value: "A", persona: "expat_freedom" },
-      { label: "현지 시장 조사해야지", value: "B", persona: "fire_optimizer" },
+      { label: "현지 시장 조사를 할거야", value: "B", persona: "fire_optimizer" },
       { label: "이 도시를 마음껏 즐겨볼래", value: "C", persona: "burnout_escape" },
-      { label: "부동산 알아볼래", value: "D", persona: "slow_nomad" },
+      { label: "부동산 먼저 알아볼래", value: "D", persona: "slow_nomad" },
       { label: "그래도 더 좋은데가 있을걸?", value: "E", persona: "schengen_loop" },
     ],
   },
   {
     id: 7,
-    question: "지금 이 순간, 가장 끌리는 단어는?",
+    question: "지금 이 순간,\n너한테 가장 끌리는 단어는?",
     options: [
       { label: "자유", value: "A", persona: "schengen_loop" },
       { label: "우정", value: "B", persona: "slow_nomad" },

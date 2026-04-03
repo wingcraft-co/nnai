@@ -26,25 +26,10 @@ export default function QuizResultPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-4 py-12">
-      <PersonaResultCard personaType={personaType} />
-
-      <div className="mt-10 flex w-full flex-col gap-3">
-        <button
-          type="button"
-          onClick={() => router.push("/onboarding/form")}
-          className="w-full rounded-lg bg-primary py-3.5 font-serif text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          나에게 맞는 국가 찾으러 가기
-        </button>
-        <button
-          type="button"
-          onClick={handleRetry}
-          className="w-full py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          처음부터 다시하기
-        </button>
-      </div>
-    </div>
+    <PersonaResultCard
+      personaType={personaType}
+      onFindCountry={() => router.push("/onboarding/form")}
+      onRetry={handleRetry}
+    />
   );
 }
