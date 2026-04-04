@@ -343,9 +343,18 @@ def draw_pioneer(p, f=0):
     # Short strong hair (overwrites default)
     px(im, 5, 4, p["hair"]); px(im, 5, 5, p["hair"])
     for x in range(6, 10): px(im, x, 3, p["hair"])
+    px(im, 9, 3, p["skin"])
 
-    # Thick brow
-    px(im, 9, 4, p["eye"]); px(im, 10, 4, p["eye"])
+    # Simple brown cap: low crown + short brim toward the facing direction.
+    cap = (145, 100, 60)
+    cap_d = (105, 70, 40)
+    px(im, 7, 2, cap_d); px(im, 8, 2, cap); px(im, 9, 2, cap)
+    px(im, 7, 3, cap_d); px(im, 8, 3, cap); px(im, 9, 3, cap)
+    px(im, 10, 3, cap_d)
+    px(im, 11, 3, cap_d)
+
+    # Keep the face clean around the eye so front direction reads clearly.
+    px(im, 8, 4, p["skin"])
 
     # Firm mouth
     px(im, 10, 6, (190, 135, 110))
