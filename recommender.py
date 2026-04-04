@@ -15,7 +15,7 @@ from api.schengen_calculator import SCHENGEN_COUNTRIES
 _SCHENGEN_IDS: set[str] = set(SCHENGEN_COUNTRIES)
 
 _CONTINENT_TO_IDS: dict[str, set[str]] = {
-    "아시아":       {"TH", "MY", "ID", "VN", "PH", "JP"},
+    "아시아":       {"TH", "MY", "ID", "VN", "PH", "JP", "TW"},
     "유럽":         {"DE", "PT", "EE", "ES", "GR", "HR", "CZ", "HU", "SI", "MT", "CY", "AL", "RS", "MK"},
     "중남미":       {"CR", "MX", "CO", "AR", "BR"},
     "중동/아프리카": {"AE", "MA"},
@@ -36,10 +36,30 @@ _LONG_STAY_TIMELINES: set[str] = {"3년 장기 체류", "5년 이상 초장기 �
 _TIMELINE_ALIASES: dict[str, str] = {
     "3년 이상 장기 이민": "3년 장기 체류",
     "5년 이상 장기 이민": "5년 이상 초장기 체류",
+    # Frontend form values → internal keys
+    "1~3개월 단기 체류":  "90일 단기 체험",
+    "6개월 중기 체류":    "6개월 단기 체험",
+    "1년 장기 체류":      "1년 단기 체험",
+    "영주권/이민 목표":   "3년 장기 체류",
 }
 
 # Schengen long-stay income threshold (USD/month)
 _SCHENGEN_LONG_STAY_INCOME_THRESHOLD = 2849
+
+# Frontend lifestyle label → internal key mapping
+_LIFESTYLE_ALIASES: dict[str, str] = {
+    # New labels (v2)
+    "일하기 좋은 인프라":    "코워킹스페이스 중시",
+    "한인 커뮤니티 활성화":  "한인 커뮤니티",
+    "저렴한 물가와 생활비":  "저비용 생활",
+    "영어로 생활 가능":     "영어권 선호",
+    # Legacy labels (backward compat)
+    "안전":            "안전 중시",
+    "영어권":          "영어권 선호",
+    "코워킹 스페이스":  "코워킹스페이스 중시",
+    "저물가":          "저비용 생활",
+    "한인커뮤니티":    "한인 커뮤니티",
+}
 
 _LIFESTYLE_MATCH: dict[str, Any] = {
     "코워킹스페이스 중시": lambda city, country: city.get("coworking_score", 0) >= 7,
@@ -47,6 +67,31 @@ _LIFESTYLE_MATCH: dict[str, Any] = {
     "저비용 생활":         lambda city, country: country.get("cost_tier") == "low",
     "안전 중시":           lambda city, country: city.get("safety_score", 0) >= 8,
     "영어권 선호":         lambda city, country: city.get("english_score", 0) >= 7,
+}
+
+# korean_community_size → numeric score
+_COMMUNITY_SCORE: dict[str, float] = {"large": 10, "medium": 5, "small": 2}
+
+# Beach-friendly climate keywords
+_BEACH_CLIMATES: set[str] = {"tropical", "subtropical", "mediterranean"}
+
+# Persona type → attribute weights for Block C scoring
+_PERSONA_WEIGHTS: dict[str, dict[str, float]] = {
+    "schengen_loop": {   # wanderer — 이동 자유 중시
+        "nomad_score": 3.0, "korean_community_size": 0.3, "coworking_score": 2.0,
+    },
+    "slow_nomad": {      # local — 현지 정착 중시
+        "korean_community_size": 3.5, "english_score": 0.5, "safety_score": 2.0,
+    },
+    "fire_optimizer": {  # planner — 안정·제도 중시
+        "safety_score": 2.5, "tax_residency_days_inv": 2.0, "renewable_bonus": 3.0,
+    },
+    "burnout_escape": {  # free_spirit — 작업 환경·커뮤니티 중시
+        "coworking_score": 3.0, "nomad_score": 2.5, "korean_community_size": 0.2,
+    },
+    "expat_freedom": {   # pioneer — 비용 효율·개척 중시
+        "cost_score": 3.5, "nomad_score": 0.5, "coworking_score": 1.5,
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -94,52 +139,188 @@ def _get_city_description(country_id: str, city_name: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Scoring
+# Scoring — 4-Block System
 # ---------------------------------------------------------------------------
 
-def _cost_inverse_score(monthly_cost_usd: int, income_usd: float) -> float:
-    """Invert cost relative to income — cheaper is better, capped 0–10."""
+def _normalize_lifestyle(lifestyle: list[str]) -> list[str]:
+    """Frontend lifestyle labels → internal keys (pass-through if already internal)."""
+    return [_LIFESTYLE_ALIASES.get(pref, pref) for pref in lifestyle]
+
+
+def _cost_ratio(city: dict, income_usd: float) -> float:
+    """monthly_cost / income — lower is better. 0 if income is 0."""
     if income_usd <= 0:
-        return 5.0
-    ratio = monthly_cost_usd / income_usd  # lower ratio = better
-    # ratio 0.2 → 10, ratio 1.0 → 0, linear interpolation
-    score = 10.0 * max(0.0, 1.0 - ratio / 1.0)
-    return min(10.0, max(0.0, score))
+        return 1.0
+    return city.get("monthly_cost_usd", 1500) / income_usd
 
 
-def _lifestyle_score(city: dict, country: dict, lifestyle: list[str]) -> float:
-    """Score 0–10 based on how many lifestyle preferences match."""
-    if not lifestyle:
-        return 5.0
-    matched = sum(
-        1
-        for pref in lifestyle
-        if pref in _LIFESTYLE_MATCH and _LIFESTYLE_MATCH[pref](city, country)
+def _cost_score(city: dict, income_usd: float) -> float:
+    """0–10 — cheaper relative to income = higher."""
+    return max(0.0, min(10.0, (1.0 - _cost_ratio(city, income_usd)) * 10))
+
+
+# ── Block A: 기본 적합도 (30%) ──────────────────────────────────
+
+def _block_a(city: dict, lifestyle: list[str]) -> float:
+    """Base city fitness — nomad, safety, coworking + lifestyle bonuses."""
+    nomad = city.get("nomad_score", 5)
+    safety = city.get("safety_score", 5)
+    cowork = city.get("coworking_score", 5)
+
+    # Lifestyle bonuses — multipliers
+    safety_mul = 1.5 if "안전 중시" in lifestyle else 1.0
+    cowork_mul = 1.5 if "코워킹스페이스 중시" in lifestyle else 1.0
+    nomad_mul = 1.0
+    climate_bonus = 0.0
+
+    for pref in lifestyle:
+        if pref == "해변":
+            climate = (city.get("climate") or "").lower()
+            if climate in _BEACH_CLIMATES:
+                climate_bonus = 1.5
+        elif pref in ("산/자연", "도시", "카페 문화"):
+            nomad_mul += 0.15
+
+    raw = (
+        nomad * nomad_mul * 0.5
+        + safety * safety_mul * 0.3
+        + cowork * cowork_mul * 0.2
+        + climate_bonus
     )
-    return round(matched / len(lifestyle) * 10, 1)
+    return min(10.0, raw) * 0.30
 
+
+# ── Block B: 재정 적합도 (25%) ──────────────────────────────────
+
+_TAX_SENSITIVITY_MUL: dict[str, float] = {
+    "optimize": 1.5,
+    "simple": 1.0,
+    "unknown": 1.1,
+}
+
+
+def _block_b(city: dict, country: dict, income_usd: float, lifestyle: list[str],
+             tax_sensitivity: str = "") -> float:
+    """Financial fitness — cost efficiency + tax treaty bonus."""
+    cost = _cost_score(city, income_usd)
+    cost_mul = 1.3 if "저비용 생활" in lifestyle else 1.0
+    cost_adjusted = min(10.0, cost * cost_mul)
+
+    tax_mul = _TAX_SENSITIVITY_MUL.get(tax_sensitivity or "", 1.0)
+    tax_bonus = 2.0 if country.get("double_tax_treaty_with_kr") else 0.0
+    tax_adjusted = min(10.0, tax_bonus * tax_mul)
+
+    raw = cost_adjusted * 0.7 + tax_adjusted * 0.3
+    return raw * 0.25
+
+
+# ── Block C: 페르소나 적합도 (25%) ──────────────────────────────
+
+def _block_c(city: dict, country: dict, persona_type: str, income_usd: float) -> float:
+    """Persona-driven scoring — different personas value different attributes."""
+    if not persona_type or persona_type not in _PERSONA_WEIGHTS:
+        # No persona: uniform average of key attributes
+        base = (
+            city.get("nomad_score", 5)
+            + city.get("safety_score", 5)
+            + city.get("coworking_score", 5)
+        ) / 3.0
+        return base * 0.25
+
+    weights = _PERSONA_WEIGHTS[persona_type]
+    total_weight = sum(weights.values())
+    score = 0.0
+
+    for attr, w in weights.items():
+        if attr == "nomad_score":
+            score += city.get("nomad_score", 5) * w
+        elif attr == "safety_score":
+            score += city.get("safety_score", 5) * w
+        elif attr == "coworking_score":
+            score += city.get("coworking_score", 5) * w
+        elif attr == "english_score":
+            score += city.get("english_score", 5) * w
+        elif attr == "korean_community_size":
+            ks = _COMMUNITY_SCORE.get(city.get("korean_community_size", ""), 0)
+            score += ks * w
+        elif attr == "tax_residency_days_inv":
+            days = country.get("tax_residency_days") or 183
+            score += min(10.0, days / 36.5) * w
+        elif attr == "renewable_bonus":
+            score += (10.0 if country.get("renewable", False) else 0.0) * w
+        elif attr == "cost_score":
+            score += _cost_score(city, income_usd) * w
+
+    normalized = score / total_weight  # normalize to 0–10
+    return min(10.0, normalized) * 0.25
+
+
+# ── Block D: 실용 조건 적합도 (20%) ─────────────────────────────
+
+def _block_d(
+    city: dict, country: dict, income_usd: float,
+    travel_type: str, lifestyle: list[str], stay_style: str = "",
+) -> float:
+    """Practical conditions — visa access, language, companion needs."""
+    # Visa accessibility (0–10)
+    visa_type = country.get("visa_type", "")
+    has_nomad_visa = bool(visa_type) and "없음" not in visa_type
+    visa_score = 0.0
+    if has_nomad_visa:
+        visa_score += 4.0
+    renewable = country.get("renewable", False)
+    if renewable:
+        visa_score += 3.0
+    stay = country.get("stay_months") or 0
+    visa_score += min(3.0, stay / 4.0)
+
+    # stay_style adjustments
+    if stay_style == "정착형" and renewable:
+        visa_score = min(10.0, visa_score * 1.5)   # renewable 가중치 +50%
+    elif stay_style == "이동형" and has_nomad_visa:
+        visa_score = min(10.0, visa_score * 1.5)   # visa flexibility 가중치 +50%
+
+    # Language environment (0–10)
+    english = city.get("english_score", 5)
+    english_mul = 1.5 if "영어권 선호" in lifestyle else 1.0
+    lang_score = min(10.0, english * english_mul)
+
+    # Companion conditions (0–10)
+    companion_score = 5.0  # solo default (neutral)
+    if "자녀" in travel_type:
+        # Children: prioritize safety + cost efficiency
+        safety = city.get("safety_score", 5)
+        cost_eff = max(0.0, (1.0 - _cost_ratio(city, income_usd)) * 10)
+        companion_score = safety * 0.6 + cost_eff * 0.4
+    elif "배우자" in travel_type or "가족" in travel_type or "파트너" in travel_type:
+        # Spouse/family: prioritize renewable visa + safety
+        renew = 5.0 if renewable else 0.0
+        safety = city.get("safety_score", 5)
+        companion_score = renew * 0.5 + safety * 0.5
+
+    raw = visa_score * 0.4 + lang_score * 0.3 + companion_score * 0.3
+    return raw * 0.20
+
+
+# ── Final composite score ───────────────────────────────────────
 
 def _compute_score(
     city: dict,
     country: dict,
     income_usd: float,
     lifestyle: list[str],
+    persona_type: str = "",
+    travel_type: str = "",
+    stay_style: str = "",
+    tax_sensitivity: str = "",
 ) -> float:
-    """Weighted composite score (0–10)."""
-    nomad   = city.get("nomad_score", 5) / 10 * 10   # already 0–10
-    safety  = city.get("safety_score", 5) / 10 * 10
-    cost    = _cost_inverse_score(city.get("monthly_cost_usd", 1500), income_usd)
-    life    = _lifestyle_score(city, country, lifestyle)
-    english = city.get("english_score", 5) / 10 * 10
-
-    composite = (
-        nomad   * 0.30
-        + safety  * 0.20
-        + cost    * 0.20
-        + life    * 0.20
-        + english * 0.10
-    )
-    return round(min(10.0, max(0.0, composite)), 1)
+    """4-Block composite score (0–10)."""
+    ls = _normalize_lifestyle(lifestyle)
+    a = _block_a(city, ls)
+    b = _block_b(city, country, income_usd, ls, tax_sensitivity)
+    c = _block_c(city, country, persona_type, income_usd)
+    d = _block_d(city, country, income_usd, travel_type, ls, stay_style)
+    return round(min(10.0, max(0.0, a + b + c + d)), 1)
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +377,10 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
     preferred  = user_profile.get("preferred_countries") or []
     nationality = user_profile.get("nationality", "")
     language = user_profile.get("language", "한국어")
+    persona_type = user_profile.get("persona_type", "")
+    travel_type = user_profile.get("travel_type", "")
+    stay_style = user_profile.get("stay_style") or ""
+    tax_sensitivity = user_profile.get("tax_sensitivity") or ""
 
     # Build country lookup
     country_map: dict[str, dict] = {c["id"]: c for c in countries_list}
@@ -224,7 +409,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
         if not _passes_schengen_long_stay_filter(country, timeline, income_usd):
             continue
 
-        score = _compute_score(city, country, income_usd, lifestyle)
+        score = _compute_score(city, country, income_usd, lifestyle, persona_type, travel_type, stay_style, tax_sensitivity)
         candidates.append((score, city, country))
 
     # Sort descending by score
@@ -352,13 +537,17 @@ _CHIP_TO_TIMELINE: dict[str, str] = {
     "3년+":  "3년 장기 체류",
 }
 
-# JS chip label → _LIFESTYLE_MATCH key
+# JS chip label → internal lifestyle key
 _CHIP_TO_LIFESTYLE: dict[str, str] = {
-    "저물가":     "저비용 생활",
-    "코워킹":     "코워킹스페이스 중시",
-    "안전":       "안전 중시",
-    "한인커뮤니티": "한인 커뮤니티",
-    "영어권":     "영어권 선호",
+    "저물가":       "저비용 생활",
+    "코워킹":       "코워킹스페이스 중시",
+    "안전":         "안전 중시",
+    "한인커뮤니티":  "한인 커뮤니티",
+    "영어권":       "영어권 선호",
+    "해변":         "해변",
+    "산/자연":      "산/자연",
+    "도시":         "도시",
+    "카페 문화":    "카페 문화",
 }
 
 

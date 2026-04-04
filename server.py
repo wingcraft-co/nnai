@@ -149,6 +149,8 @@ class RecommendRequest(BaseModel):
     readiness_stage: str = ""
     has_spouse_income: str = "없음"
     spouse_income_krw: int = 0
+    stay_style: str | None = None
+    tax_sensitivity: str | None = None
 
 
 class DetailRequest(BaseModel):
@@ -176,6 +178,8 @@ async def api_recommend(req: RecommendRequest):
         readiness_stage=req.readiness_stage,
         has_spouse_income=req.has_spouse_income,
         spouse_income_krw=req.spouse_income_krw,
+        stay_style=req.stay_style,
+        tax_sensitivity=req.tax_sensitivity,
     )
     return {"markdown": markdown, "cities": cities, "parsed": parsed}
 

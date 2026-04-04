@@ -18,6 +18,13 @@ const PURPOSE_OPTIONS = [
   { label: "은퇴 후 거주", value: "은퇴 후 거주" },
 ];
 
+const TRAVEL_TYPE_OPTIONS = [
+  { label: "혼자", value: "혼자 (솔로)" },
+  { label: "배우자 동반", value: "배우자/파트너 동반" },
+  { label: "자녀 동반", value: "자녀 동반 (배우자 없이)" },
+  { label: "가족 전체 동반", value: "가족 전체 동반" },
+];
+
 const TIMELINE_OPTIONS = [
   { label: "1~3개월 단기 체류", value: "1~3개월 단기 체류" },
   { label: "6개월 중기 체류", value: "6개월 중기 체류" },
@@ -25,22 +32,25 @@ const TIMELINE_OPTIONS = [
   { label: "영주권/이민 목표", value: "영주권/이민 목표" },
 ];
 
-const LIFESTYLE_OPTIONS = [
-  { label: "해변", value: "해변" },
-  { label: "산/자연", value: "산/자연" },
-  { label: "도시", value: "도시" },
-  { label: "카페 문화", value: "카페 문화" },
-  { label: "영어권", value: "영어권" },
-  { label: "코워킹 스페이스", value: "코워킹 스페이스" },
-  { label: "저물가", value: "저물가" },
-  { label: "안전", value: "안전" },
+const STAY_STYLE_OPTIONS = [
+  { label: "한 도시에 오래 머물기", value: "정착형" },
+  { label: "2~3개 도시 순환하기", value: "순환형" },
+  { label: "여러 나라 자유롭게 이동하기", value: "이동형" },
 ];
 
-const TRAVEL_TYPE_OPTIONS = [
-  { label: "혼자", value: "혼자 (솔로)" },
-  { label: "배우자 동반", value: "배우자/파트너 동반" },
-  { label: "자녀 동반", value: "자녀 동반 (배우자 없이)" },
-  { label: "가족 전체 동반", value: "가족 전체 동반" },
+const INCOME_RANGE_OPTIONS = [
+  { label: "200 이하", value: "150" },
+  { label: "200~300", value: "250" },
+  { label: "300~500", value: "400" },
+  { label: "500~700", value: "600" },
+  { label: "700 이상", value: "800" },
+  { label: "비공개", value: "0" },
+];
+
+const TAX_SENSITIVITY_OPTIONS = [
+  { label: "세금 혜택이 중요해요", value: "optimize" },
+  { label: "크게 중요하지 않아요", value: "simple" },
+  { label: "잘 모르겠어요", value: "unknown" },
 ];
 
 const SPOUSE_INCOME_OPTIONS = [
@@ -55,22 +65,6 @@ const CHILDREN_AGE_OPTIONS = [
   { label: "중고등 (13~18세)", value: "13~18" },
 ];
 
-const INCOME_TYPE_OPTIONS = [
-  { label: "프리랜서", value: "프리랜서" },
-  { label: "해외 법인 재직", value: "해외 법인 재직" },
-  { label: "국내 법인 원격근무", value: "국내 법인 원격근무" },
-  { label: "무소득 / 은퇴", value: "무소득 / 은퇴" },
-];
-
-const INCOME_RANGE_OPTIONS = [
-  { label: "200 이하", value: "150" },
-  { label: "200~300", value: "250" },
-  { label: "300~500", value: "400" },
-  { label: "500~700", value: "600" },
-  { label: "700 이상", value: "800" },
-  { label: "비공개", value: "0" },
-];
-
 const REGION_OPTIONS = [
   { label: "아시아", value: "아시아" },
   { label: "유럽", value: "유럽" },
@@ -79,40 +73,49 @@ const REGION_OPTIONS = [
   { label: "북미", value: "북미" },
 ];
 
+const LIFESTYLE_OPTIONS = [
+  { label: "일하기 좋은 인프라", value: "일하기 좋은 인프라" },
+  { label: "한인 커뮤니티 활성화", value: "한인 커뮤니티 활성화" },
+  { label: "저렴한 물가와 생활비", value: "저렴한 물가와 생활비" },
+  { label: "영어로 생활 가능", value: "영어로 생활 가능" },
+];
+
 // ── Types ────────────────────────────────────────────────────────
 
 interface FormData {
   immigration_purpose: string;
-  timeline: string;
-  lifestyle: string[];
   travel_type: string;
+  timeline: string;
+  stay_style: string;
+  income_range: string;
+  tax_sensitivity: string;
   children_ages: string[];
   has_spouse_income: string;
   spouse_income_krw: number;
-  income_type: string;
-  income_range: string;
   preferred_countries: string[];
+  lifestyle: string[];
 }
 
 const INITIAL_FORM: FormData = {
   immigration_purpose: "",
-  timeline: "",
-  lifestyle: [],
   travel_type: "",
+  timeline: "",
+  stay_style: "",
+  income_range: "",
+  tax_sensitivity: "",
   children_ages: [],
   has_spouse_income: "없음",
   spouse_income_krw: 0,
-  income_type: "",
-  income_range: "",
   preferred_countries: [],
+  lifestyle: [],
 };
 
 const TOTAL_STEPS = 4;
 
 const STEP_TITLES = [
   "어떤 노마드가 되고 싶나요?",
-  "노마드 생활에서 중요한 게 있나요?",
-  "누구와 함께 하나요?",
+  "얼마나 머물 계획인가요?",
+  "경제 상황을 알려주세요",
   "마지막으로 몇 가지만 더!",
 ];
 
@@ -152,12 +155,14 @@ export default function FormPage() {
     setPersonaType(stored);
   }, []);
 
+  const isShortStay = form.timeline === "1~3개월 단기 체류";
+
   function canProceed(): boolean {
     switch (currentStep) {
-      case 1: return form.immigration_purpose !== "" && form.timeline !== "";
-      case 2: return form.lifestyle.length > 0;
-      case 3: return form.travel_type !== "";
-      case 4: return form.income_range !== "";
+      case 1: return form.immigration_purpose !== "" && form.travel_type !== "";
+      case 2: return form.timeline !== "";
+      case 3: return form.income_range !== "";
+      case 4: return true;
       default: return false;
     }
   }
@@ -186,14 +191,16 @@ export default function FormPage() {
         readiness_stage: "",
         persona_type: personaType ?? "",
         immigration_purpose: form.immigration_purpose,
-        timeline: form.timeline,
-        lifestyle: form.lifestyle,
         travel_type: form.travel_type,
+        timeline: form.timeline,
+        stay_style: isShortStay ? "" : form.stay_style,
+        income_krw: Number(form.income_range),
+        tax_sensitivity: isShortStay ? "" : form.tax_sensitivity,
         children_ages: hasChildren(form.travel_type) ? form.children_ages : null,
         has_spouse_income: hasSpouse(form.travel_type) ? form.has_spouse_income : "없음",
         spouse_income_krw: hasSpouse(form.travel_type) && form.has_spouse_income === "있음" ? form.spouse_income_krw : 0,
         income_type: "",
-        income_krw: Number(form.income_range),
+        lifestyle: form.lifestyle,
         preferred_countries: form.preferred_countries,
       };
 
@@ -290,7 +297,7 @@ export default function FormPage() {
               {STEP_TITLES[currentStep - 1]}
             </h2>
 
-            {/* Step 1: 체류 의도 */}
+            {/* Step 1: 목적 + 동행 유형 */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="space-y-2">
@@ -303,35 +310,6 @@ export default function FormPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">체류 기간</label>
-                  <SelectCard
-                    options={TIMELINE_OPTIONS}
-                    selected={form.timeline}
-                    onSelect={(v) => setForm({ ...form, timeline: v })}
-                    mode="single"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: 라이프스타일 */}
-            {currentStep === 2 && (
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">라이프스타일 (최대 3개)</label>
-                <SelectCard
-                  options={LIFESTYLE_OPTIONS}
-                  selected={form.lifestyle}
-                  onSelect={(v) => toggleMulti("lifestyle", v, 3)}
-                  mode="multi"
-                  maxSelect={3}
-                />
-              </div>
-            )}
-
-            {/* Step 3: 동행 조건 */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">동행 유형</label>
                   <SelectCard
                     options={TRAVEL_TYPE_OPTIONS}
@@ -340,6 +318,75 @@ export default function FormPage() {
                     mode="single"
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Step 2: 체류 기간 + 체류 형태 */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">체류 기간</label>
+                  <SelectCard
+                    options={TIMELINE_OPTIONS}
+                    selected={form.timeline}
+                    onSelect={(v) => setForm({ ...form, timeline: v })}
+                    mode="single"
+                  />
+                </div>
+                {!isShortStay && form.timeline !== "" && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">체류 형태</label>
+                    <SelectCard
+                      options={STAY_STYLE_OPTIONS}
+                      selected={form.stay_style}
+                      onSelect={(v) => setForm({ ...form, stay_style: v })}
+                      mode="single"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: 소득 + 세금 민감도 + 동행 조건부 */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">월 소득 (만원)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {INCOME_RANGE_OPTIONS.map((option) => {
+                      const isActive = form.income_range === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setForm({ ...form, income_range: option.value })}
+                          className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                            isActive
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-muted text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.income_range === "0" && (
+                    <p className="text-xs text-destructive mt-1">주의! 정확한 비자 추천이 제한됩니다.</p>
+                  )}
+                </div>
+
+                {!isShortStay && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">세금 민감도</label>
+                    <SelectCard
+                      options={TAX_SENSITIVITY_OPTIONS}
+                      selected={form.tax_sensitivity}
+                      onSelect={(v) => setForm({ ...form, tax_sensitivity: v })}
+                      mode="single"
+                    />
+                  </div>
+                )}
 
                 {hasSpouse(form.travel_type) && (
                   <div className="space-y-2">
@@ -379,40 +426,24 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* Step 4: 경제 상황 + 선호 지역 */}
+            {/* Step 4: 선호 지역 + 라이프스타일 */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">월 소득 (만원)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {INCOME_RANGE_OPTIONS.map((option) => {
-                      const isActive = form.income_range === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setForm({ ...form, income_range: option.value })}
-                          className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
-                            isActive
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border bg-muted text-foreground hover:bg-accent"
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {form.income_range === "0" && (
-                    <p className="text-xs text-destructive mt-1">주의! 정확한 비자 추천이 제한됩니다.</p>
-                  )}
-                </div>
                 <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">선호 지역 (선택 안 해도 됨)</label>
                   <SelectCard
                     options={REGION_OPTIONS}
                     selected={form.preferred_countries}
                     onSelect={(v) => toggleMulti("preferred_countries", v)}
+                    mode="multi"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">중요하게 생각하는 조건 (선택 안 해도 됨)</label>
+                  <SelectCard
+                    options={LIFESTYLE_OPTIONS}
+                    selected={form.lifestyle}
+                    onSelect={(v) => toggleMulti("lifestyle", v)}
                     mode="multi"
                   />
                 </div>

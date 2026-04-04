@@ -53,6 +53,8 @@ def nomad_advisor(
     readiness_stage: str = "",
     has_spouse_income: str = "없음",
     spouse_income_krw: int = 0,
+    stay_style: str | None = None,
+    tax_sensitivity: str | None = None,
 ) -> tuple[str, list, dict]:
     """
     Step 1 파이프라인: RAG → 프롬프트 → LLM → 파싱 → 마크다운 + 도시 리스트
@@ -90,6 +92,8 @@ def nomad_advisor(
         "readiness_stage":    readiness_stage,
         "has_spouse_income":  has_spouse_income,
         "spouse_income_krw":  spouse_income_krw,
+        "stay_style":         stay_style,
+        "tax_sensitivity":    tax_sensitivity,
     }
 
     # 사전 검증 — hard_block 시 LLM 호출 없이 즉시 안내 메시지 반환
