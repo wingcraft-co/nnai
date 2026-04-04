@@ -55,6 +55,7 @@ _LIFESTYLE_MATCH: dict[str, Any] = {
 
 _visa_db: list[dict] | None = None
 _city_db: list[dict] | None = None
+_city_descriptions: dict[str, str] | None = None
 
 
 def _load_data() -> tuple[list[dict], list[dict]]:
@@ -69,6 +70,27 @@ def _load_data() -> tuple[list[dict], list[dict]]:
         with open(path, encoding="utf-8") as f:
             _city_db = json.load(f)["cities"]
     return _visa_db, _city_db
+
+
+def _load_city_descriptions() -> dict[str, str]:
+    """Load and cache city_descriptions.json on first call."""
+    global _city_descriptions
+    if _city_descriptions is None:
+        path = resolve_data_path("city_descriptions.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _city_descriptions = json.load(f)
+        except Exception:
+            _city_descriptions = {}
+    return _city_descriptions
+
+
+def _get_city_description(country_id: str, city_name: str) -> str | None:
+    """Lookup city description by country_id + city slug."""
+    descs = _load_city_descriptions()
+    slug = city_name.upper().replace(" ", "_").replace("(", "").replace(")", "")
+    key = f"{country_id}_{slug}"
+    return descs.get(key)
 
 
 # ---------------------------------------------------------------------------
@@ -239,6 +261,28 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
             "realistic_warnings": [],
             "plan_b_trigger":     is_schengen,
             "references":         [],
+            # city_scores.json fields
+            "internet_mbps":          city.get("internet_mbps"),
+            "safety_score":           city.get("safety_score"),
+            "english_score":          city.get("english_score"),
+            "nomad_score":            city.get("nomad_score"),
+            "cowork_usd_month":       city.get("cowork_usd_month"),
+            "community_size":         city.get("community_size"),
+            "korean_community_size":  city.get("korean_community_size"),
+            "mid_term_rent_usd":      city.get("mid_term_rent_usd"),
+            "flatio_search_url":      city.get("flatio_search_url"),
+            "anyplace_search_url":    city.get("anyplace_search_url"),
+            "nomad_meetup_url":       city.get("nomad_meetup_url"),
+            "entry_tips":             city.get("entry_tips"),
+            # visa_db.json fields
+            "stay_months":                country.get("stay_months"),
+            "renewable":                  country.get("renewable"),
+            "key_docs":                   country.get("key_docs"),
+            "visa_fee_usd":               country.get("visa_fee_usd"),
+            "tax_note":                   country.get("tax_note"),
+            "double_tax_treaty_with_kr":  country.get("double_tax_treaty_with_kr"),
+            "visa_notes":                 country.get("visa_notes"),
+            "city_description":           _get_city_description(cid, city.get("city", "")),
         })
 
     # Build overall_warning

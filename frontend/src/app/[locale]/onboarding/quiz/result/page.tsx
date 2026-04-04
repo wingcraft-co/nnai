@@ -10,7 +10,7 @@ export default function QuizResultPage() {
   const [personaType, setPersonaType] = useState<PersonaType | null>(null);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("persona_type") as PersonaType | null;
+    const stored = localStorage.getItem("persona_type") as PersonaType | null;
     if (!stored) {
       router.replace("/onboarding/quiz");
       return;
@@ -21,7 +21,7 @@ export default function QuizResultPage() {
   if (!personaType) return null;
 
   function handleRetry() {
-    sessionStorage.removeItem("persona_type");
+    localStorage.removeItem("persona_type");
     router.push("/onboarding/quiz");
   }
 

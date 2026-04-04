@@ -23,7 +23,7 @@ export default function QuizPage() {
       setCurrentIndex(currentIndex + 1);
     } else {
       const persona = calculatePersona(newAnswers);
-      sessionStorage.setItem("persona_type", persona);
+      localStorage.setItem("persona_type", persona);
       router.push("/onboarding/quiz/result");
     }
   }
@@ -47,7 +47,7 @@ export default function QuizPage() {
         </button>
         <ProgressBar current={currentIndex + 1} total={QUIZ_QUESTIONS.length} />
       </div>
-      <div className="flex flex-1 flex-col justify-center px-4">
+      <div className="flex flex-1 flex-col justify-start pt-24 px-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}

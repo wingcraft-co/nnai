@@ -28,8 +28,8 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
     <div className="mx-auto flex max-w-sm flex-col gap-8 px-4 py-12">
       {/* 헤더 */}
       <motion.div {...fadeUp(0)}>
-        <p className="text-xs text-muted-foreground tracking-widest uppercase mb-1">
-          당신은
+        <p className="text-base text-muted-foreground mb-1">
+          당신의 노마드 타입은,
         </p>
         <h1 className="text-4xl font-bold text-primary mb-8">
           {persona.label}
@@ -44,12 +44,12 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
       </motion.div>
 
       {/* 축 카드 */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         {sections.map((section) => (
           <motion.div
             key={section.label}
             {...fadeUp(section.delay)}
-            className="rounded-lg border border-border bg-card p-5"
+            className="rounded-lg border border-border border-l-4 border-l-primary bg-card p-5 pl-4"
           >
             <p className="text-sm font-semibold text-primary tracking-wide mb-3">
               {section.label}

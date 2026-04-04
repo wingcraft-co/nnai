@@ -1,29 +1,87 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import type { PersonaType } from "@/data/personas";
 import { PERSONAS } from "@/data/personas";
-import {
-  NATIONALITY_VALUES,
-  LANGUAGE_VALUES,
-  PURPOSE_VALUES,
-  TIMELINE_VALUES,
-  LIFESTYLE_VALUES,
-  TRAVEL_TYPE_VALUES,
-  INCOME_TYPE_VALUES,
-  PREFERRED_REGION_VALUES,
-  READINESS_VALUES,
-  SPOUSE_INCOME_VALUES,
-} from "@/data/form-options";
-import { StepForm } from "@/components/onboarding/step-form";
+import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { SelectCard } from "@/components/onboarding/select-card";
 
+// ── Options ──────────────────────────────────────────────────────
+
+const PURPOSE_OPTIONS = [
+  { label: "원격 근무", value: "원격 근무" },
+  { label: "프리랜서 활동", value: "프리랜서 활동" },
+  { label: "온라인 비즈니스 운영", value: "온라인 비즈니스 운영" },
+  { label: "장기 여행", value: "장기 여행" },
+  { label: "은퇴 후 거주", value: "은퇴 후 거주" },
+];
+
+const TIMELINE_OPTIONS = [
+  { label: "1~3개월 단기 체류", value: "1~3개월 단기 체류" },
+  { label: "6개월 중기 체류", value: "6개월 중기 체류" },
+  { label: "1년 장기 체류", value: "1년 장기 체류" },
+  { label: "영주권/이민 목표", value: "영주권/이민 목표" },
+];
+
+const LIFESTYLE_OPTIONS = [
+  { label: "해변", value: "해변" },
+  { label: "산/자연", value: "산/자연" },
+  { label: "도시", value: "도시" },
+  { label: "카페 문화", value: "카페 문화" },
+  { label: "영어권", value: "영어권" },
+  { label: "코워킹 스페이스", value: "코워킹 스페이스" },
+  { label: "저물가", value: "저물가" },
+  { label: "안전", value: "안전" },
+];
+
+const TRAVEL_TYPE_OPTIONS = [
+  { label: "혼자", value: "혼자 (솔로)" },
+  { label: "배우자 동반", value: "배우자/파트너 동반" },
+  { label: "자녀 동반", value: "자녀 동반 (배우자 없이)" },
+  { label: "가족 전체 동반", value: "가족 전체 동반" },
+];
+
+const SPOUSE_INCOME_OPTIONS = [
+  { label: "없음", value: "없음" },
+  { label: "있음", value: "있음" },
+];
+
+const CHILDREN_AGE_OPTIONS = [
+  { label: "영아 (0~2세)", value: "0~2" },
+  { label: "미취학 (3~6세)", value: "3~6" },
+  { label: "초등 (7~12세)", value: "7~12" },
+  { label: "중고등 (13~18세)", value: "13~18" },
+];
+
+const INCOME_TYPE_OPTIONS = [
+  { label: "프리랜서", value: "프리랜서" },
+  { label: "해외 법인 재직", value: "해외 법인 재직" },
+  { label: "국내 법인 원격근무", value: "국내 법인 원격근무" },
+  { label: "무소득 / 은퇴", value: "무소득 / 은퇴" },
+];
+
+const INCOME_RANGE_OPTIONS = [
+  { label: "200 이하", value: "150" },
+  { label: "200~300", value: "250" },
+  { label: "300~500", value: "400" },
+  { label: "500~700", value: "600" },
+  { label: "700 이상", value: "800" },
+  { label: "비공개", value: "0" },
+];
+
+const REGION_OPTIONS = [
+  { label: "아시아", value: "아시아" },
+  { label: "유럽", value: "유럽" },
+  { label: "중남미", value: "중남미" },
+  { label: "중동/아프리카", value: "중동/아프리카" },
+  { label: "북미", value: "북미" },
+];
+
+// ── Types ────────────────────────────────────────────────────────
+
 interface FormData {
-  nationality: string;
-  dual_nationality: boolean;
-  languages: string[];
   immigration_purpose: string;
   timeline: string;
   lifestyle: string[];
@@ -32,15 +90,11 @@ interface FormData {
   has_spouse_income: string;
   spouse_income_krw: number;
   income_type: string;
-  income_krw: number;
+  income_range: string;
   preferred_countries: string[];
-  readiness_stage: string;
 }
 
 const INITIAL_FORM: FormData = {
-  nationality: "",
-  dual_nationality: false,
-  languages: [],
   immigration_purpose: "",
   timeline: "",
   lifestyle: [],
@@ -49,30 +103,36 @@ const INITIAL_FORM: FormData = {
   has_spouse_income: "없음",
   spouse_income_krw: 0,
   income_type: "",
-  income_krw: 0,
+  income_range: "",
   preferred_countries: [],
-  readiness_stage: "",
 };
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 4;
+
+const STEP_TITLES = [
+  "어떤 노마드가 되고 싶나요?",
+  "노마드 생활에서 중요한 게 있나요?",
+  "누구와 함께 하나요?",
+  "마지막으로 몇 가지만 더!",
+];
+
+// ── Helpers ──────────────────────────────────────────────────────
+
 function hasChildren(travelType: string) {
-  return travelType.includes("자녀");
+  return travelType.includes("자녀") || travelType.includes("가족");
 }
 
 function hasSpouse(travelType: string) {
-  return travelType.includes("배우자") || travelType.includes("가족");
+  return travelType.includes("배우자") || travelType.includes("가족") || travelType.includes("파트너");
 }
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-ring focus:outline-none";
+  "w-full rounded-none border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-ring focus:outline-none";
 
-function buildOptions(labels: string[], values: string[]) {
-  return labels.map((label, i) => ({ label, value: values[i] }));
-}
+// ── Component ────────────────────────────────────────────────────
 
 export default function FormPage() {
   const router = useRouter();
-  const t = useTranslations("form");
   const [personaType, setPersonaType] = useState<PersonaType | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
@@ -80,20 +140,29 @@ export default function FormPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("persona_type") as PersonaType | null;
+    const stored = localStorage.getItem("persona_type") as PersonaType | null;
     setPersonaType(stored);
   }, []);
 
   function canProceed(): boolean {
     switch (currentStep) {
-      case 1: return form.nationality !== "" && form.languages.length > 0;
-      case 2: return form.immigration_purpose !== "" && form.timeline !== "";
-      case 3: return form.lifestyle.length > 0;
-      case 4: return form.travel_type !== "";
-      case 5: return form.income_type !== "" && form.income_krw > 0;
-      case 6: return form.readiness_stage !== "";
+      case 1: return form.immigration_purpose !== "" && form.timeline !== "";
+      case 2: return form.lifestyle.length > 0;
+      case 3: return form.travel_type !== "";
+      case 4: return form.income_range !== "";
       default: return false;
     }
+  }
+
+  function toggleMulti(field: keyof FormData, value: string, max?: number) {
+    setForm((prev) => {
+      const arr = prev[field] as string[];
+      if (arr.includes(value)) {
+        return { ...prev, [field]: arr.filter((v) => v !== value) };
+      }
+      if (max && arr.length >= max) return prev;
+      return { ...prev, [field]: [...arr, value] };
+    });
   }
 
   async function handleSubmit() {
@@ -102,22 +171,22 @@ export default function FormPage() {
 
     try {
       const payload = {
-        nationality: form.nationality,
-        income_krw: form.income_krw,
-        immigration_purpose: form.immigration_purpose,
-        lifestyle: form.lifestyle,
-        languages: form.languages,
-        timeline: form.timeline,
-        preferred_countries: form.preferred_countries,
+        nationality: "한국",
+        languages: [],
         preferred_language: "한국어",
+        dual_nationality: false,
+        readiness_stage: "",
         persona_type: personaType ?? "",
-        income_type: form.income_type,
+        immigration_purpose: form.immigration_purpose,
+        timeline: form.timeline,
+        lifestyle: form.lifestyle,
         travel_type: form.travel_type,
-        children_ages: form.children_ages.length > 0 ? form.children_ages : null,
-        dual_nationality: form.dual_nationality,
-        readiness_stage: form.readiness_stage,
-        has_spouse_income: form.has_spouse_income,
-        spouse_income_krw: form.spouse_income_krw,
+        children_ages: hasChildren(form.travel_type) ? form.children_ages : null,
+        has_spouse_income: hasSpouse(form.travel_type) ? form.has_spouse_income : "없음",
+        spouse_income_krw: hasSpouse(form.travel_type) && form.has_spouse_income === "있음" ? form.spouse_income_krw : 0,
+        income_type: "",
+        income_krw: Number(form.income_range),
+        preferred_countries: form.preferred_countries,
       };
 
       const res = await fetch("/api/recommend", {
@@ -150,137 +219,193 @@ export default function FormPage() {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   }
 
-  function toggleMulti(field: keyof FormData, value: string, max?: number) {
-    setForm((prev) => {
-      const arr = prev[field] as string[];
-      if (arr.includes(value)) {
-        return { ...prev, [field]: arr.filter((v) => v !== value) };
-      }
-      if (max && arr.length >= max) return prev;
-      return { ...prev, [field]: [...arr, value] };
-    });
-  }
-
-  function incomeLabel(): string {
-    if (form.income_type.includes("프리랜서")) return t("labels.incomeFreelancer");
-    if (form.income_type.includes("은퇴")) return t("labels.incomeRetired");
-    return t("labels.incomeDefault");
-  }
-
-  const stepLabels = t.raw("stepLabels") as string[];
-  const stepTitles = t.raw("stepTitles") as string[];
-
   return (
-    <StepForm
-      currentStep={currentStep}
-      totalSteps={TOTAL_STEPS}
-      stepTitle={stepTitles[currentStep - 1]}
-      stepLabel={stepLabels[currentStep - 1]}
-      onNext={handleNext}
-      onBack={handleBack}
-      canProceed={canProceed()}
-      isLoading={isLoading}
-      error={error}
-    >
-      {personaType && (
-        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
-          {PERSONAS[personaType].label}으로 분석합니다
-        </div>
-      )}
+    <div className="mx-auto flex min-h-screen max-w-sm w-full flex-col">
+      {/* 프로그레스바 */}
+      <div className="flex items-center gap-3 pt-6 px-4">
+        <button
+          type="button"
+          onClick={handleBack}
+          className={`shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground ${currentStep === 1 ? "invisible" : ""}`}
+        >
+          이전
+        </button>
+        <ProgressBar current={currentStep} total={TOTAL_STEPS} />
+      </div>
 
-      {currentStep === 1 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.nationality")}</label>
-            <SelectCard options={buildOptions(t.raw("options.nationality") as string[], NATIONALITY_VALUES)} selected={form.nationality} onSelect={(v) => setForm({ ...form, nationality: v })} mode="single" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.dualNationality")}</label>
-            <button type="button" onClick={() => setForm({ ...form, dual_nationality: !form.dual_nationality })} className={`w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors ${form.dual_nationality ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-foreground"}`}>
-              {form.dual_nationality ? t("labels.dualYes") : t("labels.dualNo")}
+      {/* 콘텐츠 */}
+      <div className="flex flex-1 flex-col justify-start pt-24 px-4">
+        {/* 페르소나 배지 */}
+        {personaType && (
+          <div className="mb-6 border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary flex items-center justify-center gap-2">
+            <span>{PERSONAS[personaType].label}으로 분석합니다</span>
+            <button
+              type="button"
+              onClick={() => router.push("/onboarding/quiz")}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              다시 하기
             </button>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.languages")}</label>
-            <SelectCard options={buildOptions(t.raw("options.languages") as string[], LANGUAGE_VALUES)} selected={form.languages} onSelect={(v) => toggleMulti("languages", v)} mode="multi" />
-          </div>
-        </div>
-      )}
+        )}
 
-      {currentStep === 2 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.purpose")}</label>
-            <SelectCard options={buildOptions(t.raw("options.purpose") as string[], PURPOSE_VALUES)} selected={form.immigration_purpose} onSelect={(v) => setForm({ ...form, immigration_purpose: v })} mode="single" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.timeline")}</label>
-            <SelectCard options={buildOptions(t.raw("options.timeline") as string[], TIMELINE_VALUES)} selected={form.timeline} onSelect={(v) => setForm({ ...form, timeline: v })} mode="single" />
-          </div>
-        </div>
-      )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.35 } }}
+            exit={{ opacity: 0, transition: { duration: 0.25 } }}
+          >
+            <h2 className="whitespace-pre-line text-xl font-medium leading-relaxed text-foreground mb-8">
+              {STEP_TITLES[currentStep - 1]}
+            </h2>
 
-      {currentStep === 3 && (
-        <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">{t("labels.lifestyle")}</label>
-          <SelectCard options={buildOptions(t.raw("options.lifestyle") as string[], LIFESTYLE_VALUES)} selected={form.lifestyle} onSelect={(v) => toggleMulti("lifestyle", v, 3)} mode="multi" maxSelect={3} />
-        </div>
-      )}
-
-      {currentStep === 4 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.travelType")}</label>
-            <SelectCard options={buildOptions(t.raw("options.travelType") as string[], TRAVEL_TYPE_VALUES)} selected={form.travel_type} onSelect={(v) => setForm({ ...form, travel_type: v })} mode="single" />
-          </div>
-          {hasChildren(form.travel_type) && (
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">{t("labels.childrenAges")}</label>
-              <input type="text" placeholder={t("labels.childrenPlaceholder")} value={form.children_ages.join(", ")} onChange={(e) => setForm({ ...form, children_ages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className={INPUT_CLASS} />
-            </div>
-          )}
-          {hasSpouse(form.travel_type) && (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">{t("labels.spouseIncome")}</label>
-                <SelectCard options={buildOptions(t.raw("options.spouseIncome") as string[], SPOUSE_INCOME_VALUES)} selected={form.has_spouse_income} onSelect={(v) => setForm({ ...form, has_spouse_income: v })} mode="single" />
-              </div>
-              {form.has_spouse_income === "있음" && (
+            {/* Step 1: 체류 의도 */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">{t("labels.spouseIncomeAmount")}</label>
-                  <input type="number" placeholder="0" value={form.spouse_income_krw || ""} onChange={(e) => setForm({ ...form, spouse_income_krw: Number(e.target.value) || 0 })} className={INPUT_CLASS} />
+                  <label className="text-sm text-muted-foreground">노마드 목적</label>
+                  <SelectCard
+                    options={PURPOSE_OPTIONS}
+                    selected={form.immigration_purpose}
+                    onSelect={(v) => setForm({ ...form, immigration_purpose: v })}
+                    mode="single"
+                  />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">체류 기간</label>
+                  <SelectCard
+                    options={TIMELINE_OPTIONS}
+                    selected={form.timeline}
+                    onSelect={(v) => setForm({ ...form, timeline: v })}
+                    mode="single"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: 라이프스타일 */}
+            {currentStep === 2 && (
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">라이프스타일 (최대 3개)</label>
+                <SelectCard
+                  options={LIFESTYLE_OPTIONS}
+                  selected={form.lifestyle}
+                  onSelect={(v) => toggleMulti("lifestyle", v, 3)}
+                  mode="multi"
+                  maxSelect={3}
+                />
+              </div>
+            )}
+
+            {/* Step 3: 동행 조건 */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">동행 유형</label>
+                  <SelectCard
+                    options={TRAVEL_TYPE_OPTIONS}
+                    selected={form.travel_type}
+                    onSelect={(v) => setForm({ ...form, travel_type: v })}
+                    mode="single"
+                  />
+                </div>
+
+                {hasSpouse(form.travel_type) && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">배우자 소득</label>
+                    <SelectCard
+                      options={SPOUSE_INCOME_OPTIONS}
+                      selected={form.has_spouse_income}
+                      onSelect={(v) => setForm({ ...form, has_spouse_income: v })}
+                      mode="single"
+                    />
+                    {form.has_spouse_income === "있음" && (
+                      <div className="mt-3">
+                        <label className="text-sm text-muted-foreground">배우자 월 소득 (만원)</label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={form.spouse_income_krw || ""}
+                          onChange={(e) => setForm({ ...form, spouse_income_krw: Number(e.target.value) || 0 })}
+                          className={INPUT_CLASS}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {hasChildren(form.travel_type) && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">자녀 연령대 (복수 선택)</label>
+                    <SelectCard
+                      options={CHILDREN_AGE_OPTIONS}
+                      selected={form.children_ages}
+                      onSelect={(v) => toggleMulti("children_ages", v)}
+                      mode="multi"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 4: 경제 상황 + 선호 지역 */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">월 소득 (만원)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {INCOME_RANGE_OPTIONS.map((option) => {
+                      const isActive = form.income_range === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setForm({ ...form, income_range: option.value })}
+                          className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                            isActive
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-muted text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.income_range === "0" && (
+                    <p className="text-xs text-destructive mt-1">주의! 정확한 비자 추천이 제한됩니다.</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">선호 지역 (선택 안 해도 됨)</label>
+                  <SelectCard
+                    options={REGION_OPTIONS}
+                    selected={form.preferred_countries}
+                    onSelect={(v) => toggleMulti("preferred_countries", v)}
+                    mode="multi"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* CTA 버튼 — 콘텐츠 흐름 안 */}
+            <div className="mt-10">
+              {error && (
+                <p className="mb-3 text-center text-sm text-destructive">{error}</p>
               )}
-            </>
-          )}
-        </div>
-      )}
-
-      {currentStep === 5 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.incomeType")}</label>
-            <SelectCard options={buildOptions(t.raw("options.incomeType") as string[], INCOME_TYPE_VALUES)} selected={form.income_type} onSelect={(v) => setForm({ ...form, income_type: v })} mode="single" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{incomeLabel()}</label>
-            <input type="number" placeholder="0" value={form.income_krw || ""} onChange={(e) => setForm({ ...form, income_krw: Number(e.target.value) || 0 })} className={INPUT_CLASS} />
-          </div>
-        </div>
-      )}
-
-      {currentStep === 6 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.preferredRegion")}</label>
-            <SelectCard options={buildOptions(t.raw("options.preferredRegion") as string[], PREFERRED_REGION_VALUES)} selected={form.preferred_countries} onSelect={(v) => toggleMulti("preferred_countries", v)} mode="multi" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">{t("labels.readiness")}</label>
-            <SelectCard options={buildOptions(t.raw("options.readiness") as string[], READINESS_VALUES)} selected={form.readiness_stage} onSelect={(v) => setForm({ ...form, readiness_stage: v })} mode="single" />
-          </div>
-        </div>
-      )}
-    </StepForm>
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canProceed() || isLoading}
+                className="w-full bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "분석 중..." : currentStep === TOTAL_STEPS ? "분석 시작" : "다음"}
+              </button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,1275 @@
+{
+  "countries": [
+    {
+      "id": "MY",
+      "name": "Malaysia",
+      "name_kr": "말레이시아",
+      "visa_type": "DE Rantau Nomad Pass",
+      "min_income_usd": 2000,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "여권 (유효기간 18개월 이상)",
+        "3개월 이상 소득 증빙 (영문 고용계약서 또는 프리랜서 계약서)",
+        "건강보험 증서 (말레이시아 체류 기간 커버)"
+      ],
+      "visa_fee_usd": 220,
+      "tax_note": "비거주자 — 현지 소득세 없음",
+      "cost_tier": "low",
+      "notes": "DE Rantau 노마드 비자; 영어 공용어; 코타키나발루·KL 인기",
+      "source": "https://mdec.my/en/derantau",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 182,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "income_tiers": [
+        {
+          "category": "tech",
+          "category_kr": "테크/디지털 직군",
+          "min_income_annual_usd": 24000,
+          "min_income_monthly_usd": 2000
+        },
+        {
+          "category": "non_tech",
+          "category_kr": "비테크 직군 (CEO, 법무, 회계, PR 등)",
+          "min_income_annual_usd": 60000,
+          "min_income_monthly_usd": 5000,
+          "introduced_date": "2024-06-07"
+        }
+      ],
+      "data_verified_date": "2024-06",
+      "visa_notes": [
+        "테크 분야 $24,000/년 ($2,000/월); 非테크 분야 $60,000/년; 신청비 MYR 1,000 (~$220)",
+        "한국인 무비자 90일 (MOU)"
+      ]
+    },
+    {
+      "id": "PT",
+      "name": "Portugal",
+      "name_kr": "포르투갈",
+      "visa_type": "D8 Digital Nomad Visa",
+      "min_income_usd": 4000,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 프리랜서 계약서 공증본",
+        "3개월 급여명세서 영문 번역본",
+        "범죄경력증명서 + 아포스티유"
+      ],
+      "visa_fee_usd": 100,
+      "tax_note": "NHR 세제 신청 시 외국 소득 20% 단일세율 10년 적용",
+      "cost_tier": "medium",
+      "notes": "D8 비자; 리스본·포르투 인기; EU 생활 가능; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://vistos.mne.gov.pt",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "min_income_monthly_eur": 3680,
+      "income_calculation_base": "최저임금 × 4",
+      "min_wage_eur": 920,
+      "application_note": "AIMA는 비자 신청 시점이 아닌 거주 허가 심사 예약일 기준 최저임금 적용",
+      "data_verified_date": "2026-04-03",
+      "data_source": "msplawyer.io, citizenremote.com",
+      "visa_notes": [
+        "D8 비자 최소 €3680/월; 가족 동반 시 50%·30% 추가",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "TH",
+      "name": "Thailand",
+      "name_kr": "태국",
+      "visa_type": "Destination Thailand Visa (DTV)",
+      "min_income_usd": 0,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 사업 증명서류",
+        "자산 증빙 ($1,000,000 이상 또는 카테고리별 요건 충족)",
+        "건강보험 (최소 $50,000 커버리지)"
+      ],
+      "visa_fee_usd": 280,
+      "tax_note": "LTR 비자 소지 시 외국 소득 비과세",
+      "cost_tier": "low",
+      "notes": "치앙마이/방콕 노마드 허브; DTV 비자 2024년 도입; 2025년 11월부터 연 2회 비자런 제한; 2025년 1월부터 완전 전자비자 시스템 전환; 소프트파워 언어학교 자격 폐지(2025)",
+      "source": "https://ltr.boi.go.th",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 180,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "annual",
+      "ees_applicable": false,
+      "min_income_note": "LTR Wealthy Global Citizens 카테고리 소득 요건 폐지 (2025-02-12). 카테고리별 상이.",
+      "ltr_categories": {
+        "wealthy_global_citizens": {
+          "income_requirement": null,
+          "income_requirement_note": "소득 요건 폐지 (2025-02-12)",
+          "asset_requirement_usd": 1000000,
+          "thailand_investment_usd": 500000
+        },
+        "work_from_thailand": {
+          "employer_revenue_usd": 50000000,
+          "employer_revenue_period": "3년 합산",
+          "experience_years": null,
+          "experience_note": "경력 요건 폐지 (2025-02-12)"
+        },
+        "highly_skilled": {
+          "experience_years": null,
+          "experience_note": "경력 요건 폐지 (2025-02-12)"
+        }
+      },
+      "family_accompaniment": {
+        "max_members": null,
+        "parents_included": true,
+        "note": "인원 제한 없음 (2025-02-12 개정)"
+      },
+      "data_verified_date": "2026-03-31",
+      "data_source": "Thailand BOI 공식 발표, KPMG Flash Alert 2025-040",
+      "visa_notes": [
+        "DTV: 잔고 500,000THB(약 $15,340) 증명 필요; 1회 입국 180일+연장 180일; 연 2회 비자런 제한(2025년 11월); 2025년 1월 완전 전자비자 전환; 비자 갱신 반복 가능",
+        "한국인 무비자 90일"
+      ]
+    },
+    {
+      "id": "EE",
+      "name": "Estonia",
+      "name_kr": "에스토니아",
+      "visa_type": "Digital Nomad Visa",
+      "min_income_usd": 4900,
+      "stay_months": 12,
+      "renewable": false,
+      "key_docs": [
+        "고용계약서 또는 서비스 계약서 (원격근무 입증)",
+        "3개월 급여명세서 또는 인보이스",
+        "숙박 증빙 (임시 주소 확인서)"
+      ],
+      "visa_fee_usd": 100,
+      "tax_note": "에스토니아 거주자 아닐 시 현지 소득세 없음. e-Residency 별도 신청 가능",
+      "cost_tier": "medium",
+      "notes": "Digital Nomad Visa 선구자; e-Residency 프로그램 세계적 유명; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.politsei.ee/en",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "common_mistake": "e-Residency는 체류 비자가 아님. EU 사업자 등록 수단이며 거주 권한 없음.",
+      "visa_availability_note": "에스토니아 DNV는 신규 발급 중단 이력 있음. 신청 전 공식 사이트 확인 필수.",
+      "min_income_monthly_eur": 4500,
+      "visa_notes": [
+        "최대 체류 12개월, 갱신 불가",
+        "재신청 시 6개월 연장만 가능",
+        "가족 동반 신청 가능 (본인 소득 기준으로 동반 가족 커버)"
+      ],
+      "data_verified_date": "2026-04-03"
+    },
+    {
+      "id": "ES",
+      "name": "Spain (Canary Islands)",
+      "name_kr": "스페인 (카나리아 제도)",
+      "visa_type": "Digital Nomad Visa (Ley de Startups)",
+      "min_income_usd": 3000,
+      "stay_months": 36,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 원격근무 증명서",
+        "3개월 급여명세서",
+        "범죄경력증명서 + 아포스티유"
+      ],
+      "visa_fee_usd": 90,
+      "tax_note": "베케리아 법: 외국 소득 4년간 24% 단일세율",
+      "cost_tier": "medium",
+      "notes": "DN 비자 보유; 카나리아 제도 연중 온난; 라스팔마스 인기 도시; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.exteriores.gob.es",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "min_income_monthly_eur": 2849,
+      "family_income_addition": {
+        "spouse_eur": 916,
+        "per_child_eur": 305
+      },
+      "golden_visa_note": "스페인 골든 비자(부동산 투자 거주) 2025년 공식 폐지. DNV가 비EU 원격 근무자의 사실상 유일한 장기 거주 경로.",
+      "data_verified_date": "2026-04-03",
+      "data_source": "Royal Decree 126/2026, VisaHQ, remoteworkeurope.eu",
+      "visa_notes": [
+        "€2,763/월 (~$3,000) (2025년 12월 기준); 신청비 €80; 입국 전 신청 시 1년; 내부 신청 시 최대 3년",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "ID",
+      "name": "Indonesia (Bali)",
+      "name_kr": "인도네시아 (발리)",
+      "visa_type": "E33G Remote Worker Visa (e-Visa)",
+      "min_income_usd": 5000,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "여권 (유효기간 18개월 이상)",
+        "소득 증빙 ($2,000+/월)",
+        "귀국 또는 제3국행 항공권"
+      ],
+      "visa_fee_usd": 600,
+      "tax_note": "외국 소득에 현지 소득세 미부과 (2024 기준)",
+      "cost_tier": "medium",
+      "notes": "E33G 원격근로 비자; 캉구 코워킹 허브",
+      "source": "https://molina.imigrasi.go.id",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-03",
+      "e33g_kitas": {
+        "visa_type": "E33G (디지털 노마드 KITAS)",
+        "introduced_date": "2024-04",
+        "min_income_annual_usd": 60000,
+        "employment_type": "해외 법인 소속 직원만 가능 (프리랜서 불가)",
+        "min_bank_balance_usd": 2000,
+        "bank_balance_period_months": 3,
+        "stay_duration_months": 12,
+        "max_renewals": 5,
+        "family_allowed": true,
+        "family_allowed_since": "2025-12",
+        "ineligible_nationalities": [
+          "AF",
+          "CM",
+          "GN",
+          "IL",
+          "XK",
+          "LR",
+          "NG",
+          "KP",
+          "SO"
+        ],
+        "critical_warnings": [
+          "관광 비자 입국 후 현지 전환 불가 — 반드시 출국 상태에서 사전 신청",
+          "MERP(복수 출입국 허가) 미취득 시 출국하면 비자 무효화"
+        ],
+        "income_period": "annual",
+        "source": "rumavi.com, letsmoveindonesia.com, flado.id"
+      },
+      "visa_notes": [
+        "E33G 연소득 $60,000 요건; 발리 특화 비자 에이전시 이용 시 $600~1000",
+        "30일 도착비자; 1회 연장 30일 가능(총 60일); 장기 체류 시 E33G 비자 신청"
+      ]
+    },
+    {
+      "id": "DE",
+      "name": "Germany",
+      "name_kr": "독일",
+      "visa_type": "Freiberufler (프리랜서 비자)",
+      "min_income_usd": 3500,
+      "stay_months": 36,
+      "renewable": true,
+      "key_docs": [
+        "포트폴리오 또는 클라이언트 계약서",
+        "재정 자립 증명 (잔고 증명 또는 소득 증빙)",
+        "거주 등록 확인서 (Anmeldung)"
+      ],
+      "visa_fee_usd": 100,
+      "tax_note": "독일 거주자로 전 세계 소득 과세. 세율 14~45%",
+      "cost_tier": "high",
+      "notes": "전용 DN 비자 없음; Freiberufler(프리랜서)비자 활용; 베를린 스타트업 허브; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.make-it-in-germany.com",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "data_verified_date": "2026-04-03",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_notes": [
+        "전용 DN 비자 없음; 프리랜서(Freiberufler) 비자로 장기 체류 가능; 소득 요건 사안별 상이",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "GE",
+      "name": "Georgia",
+      "name_kr": "조지아",
+      "visa_type": "Remotely from Georgia",
+      "min_income_usd": 2000,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 서비스 계약서",
+        "3개월 급여명세서 또는 인보이스",
+        "여권 (유효기간 6개월 이상)"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "조지아 거주 1년 이상 시 플랫세율 1% 적용 (Virtual Zone 등록 시)",
+      "cost_tier": "low",
+      "notes": "Remotely from Georgia 프로그램; 무비자 1년 체류 가능 (한국인)",
+      "source": "https://www.geoconsul.gov.ge/en",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 180,
+      "tax_residency_risk": "180일 이상 체류 시 조지아 세법상 세금 거주자 간주 가능",
+      "common_mistake": "무비자 365일 체류 가능 = 세금 무관으로 오해하는 사례 많음. 체류 기간과 세금 거주지는 별개.",
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "regulation_change": {
+        "effective_date": "2026-03-01",
+        "summary": "노동 활동 허가 요건 신설. 원격 근무자도 별도 허가 필요 가능성. 규정 해석 진행 중.",
+        "risk_level": "HIGH",
+        "source": "Law on Labour Migration of Georgia"
+      },
+      "realistic_warnings_forced": [
+        "2026년 3월 1일부터 조지아 노동이민법 시행. 원격 근무자도 노동 활동 허가 필요 가능성 있음. 위반 시 벌금 2,000 라리(약 $740). 출국 전 최신 규정 확인 필수."
+      ],
+      "data_verified_date": "2026-03-15",
+      "visa_notes": [
+        "소득 $2,000/월 또는 잔고 $24,000; 신청 수수료 없음; 온라인 신청",
+        "한국인 최대 1년 무비자 체류 (VISA 불필요)"
+      ],
+      "visa_availability_note": "No dedicated digital nomad visa; visa-free entry policy and standard residence routes apply."
+    },
+    {
+      "id": "CR",
+      "name": "Costa Rica",
+      "name_kr": "코스타리카",
+      "visa_type": "Digital Nomad Visa (Rentista/Nómada)",
+      "min_income_usd": 3000,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "소득 증빙 ($3,000+/월, 공증 필요)",
+        "범죄경력증명서 + 아포스티유",
+        "건강보험 (코스타리카 사회보험 또는 동등)"
+      ],
+      "visa_fee_usd": 100,
+      "tax_note": "외국 소득 비과세 (영토 과세 원칙)",
+      "cost_tier": "medium",
+      "notes": "DN 비자 보유; 생태 관광 허브; 아열대 자연",
+      "source": "https://www.migracion.go.cr",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": false,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12",
+      "visa_notes": [
+        "월 $3,000 (부양가족 있으면 $4,000); 신청비 $100; 국내 소득세 면제; 1년 갱신 가능",
+        "한국인 무비자 90일"
+      ]
+    },
+    {
+      "id": "GR",
+      "name": "Greece",
+      "name_kr": "그리스",
+      "visa_type": "Greece Digital Nomad Visa",
+      "min_income_usd": 3850,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 원격근무 증명서",
+        "3개월 급여명세서",
+        "숙박 증빙 (임대계약서)"
+      ],
+      "visa_fee_usd": 225,
+      "tax_note": "7% 단일세율 10년 적용 (외국 연금·소득 특별세제)",
+      "cost_tier": "medium",
+      "notes": "디지털 노마드 비자 2021년 도입; 월 €3,500 소득 요건; 1년 체류 후 2년 갱신 거주허가로 전환; EU 솅겐 회원국; 아테네·크레타 인기; EES 2026년 4월 10일 발효; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.gov.gr/en/sdg/working-in-greece/applying-for-visa/digital-nomad-visa",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "application_method": "재외 영사관 신청만 가능",
+      "application_method_note": "Law 5275/2026 (2026-02-05 시행). 관광 비자 입국 후 현지 신분 전환 불가.",
+      "onsite_application_available": false,
+      "family_income_addition": {
+        "spouse_pct": 20,
+        "per_child_pct": 15
+      },
+      "application_fee_eur": {
+        "main_applicant": 1000,
+        "per_dependent": 150
+      },
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "2021년 도입; 월 €3,500 소득 요건 (~$3,850); 부양가족 동반 시 +20%; 1년 후 2년 거주허가 갱신 가능; 그리스 체류 시 현지 소득세 없음; 아테네 영사관 신청 필수 (국외 신청); 솅겐 EES 2026년 4월 10일 발효; EES started 2025-10-12; progressive rollout with full implementation by 2026-04-10 (EU Travel Europe / eu-LISA).",
+        "한국인 솅겐 협정 90일/180일; EES 2026년 4월 10일부터 전자 추적"
+      ]
+    },
+    {
+      "id": "PH",
+      "name": "Philippines",
+      "name_kr": "필리핀",
+      "visa_type": "Digital Nomad Visa (EO No. 86, s.2025)",
+      "min_income_usd": 2000,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "여권 (유효기간 18개월 이상)",
+        "소득 증빙 ($2,000+/월)",
+        "왕복 항공권"
+      ],
+      "visa_fee_usd": 350,
+      "tax_note": "외국 소득 비과세 (영토 과세)",
+      "cost_tier": "low",
+      "notes": "EO No.86(2025) 기반 DNV 제도 도입. 최소소득/수수료 등 하위 규정은 확인필요.",
+      "source": "https://mirror.pco.gov.ph/press-briefing/20250428-malacanang-press-briefing-of-palace-press-officer-and-undersecretary-atty-claire-castro/",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 180,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "연소득 $24,000 ($2,000/월); 2025년 6월 정식 출시; DFA·이민청 공동 운영; 신청비 $200~500; 12개월+12개월 갱신",
+        "한국인 무비자 30일; 비자 없이 최대 36개월까지 연장 가능 (비자오피스 연장)"
+      ]
+    },
+    {
+      "id": "VN",
+      "name": "Vietnam",
+      "name_kr": "베트남",
+      "visa_type": "없음 (e-Visa 90일 활용)",
+      "min_income_usd": 0,
+      "stay_months": 3,
+      "renewable": false,
+      "key_docs": [
+        "여권 (유효기간 6개월 이상)",
+        "온라인 신청서",
+        "여권사진"
+      ],
+      "visa_fee_usd": 25,
+      "tax_note": "외국 소득 비과세 (단기 체류 기준)",
+      "cost_tier": "low",
+      "notes": "전용 DN 비자 없음; e비자 90일; 저렴한 물가; 다낭·호치민 인기; 2025년 4월 골든비자 제안(미시행); 인터넷 속도 실측 80~100Mbps",
+      "source": "https://evisa.xuatnhapcanh.gov.vn",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-03-31",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_notes": [
+        "전용 DN 비자 없음; 2025년 4월 골든비자 제안(국회 미통과); 장기 체류 시 반복 입국 활용",
+        "45일 무비자; e-Visa 90일 ($25); 복수입국 가능; 2028년까지 한국인 무비자 연장 확정"
+      ]
+    },
+    {
+      "id": "HR",
+      "name": "Croatia",
+      "name_kr": "크로아티아",
+      "visa_type": "Croatia Digital Nomad Residence Permit",
+      "min_income_usd": 3600,
+      "stay_months": 18,
+      "renewable": false,
+      "key_docs": [
+        "고용계약서 또는 원격근무 증명서 (영문)",
+        "3개월 급여명세서 또는 인보이스",
+        "건강보험 증서 (크로아티아 체류 기간 커버)"
+      ],
+      "visa_fee_usd": 35,
+      "tax_note": "크로아티아 거주 등록 시 현지 소득세 미적용 (비거주자 기준)",
+      "cost_tier": "medium",
+      "notes": "DN 비자 보유 (2021 도입); 스플리트·두브로브니크 인기; EU 솅겐; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://mup.gov.hr",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "€3,295/월 (~$3,600); 거주허가 신청비 약 €35; 18개월 비갱신; 과세 면제",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "CZ",
+      "name": "Czech Republic",
+      "name_kr": "체코",
+      "visa_type": "없음 (솅겐 90일 활용)",
+      "min_income_usd": 0,
+      "stay_months": 3,
+      "renewable": false,
+      "key_docs": [
+        "체코 무역업 허가증 신청서류 (živnostenský list)",
+        "재정 자립 증명 (잔고 €5,000 이상)",
+        "숙박 증빙 (임대계약서)"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "체코 거주자 세율 15% 단일세율. 소득공제 후 실효세율 낮음",
+      "cost_tier": "medium",
+      "notes": "전용 DN 비자 없음 (EU 솅겐 90일); 프라하 인프라 우수; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.mzv.cz",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "data_verified_date": "2026-04-03",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_notes": [
+        "전용 DN 비자 없음; 장기 체류 시 자유직업(Freelance) 비자 또는 사업 비자 고려",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "HU",
+      "name": "Hungary",
+      "name_kr": "헝가리",
+      "visa_type": "White Card (Digital Nomad Residency)",
+      "min_income_usd": 3300,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 프리랜서 계약서 (영문)",
+        "소득 증빙 서류",
+        "숙박 증빙 (임대계약서)"
+      ],
+      "visa_fee_usd": 120,
+      "tax_note": "헝가리 거주자 단일세율 15% (EU 최저 수준)",
+      "cost_tier": "medium",
+      "notes": "White Card (DN 비자); 부다페스트 저렴한 유럽 생활; 솅겐 지역; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.kormany.hu",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "€3,000/월 (~$3,300); 신청비 €110; 최대 2년 (1회 연장); 온라인/방문 신청 모두 가능",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "SI",
+      "name": "Slovenia",
+      "name_kr": "슬로베니아",
+      "visa_type": "Digital Nomad Visa (임시거주허가)",
+      "min_income_usd": 3500,
+      "stay_months": 12,
+      "renewable": false,
+      "key_docs": [
+        "원격근무 고용계약서 또는 프리랜서 계약서",
+        "3개월 급여명세서",
+        "건강보험 증서"
+      ],
+      "visa_fee_usd": 100,
+      "tax_note": "슬로베니아 거주자 소득세 16~50% 누진세율",
+      "cost_tier": "medium",
+      "notes": "DN 비자 2025년 11월 21일 출시; EU 솅겐 회원국; 류블랴나 기반; 아름다운 자연·알프스; 이탈리아·오스트리아 대비 저렴한 물가; 2026년 4월 10일 EES 발효; ETIAS 2026년 4분기 예정; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "source": "https://www.gov.si",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "월 €3,200 세후 소득 (~$3,500); 2025년 11월 21일 출시; 갱신 불가 (6개월 후 재신청); EU 솅겐 회원국; 류블랴나 거점",
+        "한국인 솅겐 협정 90일/180일"
+      ]
+    },
+    {
+      "id": "MT",
+      "name": "Malta",
+      "name_kr": "몰타",
+      "visa_type": "Nomad Residence Permit",
+      "min_income_usd": 2700,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 원격근무 증명서",
+        "3개월 급여명세서",
+        "건강보험 (몰타 체류 기간 커버)"
+      ],
+      "visa_fee_usd": 300,
+      "tax_note": "몰타 거주자 비거주자 세율 15% (특별 프로그램 적용 시)",
+      "cost_tier": "medium",
+      "notes": "쉥겐 내 영어 공용어 국가. 지중해 섬나라. EU 디지털 허브 성장 중",
+      "source": "https://nomad.gov.mt",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": true,
+      "data_verified_date": "2025-12"
+    },
+    {
+      "id": "CY",
+      "name": "Cyprus",
+      "name_kr": "사이프러스",
+      "visa_type": "Digital Nomad Visa",
+      "min_income_usd": 3500,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "원격근무 고용계약서 (EU 외 고용주 또는 프리랜서)",
+        "3개월 급여명세서",
+        "건강보험"
+      ],
+      "visa_fee_usd": 70,
+      "tax_note": "사이프러스 비거주자 현지 소득세 없음. EU 비쉥겐 섬나라",
+      "cost_tier": "medium",
+      "notes": "EU 회원국이나 쉥겐 비편입 — 쉥겐 소진 후 버퍼로 활용 가능. 영어 광범위 통용",
+      "source": "https://www.mfa.gov.cy",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12"
+    },
+    {
+      "id": "AL",
+      "name": "Albania",
+      "name_kr": "알바니아",
+      "visa_type": "Unique Permit (원격근무 허가)",
+      "min_income_usd": 820,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "유효 여권 (입국 시 자동 허가)",
+        "소득 증빙 불필요 (공식 요구 없음)",
+        "숙박 증빙 (선택)"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "비거주자 현지 소득세 없음. 외국 소득 비과세",
+      "cost_tier": "low",
+      "notes": "Unique Permit (원격근무 허가); 티라나 급성장 중; EU 솅겐 비가입; 발칸 반도; 저렴한 유럽 물가; EU 가입 후보국",
+      "source": "https://e-albania.al",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-03-31",
+      "visa_notes": [
+        "연 $9,800 (~$817/월) 자립 증명; 비자 수수료 상호주의; 온라인 신청 가능; Type D 장기비자 → 거주허가; EU 솅겐 비가입 (EU 가입 후보국)",
+        "한국인 무비자 90일 (쌍무 협약)"
+      ]
+    },
+    {
+      "id": "RS",
+      "name": "Serbia",
+      "name_kr": "세르비아",
+      "visa_type": "무비자 체류 (30일 → 연장 가능)",
+      "min_income_usd": 0,
+      "stay_months": 3,
+      "renewable": true,
+      "key_docs": [
+        "유효 여권",
+        "체류 연장 신청 시 숙박 증빙",
+        "소득 증빙 (선택)"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "비거주자 현지 소득세 없음",
+      "cost_tier": "low",
+      "notes": "베오그라드 물가 유럽 최저권. 비쉥겐. 쉥겐 소진 후 비용 효율적 버퍼. 노마드 커뮤니티 성장 중",
+      "source": "https://www.mfa.gov.rs",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12"
+    },
+    {
+      "id": "MK",
+      "name": "North Macedonia",
+      "name_kr": "북마케도니아",
+      "visa_type": "무비자 체류 (90일)",
+      "min_income_usd": 0,
+      "stay_months": 3,
+      "renewable": false,
+      "key_docs": [
+        "유효 여권 (입국 시 자동 허가)",
+        "소득 증빙 불필요",
+        "귀국 항공권 (선택)"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "비거주자 현지 소득세 없음. 외국 소득 비과세",
+      "cost_tier": "low",
+      "notes": "스코페 물가 발칸 최저권. 비쉥겐. 쉥겐 인접 지리적 위치로 루트 활용 가능",
+      "source": "https://www.mfa.gov.mk",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": false,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12"
+    },
+    {
+      "id": "MX",
+      "name": "Mexico",
+      "name_kr": "멕시코",
+      "visa_type": "임시거주비자 (Temporary Resident Visa)",
+      "min_income_usd": 4300,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "소득 증빙 (최근 12개월 평균 $2,590+)",
+        "범죄경력증명서 + 공증",
+        "여권 (유효기간 6개월 이상)"
+      ],
+      "visa_fee_usd": 36,
+      "tax_note": "멕시코 거주자 외국 소득 과세. 비거주자 멕시코 소득만 과세",
+      "cost_tier": "medium",
+      "notes": "전용 DN 비자 없음; 임시거주비자 활용; 오악사카·플라야델카르멘 인기",
+      "source": "https://www.inm.gob.mx",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_notes": [
+        "전용 DN 비자 없음; 임시거주비자 월 $3,737~4,290 소득 또는 $71,500 잔고; 최대 4년 갱신 가능",
+        "한국인 무비자 90일"
+      ]
+    },
+    {
+      "id": "CO",
+      "name": "Colombia (Medellín)",
+      "name_kr": "콜롬비아 (메데진)",
+      "visa_type": "Colombia Digital Nomad Visa",
+      "min_income_usd": 1100,
+      "stay_months": 24,
+      "renewable": true,
+      "key_docs": [
+        "원격근무 고용계약서 또는 프리랜서 계약서",
+        "소득 증빙 ($750+/월)",
+        "범죄경력증명서"
+      ],
+      "visa_fee_usd": 220,
+      "tax_note": "비거주자 외국 소득 비과세. 영토 과세 원칙",
+      "cost_tier": "low",
+      "notes": "공식 DN 비자 보유; 메데진 노마드 허브; 저렴한 물가",
+      "source": "https://www.cancilleria.gov.co",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12",
+      "visa_notes": [
+        "최소 소득 COP 4,270,500/월 (~$1,100); 신청비 $52 + 승인 후 $170~230; 최대 2년",
+        "한국인 무비자 90일"
+      ]
+    },
+    {
+      "id": "AR",
+      "name": "Argentina",
+      "name_kr": "아르헨티나",
+      "visa_type": "Digital Nomad Visa",
+      "min_income_usd": 2750,
+      "stay_months": 6,
+      "renewable": true,
+      "key_docs": [
+        "소득 증빙 (정기 해외 송금 증명 $1,000+)",
+        "은행 잔고 증명",
+        "범죄경력증명서 + 아포스티유"
+      ],
+      "visa_fee_usd": 200,
+      "tax_note": "외국 소득 비과세 (영토 과세). 페소 환율 변동 주의",
+      "cost_tier": "low",
+      "notes": "DN 비자 보유; 환율 혜택; 부에노스아이레스 카페 문화",
+      "source": "https://www.migraciones.gov.ar",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12",
+      "visa_notes": [
+        "월 $2,500~3,000; 6개월+6개월 갱신 (총 12개월); 환율 혜택 (블루달러)",
+        "한국인 무비자 90일"
+      ]
+    },
+    {
+      "id": "BR",
+      "name": "Brazil",
+      "name_kr": "브라질",
+      "visa_type": "Digital Nomad Visa (VITEM XIV)",
+      "min_income_usd": 1500,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "원격근무 고용계약서 또는 프리랜서 계약서",
+        "소득 증빙 ($1,500+/월 또는 잔고 $18,000)",
+        "범죄경력증명서 + 공증"
+      ],
+      "visa_fee_usd": 110,
+      "tax_note": "브라질 비거주자 현지 소득세 없음. 외국 소득 비과세",
+      "cost_tier": "low",
+      "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권",
+      "source": "https://www.gov.br/mre",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12"
+    },
+    {
+      "id": "AE",
+      "name": "UAE (Dubai)",
+      "name_kr": "아랍에미리트 (두바이)",
+      "visa_type": "Virtual Working Programme (VWP)",
+      "min_income_usd": 3500,
+      "stay_months": 12,
+      "renewable": true,
+      "key_docs": [
+        "고용계약서 또는 프리랜서 라이선스 신청서류",
+        "소득 증빙 ($3,500+/월)",
+        "건강보험 (UAE 커버)"
+      ],
+      "visa_fee_usd": 600,
+      "tax_note": "UAE 소득세 없음 (개인). 세계 최저 세율 국가",
+      "cost_tier": "high",
+      "notes": "Virtual Working Programme; 무세금; 세계적 인프라; 여름 혹서 (45°C+). 공식 UAE 포털 기준 원격근무 증빙 + 월 최소 USD 3,500 소득 증빙 필요(세부 서류 요건은 신청 시점 재확인 권장).",
+      "source": "https://www.mohre.gov.ae",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "월 $3,500 이상; 기본 신청비 $101 (UAE 외부) 또는 $334 (내부); 의료검사 $85~270 + Emirates ID $165 별도",
+        "한국인 무비자 30일 (연장 60일 가능)"
+      ]
+    },
+    {
+      "id": "MA",
+      "name": "Morocco",
+      "name_kr": "모로코",
+      "visa_type": "없음 (2026년 현재 미출시)",
+      "min_income_usd": 0,
+      "stay_months": 0,
+      "renewable": false,
+      "key_docs": [
+        "유효 여권 (입국 시 자동 허가)",
+        "소득 증빙 불필요",
+        "귀국 또는 제3국행 항공권 (권장)"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "비거주자 외국 소득 비과세",
+      "cost_tier": "low",
+      "notes": "공식 DN 비자 없음 (2026년 1분기 현재 미출시; 2025년 도입 불발); 마라케시·아가디르 인기; 관광비자 90일 체류 활용",
+      "source": "https://www.maroc.ma",
+      "schengen": false,
+      "buffer_zone": true,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": false,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-03-31",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_notes": [
+        "전용 DN 비자 없음; 2025년 도입 예정이었으나 불발; 관광비자로 단기 체류 활용 중; 추후 재발표 가능성 확인필요",
+        "한국인 무비자 90일"
+      ]
+    },
+    {
+      "id": "CA",
+      "name": "Canada",
+      "name_kr": "캐나다",
+      "visa_type": "Open Work Permit / IEC Working Holiday",
+      "min_income_usd": 2500,
+      "stay_months": 12,
+      "renewable": false,
+      "key_docs": [
+        "고용주 없이 발급 가능 여부 확인 필요",
+        "재정 자립 증명 (잔고 CAD 2,500 이상)",
+        "건강보험"
+      ],
+      "visa_fee_usd": 155,
+      "tax_note": "캐나다 거주자 전 세계 소득 과세. 세율 15~33% 연방 + 주세",
+      "cost_tier": "high",
+      "notes": "밴쿠버·토론토 영어권 허브. 한인 커뮤니티 대규모. 영주권 경로 다양",
+      "source": "https://www.canada.ca",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2025-12"
+    },
+    {
+      "id": "JP",
+      "name": "Japan",
+      "name_kr": "일본",
+      "visa_type": "특정활동 디지털 노마드 비자 (Specified Visa)",
+      "min_income_usd": 5583,
+      "stay_months": 6,
+      "renewable": false,
+      "key_docs": [
+        "고용계약서 또는 프리랜서 계약서 (영문)",
+        "소득 증빙 ($7,000+/월)",
+        "건강보험 (일본 체류 기간 커버)"
+      ],
+      "visa_fee_usd": 100,
+      "tax_note": "6개월 이하 체류 시 일본 소득세 없음 (비거주자). 단기 체류 한정",
+      "cost_tier": "medium",
+      "notes": "디지털 노마드 비자 2024년 4월 도입; 연소득 ¥10,000,000 (~$67,000) 요건; 최대 6개월 체류; 갱신 불가; 한국인 90일 무비자 입국; 후쿠오카·도쿄·오사카 인기 거점; 높은 소득 요건이 진입 장벽",
+      "source": "https://www.mofa.go.jp/ca/fna/pagewe_000001_00046.html",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "income_period": "monthly",
+      "ees_applicable": false,
+      "data_verified_date": "2026-04-03",
+      "visa_notes": [
+        "2024년 4월 도입; 연소득 ¥10,000,000 이상 (~$67,000); 6개월 최대 체류; 갱신 불가; 재신청 시 출국 후 재입국 필요; 이중과세방지협약 보유 국적자만 신청 가능 (한국 포함); 비일본 고용주 대상 원격근무자만 해당",
+        "한국인 90일 무비자 입국; 비자 면제 협정 적용"
+      ]
+    },
+    {
+      "id": "BG",
+      "name": "Bulgaria",
+      "name_kr": "불가리아",
+      "cost_tier": "low",
+      "notes": "DN 비자 2025년 12월 20일 공식 출시; 솅겐 가입; 저렴한 유럽 물가; 연 €31,000 소득 요건 (평균); 2026년 4월 10일 솅겐 EES 발효 → 체류일 전자 추적 시작; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "data_verified_date": "2026-04-03",
+      "visa_type": "Digital Nomad Residence Permit (2025년 12월 도입)",
+      "min_income_usd": 2800,
+      "stay_months": 12,
+      "renewable": true,
+      "visa_notes": [
+        "연 €31,000 평균 소득 요건 (~€2,583/월); 2025년 12월 20일 공식 출시; Visa D → 거주허가 2단계 신청; 솅겐 회원국; 1회 갱신 가능",
+        "한국인 솅겐 협정 90일/180일"
+      ],
+      "source": "https://www.mfa.bg/en",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "확인 필요",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true
+    },
+    {
+      "id": "CV",
+      "name": "Cape Verde",
+      "name_kr": "카보베르데",
+      "cost_tier": "low",
+      "notes": "Remote Working Program; 대서양 섬나라; 한적한 노마드 생활 가능",
+      "visa_type": "Remote Working Program",
+      "min_income_usd": 1600,
+      "visa_fee_usd": 54,
+      "stay_months": 12,
+      "renewable": true,
+      "visa_notes": [
+        "월 €1,500 (~$1,600) 잔고 증명; 신청비 €20 + 공항 보안료 €34; 6개월+6개월 연장",
+        "한국인 관광 입국 조건 확인필요 (e-Visa 필요 가능성)"
+      ],
+      "source": "https://www.gov.cv",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "data_verified_date": "2026-03-31"
+    },
+    {
+      "id": "KE",
+      "name": "Kenya",
+      "name_kr": "케냐",
+      "cost_tier": "low",
+      "notes": "Class N 디지털 노마드 퍼밋 (2024년 10월 도입); 나이로비 기술 허브; 아프리카 신흥 노마드 거점; 높은 소득 요건($55K/년)",
+      "data_verified_date": "2026-03-31",
+      "visa_type": "Class N Work Permit (Digital Nomad)",
+      "min_income_usd": 4583,
+      "visa_fee_usd": 1200,
+      "stay_months": 24,
+      "renewable": true,
+      "visa_notes": [
+        "연 $55,000 이상 소득 요건; 신청비 $200 + 연간 발급비 $1,000; 2024년 10월 도입, 2025년 5월 신청 접수 시작; 케냐 외 소득 필요; 1~2년 유효",
+        "한국인 ETA 필요 ($30~50); 90일 체류 허용; 도착비자 대안 가능"
+      ],
+      "source": "https://immigration.go.ke",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true
+    },
+    {
+      "id": "NL",
+      "name": "Netherlands",
+      "name_kr": "네덜란드",
+      "cost_tier": "high",
+      "notes": "전용 DN 비자 없음; MVV 자영업 비자 활용; 암스테르담 높은 물가; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_type": "MVV Zelfstandige (자영업 비자)",
+      "min_income_usd": 1400,
+      "visa_fee_usd": 300,
+      "stay_months": 36,
+      "renewable": true,
+      "visa_notes": [
+        "전용 DN 비자 없음; 자영업 MVV 월 €1,300 이상; 3년 발급; 네덜란드 생태계 기여 요건",
+        "한국인 솅겐 협정 90일/180일"
+      ],
+      "source": "https://ind.nl/en/residence-permits/work/residence-permit-self-employed-person",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "data_verified_date": "2026-04-03"
+    },
+    {
+      "id": "PA",
+      "name": "Panama",
+      "name_kr": "파나마",
+      "cost_tier": "medium",
+      "notes": "DN 비자 보유; USD 사용; 중미 금융 허브",
+      "visa_type": "Short Stay Visa for Remote Workers",
+      "min_income_usd": 3000,
+      "visa_fee_usd": 300,
+      "stay_months": 18,
+      "renewable": false,
+      "visa_notes": [
+        "월 $3,000 (연 $36,000); 신청비 $250 + 발급비 $50; 9개월+9개월 연장 (총 18개월)",
+        "한국인 무비자 90일"
+      ],
+      "source": "https://www.migracion.gob.pa/",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "data_verified_date": "2026-03-31"
+    },
+    {
+      "id": "RO",
+      "name": "Romania",
+      "name_kr": "루마니아",
+      "cost_tier": "low",
+      "notes": "DN 비자 보유; EU 내 최고 인터넷 속도 중 하나; 저렴한 물가; 솅겐 2024년 12월 전면 가입; 2026년 4월 10일 EES 발효; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(Travel Europe/eu-LISA).",
+      "visa_type": "Digital Nomad Visa",
+      "min_income_usd": 4000,
+      "stay_months": 12,
+      "renewable": true,
+      "visa_notes": [
+        "€3,700/월 (~$4,000); 2022년 도입; EU 솅겐 회원국",
+        "한국인 솅겐 협정 90일/180일"
+      ],
+      "source": "https://evisa.mae.ro/home?lang=en-US",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "visa_fee_usd": 0,
+      "tax_note": "확인 필요",
+      "schengen": true,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "data_verified_date": "2026-04-03"
+    },
+    {
+      "id": "UY",
+      "name": "Uruguay",
+      "name_kr": "우루과이",
+      "cost_tier": "medium",
+      "notes": "DN 퍼밋 보유; 최소 소득 요건 없음; 남미 선진국",
+      "visa_type": "Digital Nomad Permit",
+      "min_income_usd": 0,
+      "visa_fee_usd": 10,
+      "stay_months": 12,
+      "renewable": true,
+      "visa_notes": [
+        "최소 소득 요건 없음 (자립 가능 증명); 신청비 ~$10; 12개월 갱신 가능; 남미 안전한 국가",
+        "한국인 무비자 90일"
+      ],
+      "source": "https://www.gub.uy/tramites/hoja-identidad-provisoria",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true,
+      "data_verified_date": "2026-03-31"
+    },
+    {
+      "id": "PY",
+      "name": "Paraguay",
+      "name_kr": "파라과이",
+      "cost_tier": "low",
+      "notes": "Nomads 2026 성장 데이터 기준 Asuncion 급성장(+178%, 4개월 데이터). 장기체류 제도/입국요건은 확인필요.",
+      "data_verified_date": "2026-04-03",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_type": "없음 (확인필요)",
+      "min_income_usd": 0,
+      "visa_fee_usd": 0,
+      "stay_months": 0,
+      "renewable": false,
+      "visa_notes": [
+        "Nomads 2026 데이터에서 Asuncion 급성장 도시로 확인. 전용 DN 비자 정책은 확인필요.",
+        "대한민국 여권 입국 조건 확인필요 (최근 공지 재확인 필요)"
+      ],
+      "source": "https://www.migraciones.gov.py",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true
+    },
+    {
+      "id": "QA",
+      "name": "Qatar",
+      "name_kr": "카타르",
+      "cost_tier": "high",
+      "notes": "Nomads 2026 성장 데이터 기준 Doha 급성장(+86%, 4개월 데이터). 전용 DN 비자 제도 확인필요.",
+      "data_verified_date": "2026-04-03",
+      "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
+      "visa_type": "없음 (확인필요)",
+      "min_income_usd": 0,
+      "visa_fee_usd": 0,
+      "stay_months": 0,
+      "renewable": false,
+      "visa_notes": [
+        "Nomads 2026 데이터에서 Doha 성장세 확인. 전용 DN 비자 정책은 확인필요.",
+        "대한민국 여권 입국 조건 확인필요 (입국 규정 수시 변동 가능)"
+      ],
+      "source": "https://visitqatar.com",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true
+    },
+    {
+      "id": "TW",
+      "name": "Taiwan",
+      "name_kr": "대만",
+      "cost_tier": "medium",
+      "notes": "디지털 노마드 방문비자 2025년 1월 도입; 공식 BOCA 가이드 기준 최대 6개월 체류(장기 연장 정책은 추가 확인 필요); 30세 이상 연소득 $40,000 또는 20~29세 $20,000 요건; 한국인 90일 무비자 입국 가능.",
+      "data_verified_date": "2026-04-03",
+      "visa_type": "Digital Nomad Visitor Visa",
+      "min_income_usd": 3333,
+      "visa_fee_usd": 30,
+      "stay_months": 6,
+      "renewable": false,
+      "visa_notes": [
+        "2026년 1월 8일부터 최대 2년 체류로 연장 (6개월 초기+3회 6개월 연장); 30세 이상 연소득 $40,000 요건; 20~29세 연소득 $20,000 요건; 월 평균 은행 잔고 $10,000 이상 (6개월); 국제 건강보험 필수",
+        "한국인 90일 무비자 입국"
+      ],
+      "source": "https://www.boca.gov.tw/cp-158-7718-c0382-2.html",
+      "key_docs": [
+        "여권",
+        "소득 증빙"
+      ],
+      "tax_note": "확인 필요",
+      "schengen": false,
+      "buffer_zone": false,
+      "tax_residency_days": 183,
+      "double_tax_treaty_with_kr": true,
+      "mid_term_rental_available": true
+    }
+  ]
+}
