@@ -1,5 +1,67 @@
 # CHANGELOG
 
+## [2026-04-05 KST] — 폼 구조 개편 + 신규 인풋 추가
+
+### 변경 파일
+- `app/[locale]/onboarding/form/page.tsx` : 스텝 구조 개편, 신규 필드 추가
+- `backend/recommender.py` : lifestyle 키 매핑 수정 (_LIFESTYLE_ALIASES v2 라벨 추가)
+
+### 작업 요약
+- 무엇을: 폼 4스텝 구조 개편, stay_style/tax_sensitivity 신규 인풋 추가, lifestyle 선택지 교체
+- 왜: 백엔드 스코어링 로직 재설계 반영 + 유저 입력 실질 반영도 향상
+- 영향 범위: 폼 전체 구조, 백엔드 lifestyle 키 매핑
+
+### 주요 변경사항
+- Step 1: 목적 + 동행 유형 (travel_type을 Step 3에서 이동)
+- Step 2: 체류 기간 + 체류 형태 (stay_style 신규, 조건부)
+- Step 3: 소득 + 세금 민감도 (tax_sensitivity 신규, 조건부) + 동행 조건부 필드
+- Step 4: 선호 지역 + 라이프스타일 (모두 optional)
+- lifestyle 선택지 8개 → 4개로 교체 (일하기 좋은 인프라/한인 커뮤니티/저물가/영어)
+- lifestyle 키 매핑: 신규 라벨 → 기존 내부 키 매핑 추가, 레거시 라벨 하위 호환 유지
+- stay_style, tax_sensitivity 모두 단기 체류(1~3개월) 시 숨김 처리
+- canProceed: Step 4는 필수 없음 (optional only)
+
+### 다음 세션 참고사항
+- 폼 스텝 타이틀 카피 확정 필요
+- 폼 라벨/버튼 카피 수정 필요
+- INCOME_TYPE_OPTIONS 상수가 미사용 상태로 잔존 (제거 가능)
+
+---
+
+## [2026-04-05 KST] — 백엔드 스코어링 로직 전면 재설계
+
+### 변경 파일
+- `backend/recommender.py` : 스코어링 4-Block 구조 전면 재작성
+- `backend/server.py` : RecommendRequest에 stay_style, tax_sensitivity 추가
+- `backend/app.py` : nomad_advisor() 파라미터 + user_profile에 두 필드 추가
+- `app/[locale]/onboarding/form/page.tsx` : stay_style, tax_sensitivity 인풋 추가
+
+### 작업 요약
+- 무엇을: 스코어링 로직 전면 재설계 — DB 고정값 60% 지배 구조 해체
+- 왜: 유저 입력이 실제 결과에 반영되지 않는 구조적 문제 해결
+- 영향 범위: 백엔드 추천 로직 전체, 폼 스텝 구조
+
+### 주요 변경사항
+- 실질 영향 필드: 2개(소득, 지역) → 8개 전체
+- lifestyle 키 불일치 수정 (_LIFESTYLE_ALIASES 추가) — 항상 0점이던 문제 해결
+- timeline 키 불일치 수정 (_TIMELINE_ALIASES 추가) — 체류기간 필터 정상화
+- 4-Block 스코어링 도입
+  - Block A 기본 적합도 30% (nomad/safety/coworking + lifestyle 배율)
+  - Block B 재정 적합도 25% (cost_score + tax_bonus × tax_sensitivity)
+  - Block C 페르소나 적합도 25% (5개 페르소나별 속성 가중치 차등)
+  - Block D 실용 조건 적합도 20% (visa + english + companion × stay_style)
+- 신규 인풋 2개 추가: stay_style(체류 형태), tax_sensitivity(세금 민감도)
+- 대만(TW) 아시아 대륙 매핑 누락 수정
+- 페르소나 키 프론트-백엔드 완전 일치 확인
+
+### 다음 세션 참고사항
+- 폼 스텝 구조 확정됨 (4스텝: 목적/라이프스타일/동행/예산)
+- 폼 카피 수정 미완 (스텝 구조 확정되었으므로 다음 세션 진행 가능)
+- 더 알아보기 → 타로카드 UX 재설계 (별도 세션)
+- Jakarta city_scores.json 미등록 (우선순위 낮음, 추후 추가)
+
+---
+
 ## [2026-04-05 KST] — 카피라이팅 전면 검토 + 폼 구조 논의
 
 ### 변경 파일
