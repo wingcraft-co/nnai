@@ -72,8 +72,8 @@ def draw_grace(frame: int = 0) -> Image.Image:
 
     skin = (242, 205, 169)
     skin_s = (213, 173, 139)
-    hair = (174, 128, 78)
-    hair_h = (211, 169, 108)
+    hair = (214, 176, 108)
+    hair_h = (238, 206, 144)
     visor = (107, 188, 212)
     visor_h = (168, 233, 243)
     suit = (169, 48, 39)
@@ -88,7 +88,6 @@ def draw_grace(frame: int = 0) -> Image.Image:
     patch_d = (130, 126, 121)
 
     arm_dy = [0, -1, 0, 1][frame % 4]
-    legs = [(13, 18), (18, 23)] if frame in (0, 2) else [(15, 20), (16, 21)]
 
     # Backpack and harness.
     fill_rect(im, 7, 11, 10, 20, suit_d)
@@ -102,33 +101,27 @@ def draw_grace(frame: int = 0) -> Image.Image:
     px(im, 12, 16, trim)
 
     # Helmet rim and shell.
-    fill_rect(im, 14, 6, 20, 7, trim)
-    fill_rect(im, 13, 8, 21, 8, trim)
+    fill_rect(im, 13, 8, 21, 8, hair)
     px(im, 13, 9, trim)
     px(im, 21, 9, trim)
-    px(im, 14, 5, trim)
 
-    # Hair.
-    fill_rect(im, 15, 5, 19, 5, hair)
-    px(im, 16, 4, hair_h)
-    px(im, 17, 4, hair_h)
-    px(im, 18, 4, hair)
-    if frame in (1, 3):
-        px(im, 17, 3, hair_h)
+    # Hair: side-swept blond quiff silhouette.
+    fill_rect(im, 14, 7, 20, 7, hair)
+    fill_rect(im, 15, 6, 20, 6, hair_h)
+    fill_rect(im, 17, 5, 20, 5, hair_h)
+    px(im, 20, 4, hair_h)
+    px(im, 19, 4, hair)
+    px(im, 15, 6, hair)  # darker back side for depth
 
     # Face block.
     fill_rect(im, 14, 8, 19, 12, skin)
     px(im, 14, 8, skin_s)
     px(im, 14, 9, skin_s)
-    fill_rect(im, 20, 9, 21, 10, skin)
-    px(im, 19, 10, (40, 34, 29))  # eye
+    fill_rect(im, 20, 9, 20, 12, skin)
+    px(im, 19, 10, (0, 0, 0))  # eye
     px(im, 20, 12, (191, 132, 114))  # mouth
 
-    # Visor tint + shine.
-    fill_rect(im, 17, 8, 19, 10, visor)
-    px(im, 19, 8, visor_h)
-    px(im, 18, 9, visor_h)
-    px(im, 19, 11, visor_h)
+    # No cyan marks above eye.
 
     # Torso and chest modules.
     fill_rect(im, 14, 13, 20, 20, suit)
@@ -155,34 +148,55 @@ def draw_grace(frame: int = 0) -> Image.Image:
 
     # Arms.
     fill_rect(im, 12, 14, 13, 16, suit_d)  # back arm suit
-    fill_rect(im, 13, 17, 13, 18, skin)    # back hand
+    fill_rect(im, 13, 17, 13, 18, trim)    # back glove
 
-    fill_rect(im, 21, 14 + arm_dy, 22, 16 + arm_dy, suit)
-    fill_rect(im, 21, 17 + arm_dy, 22, 18 + arm_dy, skin)
-    fill_rect(im, 23, 17 + arm_dy, 24, 18 + arm_dy, trim)
+    # Front arm stays below face line.
+    fill_rect(im, 21, 16 + arm_dy, 22, 18 + arm_dy, suit)
+    fill_rect(im, 21, 19 + arm_dy, 22, 20 + arm_dy, trim)
+    fill_rect(im, 23, 19 + arm_dy, 24, 20 + arm_dy, trim)
     # Small handheld badge/wrist tool pulse.
     if frame in (0, 2):
-        px(im, 24, 16 + arm_dy, patch)
+        px(im, 24, 18 + arm_dy, patch)
     else:
-        px(im, 24, 17 + arm_dy, patch_d)
+        px(im, 24, 19 + arm_dy, patch_d)
 
-    # Helmet lamp pulse.
-    if frame in (0, 2):
-        fill_rect(im, 22, 9, 23, 10, light_h)
-        fill_rect(im, 24, 9, 25, 10, light)
-        px(im, 23, 11, light)
+    # Helmet lamp removed by request.
+
+    # Legs + boots: articulated EVA walk cycle.
+    if frame == 0:
+        # Left leg back, right leg forward
+        left_leg = [(15, 21), (15, 22), (15, 23), (14, 24), (14, 25)]
+        right_leg = [(19, 21), (19, 22), (20, 23), (20, 24), (21, 25)]
+    elif frame == 1:
+        # Passing
+        left_leg = [(16, 21), (16, 22), (16, 23), (16, 24), (16, 25)]
+        right_leg = [(18, 21), (18, 22), (18, 23), (18, 24), (18, 25)]
+    elif frame == 2:
+        # Swap
+        left_leg = [(19, 21), (19, 22), (20, 23), (20, 24), (21, 25)]
+        right_leg = [(15, 21), (15, 22), (15, 23), (14, 24), (14, 25)]
     else:
-        fill_rect(im, 22, 9, 23, 10, light)
-        px(im, 24, 8, light_h)
-        fill_rect(im, 24, 9, 25, 10, light)
+        # Passing opposite
+        left_leg = [(17, 21), (17, 22), (17, 23), (17, 24), (17, 25)]
+        right_leg = [(19, 21), (19, 22), (19, 23), (19, 24), (19, 25)]
 
-    # Legs + boots with knee pads.
-    for x0, x1 in legs:
-        fill_rect(im, x0, 21, x1, 24, suit_d)
-        fill_rect(im, x0, 25, x1, 26, boot)
-    fill_rect(im, legs[1][0], 21, legs[1][0] + 1, 21, suit_h)
-    px(im, legs[0][0] + 1, 22, patch)
-    px(im, legs[1][0] + 1, 22, patch)
+    for x, y in left_leg:
+        px(im, x, y, suit_d)
+        px(im, x + 1, y, suit_d)
+    for x, y in right_leg:
+        px(im, x, y, suit)
+        px(im, x + 1, y, suit)
+
+    # Knee pads
+    px(im, left_leg[1][0], left_leg[1][1], patch)
+    px(im, right_leg[1][0], right_leg[1][1], patch)
+
+    # Boots (thicker contact).
+    for x, y in [left_leg[-2], left_leg[-1], right_leg[-2], right_leg[-1]]:
+        px(im, x, y, boot)
+    # Sole highlights.
+    px(im, left_leg[-1][0], left_leg[-1][1], patch_d)
+    px(im, right_leg[-1][0], right_leg[-1][1], patch_d)
 
     return im
 
