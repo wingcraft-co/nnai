@@ -18,13 +18,6 @@ const PURPOSE_OPTIONS = [
   { label: "은퇴 후 거주", value: "은퇴 후 거주" },
 ];
 
-const TRAVEL_TYPE_OPTIONS = [
-  { label: "혼자", value: "혼자 (솔로)" },
-  { label: "배우자 동반", value: "배우자/파트너 동반" },
-  { label: "자녀 동반", value: "자녀 동반 (배우자 없이)" },
-  { label: "가족 전체 동반", value: "가족 전체 동반" },
-];
-
 const TIMELINE_OPTIONS = [
   { label: "1~3개월 단기 체류", value: "1~3개월 단기 체류" },
   { label: "6개월 중기 체류", value: "6개월 중기 체류" },
@@ -48,9 +41,16 @@ const INCOME_RANGE_OPTIONS = [
 ];
 
 const TAX_SENSITIVITY_OPTIONS = [
-  { label: "세금 혜택이 중요해요", value: "optimize" },
+  { label: "중요해요", value: "optimize" },
   { label: "크게 중요하지 않아요", value: "simple" },
   { label: "잘 모르겠어요", value: "unknown" },
+];
+
+const TRAVEL_TYPE_OPTIONS = [
+  { label: "혼자", value: "혼자 (솔로)" },
+  { label: "배우자 동반", value: "배우자/파트너 동반" },
+  { label: "자녀 동반", value: "자녀 동반 (배우자 없이)" },
+  { label: "가족 전체 동반", value: "가족 전체 동반" },
 ];
 
 const SPOUSE_INCOME_OPTIONS = [
@@ -84,11 +84,11 @@ const LIFESTYLE_OPTIONS = [
 
 interface FormData {
   immigration_purpose: string;
-  travel_type: string;
   timeline: string;
   stay_style: string;
   income_range: string;
   tax_sensitivity: string;
+  travel_type: string;
   children_ages: string[];
   has_spouse_income: string;
   spouse_income_krw: number;
@@ -98,11 +98,11 @@ interface FormData {
 
 const INITIAL_FORM: FormData = {
   immigration_purpose: "",
-  travel_type: "",
   timeline: "",
   stay_style: "",
   income_range: "",
   tax_sensitivity: "",
+  travel_type: "",
   children_ages: [],
   has_spouse_income: "없음",
   spouse_income_krw: 0,
@@ -110,13 +110,14 @@ const INITIAL_FORM: FormData = {
   lifestyle: [],
 };
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 const STEP_TITLES = [
-  "어떤 노마드가 되고 싶나요?",
-  "얼마나 머물 계획인가요?",
-  "경제 상황을 알려주세요",
-  "마지막으로 몇 가지만 더!",
+  "어떤 목적으로 노마드를\n준비하고 있어요?",
+  "어떻게 지낼 계획이에요?",
+  "비자 조건 확인을 위해,\n소득 구간을 알려주세요.",
+  "같이 가는 사람이 있어요?",
+  "마지막으로,\n더 알아야 할게 있다면 알려주세요.",
 ];
 
 const personaGif: Record<string, string> = {
@@ -159,10 +160,11 @@ export default function FormPage() {
 
   function canProceed(): boolean {
     switch (currentStep) {
-      case 1: return form.immigration_purpose !== "" && form.travel_type !== "";
+      case 1: return form.immigration_purpose !== "";
       case 2: return form.timeline !== "";
       case 3: return form.income_range !== "";
-      case 4: return true;
+      case 4: return form.travel_type !== "";
+      case 5: return true;
       default: return false;
     }
   }
@@ -216,7 +218,7 @@ export default function FormPage() {
       sessionStorage.setItem("nnai_result", JSON.stringify(data));
       router.push("/result");
     } catch {
-      setError("잠시 후 다시 시도해주세요.");
+      setError("뭔가 막혔어요. 다시 해볼까요?");
     } finally {
       setIsLoading(false);
     }
@@ -251,8 +253,8 @@ export default function FormPage() {
       {/* 콘텐츠 */}
       <div className="flex flex-1 flex-col justify-start pt-24 px-4">
         {/* 스텝 캐릭터 — 배지 바로 위, 여백 0 */}
-        <div className="grid grid-cols-4 h-12">
-          {[1, 2, 3, 4].map((step) => (
+        <div className="grid grid-cols-5 h-12">
+          {[1, 2, 3, 4, 5].map((step) => (
             <div key={step} className="flex items-end justify-center">
               {currentStep === step && (
                 <motion.img
@@ -297,27 +299,15 @@ export default function FormPage() {
               {STEP_TITLES[currentStep - 1]}
             </h2>
 
-            {/* Step 1: 목적 + 동행 유형 */}
+            {/* Step 1: 목적 */}
             {currentStep === 1 && (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">노마드 목적</label>
-                  <SelectCard
-                    options={PURPOSE_OPTIONS}
-                    selected={form.immigration_purpose}
-                    onSelect={(v) => setForm({ ...form, immigration_purpose: v })}
-                    mode="single"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">동행 유형</label>
-                  <SelectCard
-                    options={TRAVEL_TYPE_OPTIONS}
-                    selected={form.travel_type}
-                    onSelect={(v) => setForm({ ...form, travel_type: v })}
-                    mode="single"
-                  />
-                </div>
+              <div className="space-y-2">
+                <SelectCard
+                  options={PURPOSE_OPTIONS}
+                  selected={form.immigration_purpose}
+                  onSelect={(v) => setForm({ ...form, immigration_purpose: v })}
+                  mode="single"
+                />
               </div>
             )}
 
@@ -347,7 +337,7 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* Step 3: 소득 + 세금 민감도 + 동행 조건부 */}
+            {/* Step 3: 소득 + 세금 민감도 */}
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div className="space-y-2">
@@ -372,13 +362,13 @@ export default function FormPage() {
                     })}
                   </div>
                   {form.income_range === "0" && (
-                    <p className="text-xs text-destructive mt-1">주의! 정확한 비자 추천이 제한됩니다.</p>
+                    <p className="text-xs text-destructive mt-1">비자 추천 정확도가 낮아질 수 있어요.</p>
                   )}
                 </div>
 
                 {!isShortStay && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">세금 민감도</label>
+                    <label className="text-sm text-muted-foreground">세금 혜택은 중요한가요?</label>
                     <SelectCard
                       options={TAX_SENSITIVITY_OPTIONS}
                       selected={form.tax_sensitivity}
@@ -387,10 +377,24 @@ export default function FormPage() {
                     />
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Step 4: 동행 유형 + 조건부 필드 */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <SelectCard
+                    options={TRAVEL_TYPE_OPTIONS}
+                    selected={form.travel_type}
+                    onSelect={(v) => setForm({ ...form, travel_type: v })}
+                    mode="single"
+                  />
+                </div>
 
                 {hasSpouse(form.travel_type) && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">배우자 소득</label>
+                    <label className="text-sm text-muted-foreground">배우자는 소득이 있나요?</label>
                     <SelectCard
                       options={SPOUSE_INCOME_OPTIONS}
                       selected={form.has_spouse_income}
@@ -399,7 +403,7 @@ export default function FormPage() {
                     />
                     {form.has_spouse_income === "있음" && (
                       <div className="mt-3">
-                        <label className="text-sm text-muted-foreground">배우자 월 소득 (만원)</label>
+                        <label className="text-sm text-muted-foreground">배우자의 수입 구간을 알려주세요.</label>
                         <input
                           type="number"
                           placeholder="0"
@@ -414,7 +418,7 @@ export default function FormPage() {
 
                 {hasChildren(form.travel_type) && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">자녀 연령대 (복수 선택)</label>
+                    <label className="text-sm text-muted-foreground">아이들 나이대는 어떻게 돼요?</label>
                     <SelectCard
                       options={CHILDREN_AGE_OPTIONS}
                       selected={form.children_ages}
@@ -426,11 +430,11 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* Step 4: 선호 지역 + 라이프스타일 */}
-            {currentStep === 4 && (
+            {/* Step 5: 선호 지역 + 라이프스타일 */}
+            {currentStep === 5 && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">선호 지역 (선택 안 해도 됨)</label>
+                  <label className="text-sm text-muted-foreground">가고 싶은 지역이 있어요?</label>
                   <SelectCard
                     options={REGION_OPTIONS}
                     selected={form.preferred_countries}
@@ -439,7 +443,7 @@ export default function FormPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">중요하게 생각하는 조건 (선택 안 해도 됨)</label>
+                  <label className="text-sm text-muted-foreground">노마드 선호 환경은요?</label>
                   <SelectCard
                     options={LIFESTYLE_OPTIONS}
                     selected={form.lifestyle}
@@ -450,8 +454,8 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* CTA 버튼 — 콘텐츠 흐름 안 */}
-            <div className="mt-10">
+            {/* CTA 버튼 */}
+            <div className="mt-10 space-y-3">
               {error && (
                 <p className="mb-3 text-center text-sm text-destructive">{error}</p>
               )}
@@ -461,8 +465,17 @@ export default function FormPage() {
                 disabled={!canProceed() || isLoading}
                 className="w-full bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {isLoading ? "분석 중..." : currentStep === TOTAL_STEPS ? "분석 시작" : "다음"}
+                {isLoading ? "당신에게 맞는 도시를 찾는 중이에요..." : currentStep === TOTAL_STEPS ? "도시 추천 받기" : "다음"}
               </button>
+              {currentStep === 5 && !isLoading && (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="w-full py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  건너뛰기
+                </button>
+              )}
             </div>
           </motion.div>
         </AnimatePresence>

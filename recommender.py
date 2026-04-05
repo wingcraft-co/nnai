@@ -260,6 +260,7 @@ def _block_c(city: dict, country: dict, persona_type: str, income_usd: float) ->
 def _block_d(
     city: dict, country: dict, income_usd: float,
     travel_type: str, lifestyle: list[str], stay_style: str = "",
+    children_ages: list[str] | None = None,
 ) -> float:
     """Practical conditions — visa access, language, companion needs."""
     # Visa accessibility (0–10)
@@ -287,13 +288,46 @@ def _block_d(
 
     # Companion conditions (0–10)
     companion_score = 5.0  # solo default (neutral)
-    if "자녀" in travel_type:
-        # Children: prioritize safety + cost efficiency
+    ages = children_ages or []
+    has_young = any(a in ("0~2", "3~6") for a in ages)       # 영아/미취학
+    has_elementary = any(a == "7~12" for a in ages)           # 초등
+    has_teen = any(a == "13~18" for a in ages)                # 중고등
+
+    if "자녀" in travel_type or ("가족" in travel_type and ages):
         safety = city.get("safety_score", 5)
         cost_eff = max(0.0, (1.0 - _cost_ratio(city, income_usd)) * 10)
-        companion_score = safety * 0.6 + cost_eff * 0.4
+        english = city.get("english_score", 5)
+        community = _COMMUNITY_SCORE.get(city.get("korean_community_size", ""), 0)
+
+        # 연령대별 가중치 합산
+        w_safety = 0.6
+        w_cost = 0.4
+        w_english = 0.0
+        w_community = 0.0
+
+        if has_young:
+            w_safety = 0.8
+            w_cost = 0.2
+        if has_elementary:
+            w_english += 0.2
+            w_safety = max(w_safety - 0.1, 0.3)
+            w_cost = max(w_cost - 0.1, 0.1)
+        if has_teen:
+            w_english += 0.15
+            w_community += 0.15
+            w_safety = max(w_safety - 0.15, 0.2)
+            w_cost = max(w_cost - 0.15, 0.05)
+
+        # Normalize weights to sum to 1.0
+        total_w = w_safety + w_cost + w_english + w_community
+        companion_score = (
+            safety * (w_safety / total_w)
+            + cost_eff * (w_cost / total_w)
+            + english * (w_english / total_w)
+            + community * (w_community / total_w)
+        )
     elif "배우자" in travel_type or "가족" in travel_type or "파트너" in travel_type:
-        # Spouse/family: prioritize renewable visa + safety
+        # Spouse/family (자녀 없음): prioritize renewable visa + safety
         renew = 5.0 if renewable else 0.0
         safety = city.get("safety_score", 5)
         companion_score = renew * 0.5 + safety * 0.5
@@ -313,13 +347,14 @@ def _compute_score(
     travel_type: str = "",
     stay_style: str = "",
     tax_sensitivity: str = "",
+    children_ages: list[str] | None = None,
 ) -> float:
     """4-Block composite score (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
     a = _block_a(city, ls)
     b = _block_b(city, country, income_usd, ls, tax_sensitivity)
     c = _block_c(city, country, persona_type, income_usd)
-    d = _block_d(city, country, income_usd, travel_type, ls, stay_style)
+    d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages)
     return round(min(10.0, max(0.0, a + b + c + d)), 1)
 
 
@@ -381,6 +416,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
     travel_type = user_profile.get("travel_type", "")
     stay_style = user_profile.get("stay_style") or ""
     tax_sensitivity = user_profile.get("tax_sensitivity") or ""
+    children_ages = user_profile.get("children_ages") or []
 
     # Build country lookup
     country_map: dict[str, dict] = {c["id"]: c for c in countries_list}
@@ -409,7 +445,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
         if not _passes_schengen_long_stay_filter(country, timeline, income_usd):
             continue
 
-        score = _compute_score(city, country, income_usd, lifestyle, persona_type, travel_type, stay_style, tax_sensitivity)
+        score = _compute_score(city, country, income_usd, lifestyle, persona_type, travel_type, stay_style, tax_sensitivity, children_ages)
         candidates.append((score, city, country))
 
     # Sort descending by score
