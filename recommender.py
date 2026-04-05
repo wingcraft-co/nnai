@@ -350,12 +350,44 @@ def _compute_score(
     children_ages: list[str] | None = None,
 ) -> float:
     """4-Block composite score (0–10)."""
+    return _compute_score_breakdown(
+        city=city,
+        country=country,
+        income_usd=income_usd,
+        lifestyle=lifestyle,
+        persona_type=persona_type,
+        travel_type=travel_type,
+        stay_style=stay_style,
+        tax_sensitivity=tax_sensitivity,
+        children_ages=children_ages,
+    )["total"]
+
+
+def _compute_score_breakdown(
+    city: dict,
+    country: dict,
+    income_usd: float,
+    lifestyle: list[str],
+    persona_type: str = "",
+    travel_type: str = "",
+    stay_style: str = "",
+    tax_sensitivity: str = "",
+    children_ages: list[str] | None = None,
+) -> dict[str, float]:
+    """4-Block composite score breakdown (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
     a = _block_a(city, ls)
     b = _block_b(city, country, income_usd, ls, tax_sensitivity)
     c = _block_c(city, country, persona_type, income_usd)
     d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages)
-    return round(min(10.0, max(0.0, a + b + c + d)), 1)
+    total = round(min(10.0, max(0.0, a + b + c + d)), 1)
+    return {
+        "block_a": round(a, 3),
+        "block_b": round(b, 3),
+        "block_c": round(c, 3),
+        "block_d": round(d, 3),
+        "total": total,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -401,7 +433,7 @@ def _passes_schengen_long_stay_filter(
 # Public API
 # ---------------------------------------------------------------------------
 
-def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
+def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = False) -> dict:
     """Filter and rank cities from DB; return top-N with warnings."""
     countries_list, cities_list = _load_data()
 
@@ -422,11 +454,9 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
     country_map: dict[str, dict] = {c["id"]: c for c in countries_list}
 
     # Score and filter cities
-    scored: list[tuple[float, dict, dict]] = []  # (score, city, country)
-
     seen_country_ids: set[str] = set()
 
-    candidates: list[tuple[float, dict, dict]] = []
+    candidates: list[tuple[float, dict, dict, dict[str, float]]] = []
 
     for city in cities_list:
         cid = city.get("country_id", "")
@@ -445,28 +475,40 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
         if not _passes_schengen_long_stay_filter(country, timeline, income_usd):
             continue
 
-        score = _compute_score(city, country, income_usd, lifestyle, persona_type, travel_type, stay_style, tax_sensitivity, children_ages)
-        candidates.append((score, city, country))
+        breakdown = _compute_score_breakdown(
+            city=city,
+            country=country,
+            income_usd=income_usd,
+            lifestyle=lifestyle,
+            persona_type=persona_type,
+            travel_type=travel_type,
+            stay_style=stay_style,
+            tax_sensitivity=tax_sensitivity,
+            children_ages=children_ages,
+        )
+        score = breakdown["total"]
+        candidates.append((score, city, country, breakdown))
 
     # Sort descending by score
     candidates.sort(key=lambda x: x[0], reverse=True)
 
     # Deduplicate by country — keep only highest-scoring city per country
-    top_cities_raw: list[tuple[float, dict, dict]] = []
-    for score, city, country in candidates:
+    top_cities_raw: list[tuple[float, dict, dict, dict[str, float]]] = []
+    for score, city, country, breakdown in candidates:
         cid = city.get("country_id", "")
         if cid in seen_country_ids:
             continue
         seen_country_ids.add(cid)
-        top_cities_raw.append((score, city, country))
+        top_cities_raw.append((score, city, country, breakdown))
         if len(top_cities_raw) == top_n:
             break
 
     # Build output city dicts
-    result_country_ids = {city.get("country_id", "") for _, city, _ in top_cities_raw}
+    result_country_ids = {city.get("country_id", "") for _, city, _, _ in top_cities_raw}
 
     top_cities: list[dict] = []
-    for score, city, country in top_cities_raw:
+    debug_selected: list[dict] = []
+    for idx, (score, city, country, breakdown) in enumerate(top_cities_raw, start=1):
         cid = city.get("country_id", "")
         is_schengen = cid in _SCHENGEN_IDS
         top_cities.append({
@@ -505,6 +547,21 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
             "visa_notes":                 country.get("visa_notes"),
             "city_description":           _get_city_description(cid, city.get("city", "")),
         })
+        if debug_mode:
+            debug_selected.append({
+                "rank": idx,
+                "city": city.get("city", ""),
+                "city_kr": city.get("city_kr", ""),
+                "country": city.get("country", ""),
+                "country_id": cid,
+                "final_score": score,
+                "blocks": {
+                    "block_a": breakdown["block_a"],
+                    "block_b": breakdown["block_b"],
+                    "block_c": breakdown["block_c"],
+                    "block_d": breakdown["block_d"],
+                },
+            })
 
     # Build overall_warning
     warnings: list[str] = []
@@ -547,10 +604,27 @@ def recommend_from_db(user_profile: dict, top_n: int = 3) -> dict:
 
     overall_warning = " ".join(warnings)
 
-    return {
+    result = {
         "top_cities":      top_cities,
         "overall_warning": overall_warning,
     }
+    if debug_mode:
+        result["debug_logs"] = {
+            "score_model": "4-block",
+            "selected": debug_selected,
+            "inputs": {
+                "income_usd": income_usd,
+                "timeline": timeline,
+                "persona_type": persona_type,
+                "travel_type": travel_type,
+                "stay_style": stay_style,
+                "tax_sensitivity": tax_sensitivity,
+                "lifestyle": _normalize_lifestyle(lifestyle),
+                "preferred_countries": preferred,
+            },
+            "selection_rule": "국가 중복 제거 규칙으로 국가당 최고 점수 도시 1개만 선택",
+        }
+    return result
 
 
 # ---------------------------------------------------------------------------

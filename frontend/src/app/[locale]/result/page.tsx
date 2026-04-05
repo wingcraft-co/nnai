@@ -58,8 +58,31 @@ interface RecommendResult {
     top_cities: CityData[];
     overall_warning: string;
     _user_profile: UserProfile;
+    debug_logs?: {
+      score_model?: string;
+      selected?: Array<{
+        rank: number;
+        city: string;
+        city_kr?: string;
+        country: string;
+        country_id: string;
+        final_score: number;
+        blocks: {
+          block_a: number;
+          block_b: number;
+          block_c: number;
+          block_d: number;
+        };
+      }>;
+      inputs?: Record<string, unknown>;
+      selection_rule?: string;
+    };
   };
 }
+
+const DEBUG_MODE = ["1", "true", "yes", "on"].includes(
+  (process.env.NEXT_PUBLIC_DEBUG_MODE ?? "").toLowerCase()
+);
 
 // -- Persona Labels --
 
@@ -234,6 +257,7 @@ export default function ResultPage() {
   const cities = (citiesRaw?.[0]?.internet_mbps != null ? citiesRaw : topCitiesRaw) || [];
   const overallWarning = result.parsed.overall_warning;
   const userProfile = result.parsed._user_profile || {};
+  const debugLogs = result.parsed.debug_logs;
   const personaType = (userProfile.persona_type as string) || "";
   const label = personaLabel[personaType] || "";
 
@@ -253,6 +277,53 @@ export default function ResultPage() {
           당신에게 맞는 도시 TOP 3
         </h1>
       </motion.div>
+
+      {DEBUG_MODE && (
+        <motion.aside
+          {...fadeUp(0.05)}
+          className="pointer-events-none fixed inset-x-3 bottom-3 z-50 sm:inset-x-auto sm:right-4 sm:w-[26rem]"
+        >
+          <details className="pointer-events-auto max-h-[65vh] overflow-hidden rounded-lg border border-white/25 bg-black/35 text-xs text-white shadow-2xl backdrop-blur-md">
+            <summary className="cursor-pointer px-3 py-2 font-semibold">
+              Developer Log Panel (Top3 Selection)
+            </summary>
+            <div className="max-h-[58vh] overflow-y-auto px-3 pb-3">
+              {!debugLogs && (
+                <p className="mt-2 text-white/75">
+                  debug_logs가 없습니다. 백엔드 `DEBUG_MODE=1` 설정을 확인하세요.
+                </p>
+              )}
+              {debugLogs && (
+                <div className="mt-2 space-y-3">
+                  <p className="text-white/70">
+                    model: {debugLogs.score_model ?? "unknown"}
+                  </p>
+                  {(debugLogs.selected ?? []).map((row) => (
+                    <div key={`${row.rank}-${row.country_id}-${row.city}`} className="rounded border border-white/20 bg-black/30 p-2">
+                      <p className="font-medium">
+                        #{row.rank} {row.city_kr || row.city} ({row.country_id}) - {row.final_score}/10
+                      </p>
+                      <p className="text-white/75">
+                        A:{row.blocks.block_a.toFixed(2)} / B:{row.blocks.block_b.toFixed(2)} / C:{row.blocks.block_c.toFixed(2)} / D:{row.blocks.block_d.toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                  {debugLogs.selection_rule && (
+                    <p className="text-white/75">
+                      rule: {debugLogs.selection_rule}
+                    </p>
+                  )}
+                  {debugLogs.inputs && (
+                    <pre className="overflow-x-auto rounded border border-white/20 bg-black/30 p-2 text-[11px] leading-4 text-white/85">
+                      {JSON.stringify(debugLogs.inputs, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
+          </details>
+        </motion.aside>
+      )}
 
       {/* 도시 카드 */}
       {cities.map((city, i) => {

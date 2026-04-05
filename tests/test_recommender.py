@@ -153,3 +153,31 @@ def test_compute_disabled_options_values_are_lists():
     result = compute_disabled_options(_profile(income_usd=100))
     for key, val in result.items():
         assert isinstance(val, list), f"{key} should be a list"
+
+
+def test_debug_logs_are_not_included_by_default():
+    result = recommend_from_db(_profile(income_usd=3000))
+    assert "debug_logs" not in result
+
+
+def test_debug_logs_include_top3_score_breakdown_when_enabled():
+    result = recommend_from_db(_profile(income_usd=3000), debug_mode=True)
+
+    assert "debug_logs" in result
+    debug_logs = result["debug_logs"]
+    assert isinstance(debug_logs, dict)
+    assert "selected" in debug_logs
+    assert isinstance(debug_logs["selected"], list)
+
+    top_cities = result["top_cities"]
+    selected = debug_logs["selected"]
+    assert len(selected) == len(top_cities)
+
+    for idx, row in enumerate(selected):
+        assert row["rank"] == idx + 1
+        assert isinstance(row["city"], str) and row["city"]
+        assert isinstance(row["country_id"], str) and row["country_id"]
+        assert 0.0 <= row["final_score"] <= 10.0
+        blocks = row["blocks"]
+        assert set(blocks.keys()) == {"block_a", "block_b", "block_c", "block_d"}
+        assert all(v >= 0 for v in blocks.values())

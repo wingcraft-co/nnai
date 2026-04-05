@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 _VISA_DB_CACHE: dict | None = None
 
 
+def _is_debug_mode_enabled() -> bool:
+    return os.getenv("DEBUG_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _lookup_visa_data(country_id: str) -> dict | None:
     """visa_db.json에서 country_id에 해당하는 항목 반환. 없으면 None."""
     global _VISA_DB_CACHE
@@ -114,7 +118,7 @@ def nomad_advisor(
 
     if os.getenv("USE_DB_RECOMMENDER", "1") == "1":
         # DB 기반 추천 경로 (LLM 호출 없음)
-        parsed = recommend_from_db(user_profile)
+        parsed = recommend_from_db(user_profile, debug_mode=_is_debug_mode_enabled())
         _inject_visa_urls(parsed)
     else:
         # 기존 LLM 경로 (롤백용, 삭제 금지)
@@ -156,6 +160,12 @@ def nomad_advisor(
 
     # 두 경로 공통: _user_profile 주입
     parsed["_user_profile"] = user_profile
+    if _is_debug_mode_enabled() and "debug_logs" not in parsed:
+        parsed["debug_logs"] = {
+            "score_model": "llm",
+            "selected": [],
+            "selection_rule": "LLM 경로에서는 블록 점수 로그를 제공하지 않습니다.",
+        }
 
     markdown = format_step1_markdown(parsed)
     cities   = parsed.get("top_cities", [])
