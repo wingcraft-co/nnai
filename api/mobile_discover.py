@@ -22,7 +22,7 @@ class PinCreate(BaseModel):
 
 class CityStayCreate(BaseModel):
     city: str
-    country: str
+    country: str | None = None
     arrived_at: str | None = None
     left_at: str | None = None
     visa_expires_at: str | None = None
@@ -229,14 +229,22 @@ def create_pin(body: PinCreate, user_id: str = Depends(require_mobile_auth)):
             """
             INSERT INTO pins (user_id, city, display, note, lat, lng, user_lat, user_lng, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW()::text)
-            RETURNING id, city, created_at
+            RETURNING id, city, display, note, lat, lng, created_at
             """,
             (user_id, body.city, body.display, body.note, body.lat, body.lng, body.user_lat, body.user_lng),
         )
         row = cur.fetchone()
     conn.commit()
 
-    return {"id": row[0], "city": row[1], "created_at": str(row[2])}
+    return {
+        "id": row[0],
+        "city": row[1],
+        "display": row[2],
+        "note": row[3],
+        "lat": row[4],
+        "lng": row[5],
+        "created_at": str(row[6]),
+    }
 
 
 @router.get("/city-stays")

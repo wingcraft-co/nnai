@@ -454,7 +454,7 @@ GET /api/visits?path=/dev
 ### 모바일 Auth
 
 - `POST /auth/mobile/token` → `{ token, user }`
-- `GET /auth/mobile/me`
+- `GET /auth/mobile/me` → `User(uid, name, picture, email, persona_type)`
 
 ### Core Mobile
 
@@ -506,8 +506,20 @@ GET /api/visits?path=/dev
   - `status`: `planned | booked`
   - `conditions: [{ id, label, is_done }]`
   - `is_focus: boolean`
+  - `from_country`, `to_country`, `to_city`, `target_month`, `note`
 - `GET/POST/PATCH /api/mobile/city-stays*`
   - `id, city, country, arrived_at, left_at, visa_expires_at, budget_total, budget_remaining, created_at, updated_at`
+- `GET /api/mobile/posts`
+  - `author_persona_type` 포함
+- `GET/POST /api/mobile/type-actions/planner/*`
+  - Board: `id, country, city, title, created_at, updated_at`
+  - Task: `id, board_id, text, is_done, due_date, sort_order`
+- `POST /api/mobile/type-actions/free-spirit/spins`
+  - `{ spin_id, selected, candidates_count }`
+- `GET /api/mobile/type-actions/local/events/saved`
+  - `id, source, source_event_id, title, venue_name, address, country, city, starts_at, ends_at, lat, lng, radius_m, status`
+- `GET/PATCH /api/mobile/type-actions/pioneer/milestones*`
+  - `id, country, city, category, title, status, target_date, note`
 
 ---
 

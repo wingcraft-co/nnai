@@ -33,7 +33,7 @@ def get_posts(
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT p.id, p.user_id, u.name, u.picture,
+            SELECT p.id, p.user_id, u.name, u.picture, u.persona_type,
                    p.title, p.body, p.tags, p.city, p.likes_count, p.created_at,
                    EXISTS(
                        SELECT 1 FROM post_likes
@@ -54,13 +54,14 @@ def get_posts(
             "user_id": r[1],
             "author": r[2],
             "picture": r[3],
-            "title": r[4],
-            "body": r[5],
-            "tags": r[6],
-            "city": r[7],
-            "likes_count": r[8],
-            "created_at": str(r[9]),
-            "liked": r[10],
+            "author_persona_type": r[4],
+            "title": r[5],
+            "body": r[6],
+            "tags": r[7],
+            "city": r[8],
+            "likes_count": r[9],
+            "created_at": str(r[10]),
+            "liked": r[11],
         }
         for r in rows
     ]
@@ -74,21 +75,38 @@ def create_post(body: PostCreate, user_id: str = Depends(require_mobile_auth)):
             """
             INSERT INTO posts (user_id, title, body, tags, city)
             VALUES (%s, %s, %s, %s::jsonb, %s)
-            RETURNING id, title, body, tags, city, likes_count, created_at
+            RETURNING id
             """,
             (user_id, body.title, body.body, json.dumps(body.tags), body.city),
+        )
+        post_id = cur.fetchone()[0]
+
+        cur.execute(
+            """
+            SELECT p.id, p.user_id, u.name, u.picture, u.persona_type,
+                   p.title, p.body, p.tags, p.city, p.likes_count, p.created_at
+            FROM posts p
+            JOIN users u ON u.id = p.user_id
+            WHERE p.id = %s
+            """,
+            (post_id,),
         )
         row = cur.fetchone()
     conn.commit()
 
     return {
         "id": row[0],
-        "title": row[1],
-        "body": row[2],
-        "tags": row[3],
-        "city": row[4],
-        "likes_count": row[5],
-        "created_at": str(row[6]),
+        "user_id": row[1],
+        "author": row[2],
+        "picture": row[3],
+        "author_persona_type": row[4],
+        "title": row[5],
+        "body": row[6],
+        "tags": row[7],
+        "city": row[8],
+        "likes_count": row[9],
+        "created_at": str(row[10]),
+        "liked": False,
     }
 
 
@@ -175,11 +193,29 @@ def create_comment(post_id: int, body: CommentCreate, user_id: str = Depends(req
             """
             INSERT INTO post_comments (post_id, user_id, body)
             VALUES (%s, %s, %s)
-            RETURNING id, body, created_at
+            RETURNING id
             """,
             (post_id, user_id, body.body),
+        )
+        comment_id = cur.fetchone()[0]
+
+        cur.execute(
+            """
+            SELECT c.id, c.user_id, u.name, u.picture, c.body, c.created_at
+            FROM post_comments c
+            JOIN users u ON u.id = c.user_id
+            WHERE c.id = %s
+            """,
+            (comment_id,),
         )
         row = cur.fetchone()
     conn.commit()
 
-    return {"id": row[0], "body": row[1], "created_at": str(row[2])}
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "author": row[2],
+        "picture": row[3],
+        "body": row[4],
+        "created_at": str(row[5]),
+    }

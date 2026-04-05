@@ -84,6 +84,21 @@
 }
 ```
 
+## 추가 반영 (2026-04-05, mobile 최신 타입 기준)
+
+- `GET /api/mobile/posts` 응답에 `author_persona_type` 포함
+- Planner:
+  - Board: `country`, `city`, `title`
+  - Task: `text`, `due_date`, `sort_order`, `is_done`
+- Free Spirit:
+  - `POST /api/mobile/type-actions/free-spirit/spins` → `{ spin_id, selected, candidates_count }`
+- Wanderer Hop:
+  - `from_country`, `to_country`, `to_city`, `note`, `target_month`, `status`, `conditions`, `is_focus`
+- Local Event Saved:
+  - `source`, `source_event_id`, `venue_name`, `address`, `starts_at`, `ends_at`, `lat`, `lng`, `radius_m`, `status`
+- Pioneer Milestone:
+  - `country`, `city`, `category`, `title`, `status`, `target_date`, `note`
+
 ## 주의사항
 
 - 모바일은 `nomad_type` fallback을 두지 마세요.

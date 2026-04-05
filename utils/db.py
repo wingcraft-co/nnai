@@ -129,7 +129,7 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 id                BIGSERIAL PRIMARY KEY,
                 user_id           TEXT NOT NULL REFERENCES users(id),
                 city              TEXT NOT NULL,
-                country           TEXT NOT NULL,
+                country           TEXT,
                 arrived_at        TEXT,
                 left_at           TEXT,
                 visa_expires_at   TEXT,
@@ -140,11 +140,19 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             );
         """)
         cur.execute("""
+            ALTER TABLE city_stays
+            ALTER COLUMN country DROP NOT NULL;
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS wanderer_hops (
                 id          BIGSERIAL PRIMARY KEY,
                 user_id     TEXT NOT NULL REFERENCES users(id),
                 from_city   TEXT,
+                from_country TEXT,
+                to_country  TEXT,
                 to_city     TEXT,
+                note        TEXT,
+                target_month TEXT,
                 status      TEXT NOT NULL DEFAULT 'planned',
                 conditions  JSONB NOT NULL DEFAULT '[]'::jsonb,
                 is_focus    BOOLEAN NOT NULL DEFAULT FALSE,
@@ -159,6 +167,22 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         cur.execute("""
             ALTER TABLE wanderer_hops
             ADD COLUMN IF NOT EXISTS is_focus BOOLEAN NOT NULL DEFAULT FALSE;
+        """)
+        cur.execute("""
+            ALTER TABLE wanderer_hops
+            ADD COLUMN IF NOT EXISTS from_country TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE wanderer_hops
+            ADD COLUMN IF NOT EXISTS to_country TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE wanderer_hops
+            ADD COLUMN IF NOT EXISTS note TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE wanderer_hops
+            ADD COLUMN IF NOT EXISTS target_month TEXT;
         """)
         cur.execute("""
             UPDATE wanderer_hops
@@ -178,36 +202,85 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             CREATE TABLE IF NOT EXISTS planner_boards (
                 id          BIGSERIAL PRIMARY KEY,
                 user_id     TEXT NOT NULL REFERENCES users(id),
+                country     TEXT,
+                city        TEXT,
                 title       TEXT NOT NULL,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        cur.execute("""
+            ALTER TABLE planner_boards
+            ADD COLUMN IF NOT EXISTS country TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE planner_boards
+            ADD COLUMN IF NOT EXISTS city TEXT;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS planner_tasks (
                 id          BIGSERIAL PRIMARY KEY,
                 board_id    BIGINT NOT NULL REFERENCES planner_boards(id) ON DELETE CASCADE,
                 user_id     TEXT NOT NULL REFERENCES users(id),
+                text        TEXT,
                 title       TEXT NOT NULL,
                 is_done     BOOLEAN NOT NULL DEFAULT FALSE,
+                due_date    TEXT,
+                sort_order  INTEGER NOT NULL DEFAULT 0,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        cur.execute("""
+            ALTER TABLE planner_tasks
+            ADD COLUMN IF NOT EXISTS text TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE planner_tasks
+            ADD COLUMN IF NOT EXISTS due_date TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE planner_tasks
+            ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+        """)
+        cur.execute("""
+            UPDATE planner_tasks SET text = title WHERE text IS NULL;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS free_spirit_spins (
                 id          BIGSERIAL PRIMARY KEY,
                 user_id     TEXT NOT NULL REFERENCES users(id),
                 result      TEXT NOT NULL,
+                selected    JSONB NOT NULL DEFAULT '{}'::jsonb,
+                candidates_count INTEGER NOT NULL DEFAULT 1,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        cur.execute("""
+            ALTER TABLE free_spirit_spins
+            ADD COLUMN IF NOT EXISTS selected JSONB NOT NULL DEFAULT '{}'::jsonb;
+        """)
+        cur.execute("""
+            ALTER TABLE free_spirit_spins
+            ADD COLUMN IF NOT EXISTS candidates_count INTEGER NOT NULL DEFAULT 1;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS local_saved_events (
                 id          BIGSERIAL PRIMARY KEY,
                 user_id     TEXT NOT NULL REFERENCES users(id),
                 event_id    TEXT NOT NULL,
+                source      TEXT,
+                source_event_id TEXT,
                 title       TEXT,
+                venue_name  TEXT,
+                address     TEXT,
+                country     TEXT,
+                city        TEXT,
+                starts_at   TEXT,
+                ends_at     TEXT,
+                lat         DOUBLE PRECISION,
+                lng         DOUBLE PRECISION,
+                radius_m    INTEGER NOT NULL DEFAULT 1500,
                 status      TEXT NOT NULL DEFAULT 'saved',
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -215,15 +288,108 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             );
         """)
         cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS source TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS source_event_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS venue_name TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS address TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS country TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS city TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS starts_at TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS ends_at TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+        """)
+        cur.execute("""
+            ALTER TABLE local_saved_events
+            ADD COLUMN IF NOT EXISTS radius_m INTEGER NOT NULL DEFAULT 1500;
+        """)
+        cur.execute("""
+            UPDATE local_saved_events
+            SET source_event_id = event_id
+            WHERE source_event_id IS NULL;
+        """)
+        cur.execute("""
+            UPDATE local_saved_events
+            SET source = 'google_places'
+            WHERE source IS NULL;
+        """)
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_local_saved_events_user_source_event
+            ON local_saved_events (user_id, source, source_event_id);
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS pioneer_milestones (
                 id          BIGSERIAL PRIMARY KEY,
                 user_id     TEXT NOT NULL REFERENCES users(id),
+                country     TEXT,
+                city        TEXT,
+                category    TEXT,
                 title       TEXT NOT NULL,
+                status      TEXT NOT NULL DEFAULT 'todo',
+                target_date TEXT,
+                note        TEXT,
                 is_done     BOOLEAN NOT NULL DEFAULT FALSE,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE (user_id, title)
             );
+        """)
+        cur.execute("""
+            ALTER TABLE pioneer_milestones
+            ADD COLUMN IF NOT EXISTS country TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE pioneer_milestones
+            ADD COLUMN IF NOT EXISTS city TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE pioneer_milestones
+            ADD COLUMN IF NOT EXISTS category TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE pioneer_milestones
+            ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'todo';
+        """)
+        cur.execute("""
+            ALTER TABLE pioneer_milestones
+            ADD COLUMN IF NOT EXISTS target_date TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE pioneer_milestones
+            ADD COLUMN IF NOT EXISTS note TEXT;
+        """)
+        cur.execute("""
+            UPDATE pioneer_milestones
+            SET status = CASE WHEN is_done THEN 'done' ELSE 'todo' END
+            WHERE status IS NULL;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS verified_sources (

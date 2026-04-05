@@ -115,7 +115,7 @@ def patch_move(move_id: int, body: MovePatch, user_id: str = Depends(require_mob
             UPDATE move_plans
             SET stage = %s
             WHERE id = %s AND user_id = %s
-            RETURNING id, title, stage
+            RETURNING id
             """,
             (body.stage, move_id, user_id),
         )
@@ -124,8 +124,28 @@ def patch_move(move_id: int, body: MovePatch, user_id: str = Depends(require_mob
     if not row:
         raise HTTPException(status_code=404, detail="Move plan not found")
 
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, title, from_city, to_city, stage, created_at
+            FROM move_plans
+            WHERE id = %s AND user_id = %s
+            """,
+            (move_id, user_id),
+        )
+        plan = cur.fetchone()
+        checklist = _get_checklist(cur, move_id)
+
     conn.commit()
-    return {"id": row[0], "title": row[1], "stage": row[2]}
+    return {
+        "id": plan[0],
+        "title": plan[1],
+        "from_city": plan[2],
+        "to_city": plan[3],
+        "stage": plan[4],
+        "created_at": str(plan[5]),
+        "checklist": checklist,
+    }
 
 
 @router.delete("/moves/{move_id}", status_code=204)
@@ -158,7 +178,7 @@ def toggle_item(move_id: int, item_id: int, user_id: str = Depends(require_mobil
             UPDATE move_checklist_items
             SET is_done = NOT is_done
             WHERE id = %s AND plan_id = %s
-            RETURNING id, text, is_done
+            RETURNING id, text, is_done, sort_order
             """,
             (item_id, move_id),
         )
@@ -168,4 +188,4 @@ def toggle_item(move_id: int, item_id: int, user_id: str = Depends(require_mobil
         raise HTTPException(status_code=404, detail="Checklist item not found")
 
     conn.commit()
-    return {"id": row[0], "text": row[1], "is_done": row[2]}
+    return {"id": row[0], "text": row[1], "is_done": row[2], "sort_order": row[3]}

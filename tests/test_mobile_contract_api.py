@@ -214,7 +214,7 @@ def test_type_actions_and_upload_smoke():
 
     board = client.post(
         "/api/mobile/type-actions/planner/boards",
-        json={"title": "Q2 Move"},
+        json={"country": "PT", "city": "Lisbon", "title": "Q2 Move"},
         headers=headers,
     )
     assert board.status_code == 201
@@ -222,11 +222,12 @@ def test_type_actions_and_upload_smoke():
 
     task = client.post(
         f"/api/mobile/type-actions/planner/boards/{board_id}/tasks",
-        json={"title": "Book flight"},
+        json={"text": "Book flight", "due_date": "2026-06-01", "sort_order": 1},
         headers=headers,
     )
     assert task.status_code == 201
     task_id = task.json()["id"]
+    assert task.json()["text"] == "Book flight"
 
     patched_task = client.patch(
         f"/api/mobile/type-actions/planner/tasks/{task_id}",
@@ -236,23 +237,35 @@ def test_type_actions_and_upload_smoke():
     assert patched_task.status_code == 200
     assert patched_task.json()["is_done"] is True
 
-    spin = client.post("/api/mobile/type-actions/free-spirit/spins", headers=headers)
+    spin = client.post(
+        "/api/mobile/type-actions/free-spirit/spins",
+        json={"lat": 37.56, "lng": 126.97},
+        headers=headers,
+    )
     assert spin.status_code == 201
-    assert "result" in spin.json()
+    assert "spin_id" in spin.json()
+    assert "selected" in spin.json()
 
     local_saved = client.get("/api/mobile/type-actions/local/events/saved", headers=headers)
     assert local_saved.status_code == 200
 
     saved = client.post(
         "/api/mobile/type-actions/local/events/save",
-        json={"event_id": "evt-1", "title": "Nomad meetup"},
+        json={
+            "source": "google_places",
+            "source_event_id": "evt-1",
+            "title": "Nomad meetup",
+            "venue_name": "Cowork Hub",
+            "radius_m": 2000,
+        },
         headers=headers,
     )
     assert saved.status_code == 201
+    event_id = saved.json()["id"]
 
     local_patch = client.patch(
-        "/api/mobile/type-actions/local/events/evt-1",
-        json={"status": "attending"},
+        f"/api/mobile/type-actions/local/events/{event_id}",
+        json={"status": "saved"},
         headers=headers,
     )
     assert local_patch.status_code == 200
@@ -264,11 +277,11 @@ def test_type_actions_and_upload_smoke():
     milestone_id = milestones.json()[0]["id"]
     milestone_patch = client.patch(
         f"/api/mobile/type-actions/pioneer/milestones/{milestone_id}",
-        json={"is_done": True},
+        json={"status": "done"},
         headers=headers,
     )
     assert milestone_patch.status_code == 200
-    assert milestone_patch.json()["is_done"] is True
+    assert milestone_patch.json()["status"] == "done"
 
     upload = client.post(
         "/api/mobile/uploads/image",
