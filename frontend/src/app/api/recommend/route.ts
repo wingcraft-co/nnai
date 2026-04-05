@@ -77,7 +77,8 @@ function enrichCities(cities: Record<string, unknown>[]) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  const response = await fetch("https://api.nnai.app/api/recommend", {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.nnai.app";
+  const response = await fetch(`${apiBase}/api/recommend`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
