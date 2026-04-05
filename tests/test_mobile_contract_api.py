@@ -283,6 +283,31 @@ def test_type_actions_and_upload_smoke():
         headers=headers,
     )
     assert milestone_patch.status_code == 200
+
+
+def test_mobile_posts_persists_uploaded_image_url():
+    uid = f"u_{uuid.uuid4().hex}"
+    client = TestClient(_make_app(uid))
+    headers = _auth_headers(uid)
+
+    create_payload = {
+        "title": "Photo update",
+        "body": "Testing uploaded photo field",
+        "tags": ["test"],
+        "city": "Seoul",
+        "image_url": "https://cdn.example.com/uploads/post-1.jpg",
+    }
+    created = client.post("/api/mobile/posts", json=create_payload, headers=headers)
+    assert created.status_code == 201
+    created_body = created.json()
+    assert created_body["picture"] == create_payload["image_url"]
+
+    listed = client.get("/api/mobile/posts", headers=headers)
+    assert listed.status_code == 200
+    rows = listed.json()
+    assert len(rows) >= 1
+    assert rows[0]["id"] == created_body["id"]
+    assert rows[0]["picture"] == create_payload["image_url"]
     assert milestone_patch.json()["status"] == "done"
 
     upload = client.post(

@@ -57,9 +57,14 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 body        TEXT NOT NULL,
                 tags        JSONB NOT NULL DEFAULT '[]',
                 city        TEXT,
+                image_url   TEXT,
                 likes_count INTEGER NOT NULL DEFAULT 0,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        cur.execute("""
+            ALTER TABLE posts
+            ADD COLUMN IF NOT EXISTS image_url TEXT;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS post_likes (

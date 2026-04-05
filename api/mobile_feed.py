@@ -17,6 +17,8 @@ class PostCreate(BaseModel):
     body: str
     tags: list[str] = Field(default_factory=list)
     city: str | None = None
+    image_url: str | None = None
+    picture: str | None = None
 
 
 class CommentCreate(BaseModel):
@@ -33,7 +35,7 @@ def get_posts(
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT p.id, p.user_id, u.name, u.picture, u.persona_type,
+            SELECT p.id, p.user_id, u.name, COALESCE(p.image_url, u.picture) AS picture, u.persona_type,
                    p.title, p.body, p.tags, p.city, p.likes_count, p.created_at,
                    EXISTS(
                        SELECT 1 FROM post_likes
@@ -69,21 +71,22 @@ def get_posts(
 
 @router.post("/posts", status_code=201)
 def create_post(body: PostCreate, user_id: str = Depends(require_mobile_auth)):
+    image_url = body.image_url or body.picture
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO posts (user_id, title, body, tags, city)
-            VALUES (%s, %s, %s, %s::jsonb, %s)
+            INSERT INTO posts (user_id, title, body, tags, city, image_url)
+            VALUES (%s, %s, %s, %s::jsonb, %s, %s)
             RETURNING id
             """,
-            (user_id, body.title, body.body, json.dumps(body.tags), body.city),
+            (user_id, body.title, body.body, json.dumps(body.tags), body.city, image_url),
         )
         post_id = cur.fetchone()[0]
 
         cur.execute(
             """
-            SELECT p.id, p.user_id, u.name, u.picture, u.persona_type,
+            SELECT p.id, p.user_id, u.name, COALESCE(p.image_url, u.picture) AS picture, u.persona_type,
                    p.title, p.body, p.tags, p.city, p.likes_count, p.created_at
             FROM posts p
             JOIN users u ON u.id = p.user_id
