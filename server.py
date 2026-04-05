@@ -18,9 +18,12 @@ from api.mobile_feed import router as mobile_feed_router
 from api.mobile_plans import router as mobile_plans_router
 from api.mobile_profile import router as mobile_profile_router
 from api.mobile_recommend import router as mobile_recommend_router
+from api.mobile_type_actions import router as mobile_type_actions_router
+from api.mobile_uploads import router as mobile_uploads_router
 from api.pins import router as pins_router
 from api.visits import router as visits_router
 from utils.db import init_db
+from utils.persona import persist_user_persona_type
 
 # DB 초기화 (앱 시작 시 1회)
 init_db()
@@ -127,6 +130,8 @@ app.include_router(mobile_discover_router)
 app.include_router(mobile_plans_router)
 app.include_router(mobile_profile_router)
 app.include_router(mobile_recommend_router)
+app.include_router(mobile_type_actions_router)
+app.include_router(mobile_uploads_router)
 
 
 # ── Frontend API Endpoints ─────────────────────────────────────
@@ -141,7 +146,7 @@ class RecommendRequest(BaseModel):
     timeline: str
     preferred_countries: list[str] = []
     preferred_language: str = "한국어"
-    persona_type: str = ""
+    persona_type: str | None = None
     income_type: str = ""
     travel_type: str = "혼자 (솔로)"
     children_ages: list[str] | None = None
@@ -159,7 +164,11 @@ class DetailRequest(BaseModel):
 
 
 @app.post("/api/recommend")
-async def api_recommend(req: RecommendRequest):
+async def api_recommend(req: RecommendRequest, request: Request):
+    user_id = getattr(request.state, "user_id", None)
+    if user_id:
+        persist_user_persona_type(user_id, req.persona_type)
+
     from app import nomad_advisor
     markdown, cities, parsed = nomad_advisor(
         nationality=req.nationality,

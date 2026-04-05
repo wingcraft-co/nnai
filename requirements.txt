@@ -13,3 +13,4 @@ PyJWT>=2.8.0
 itsdangerous>=2.1
 uvicorn>=0.29
 psycopg2-binary>=2.9
+python-multipart>=0.0.9

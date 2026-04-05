@@ -20,6 +20,41 @@ class PinCreate(BaseModel):
     user_lng: float | None = None
 
 
+class CityStayCreate(BaseModel):
+    city: str
+    country: str
+    arrived_at: str | None = None
+    left_at: str | None = None
+    visa_expires_at: str | None = None
+    budget_total: float | None = None
+    budget_remaining: float | None = None
+
+
+class CityStayPatch(BaseModel):
+    city: str | None = None
+    country: str | None = None
+    arrived_at: str | None = None
+    left_at: str | None = None
+    visa_expires_at: str | None = None
+    budget_total: float | None = None
+    budget_remaining: float | None = None
+
+
+def _serialize_city_stay(row: tuple) -> dict:
+    return {
+        "id": row[0],
+        "city": row[1],
+        "country": row[2],
+        "arrived_at": row[3],
+        "left_at": row[4],
+        "visa_expires_at": row[5],
+        "budget_total": row[6],
+        "budget_remaining": row[7],
+        "created_at": str(row[8]),
+        "updated_at": str(row[9]),
+    }
+
+
 @router.get("/cities")
 def get_cities(user_id: str = Depends(require_mobile_auth)):
     del user_id  # 인증 목적만 사용
@@ -202,3 +237,102 @@ def create_pin(body: PinCreate, user_id: str = Depends(require_mobile_auth)):
     conn.commit()
 
     return {"id": row[0], "city": row[1], "created_at": str(row[2])}
+
+
+@router.get("/city-stays")
+def get_city_stays(user_id: str = Depends(require_mobile_auth)):
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, city, country, arrived_at, left_at, visa_expires_at,
+                   budget_total, budget_remaining, created_at, updated_at
+            FROM city_stays
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            """,
+            (user_id,),
+        )
+        rows = cur.fetchall()
+    return [_serialize_city_stay(r) for r in rows]
+
+
+@router.post("/city-stays", status_code=201)
+def create_city_stay(body: CityStayCreate, user_id: str = Depends(require_mobile_auth)):
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO city_stays
+                (user_id, city, country, arrived_at, left_at, visa_expires_at, budget_total, budget_remaining)
+            VALUES
+                (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, city, country, arrived_at, left_at, visa_expires_at,
+                      budget_total, budget_remaining, created_at, updated_at
+            """,
+            (
+                user_id,
+                body.city,
+                body.country,
+                body.arrived_at,
+                body.left_at,
+                body.visa_expires_at,
+                body.budget_total,
+                body.budget_remaining,
+            ),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return _serialize_city_stay(row)
+
+
+@router.patch("/city-stays/{stay_id}")
+def patch_city_stay(stay_id: int, body: CityStayPatch, user_id: str = Depends(require_mobile_auth)):
+    updates = body.model_dump(exclude_unset=True)
+    if not updates:
+        raise HTTPException(status_code=422, detail="At least one field is required")
+
+    assignments = ", ".join(f"{k} = %s" for k in updates.keys())
+    values = list(updates.values())
+    values.extend([user_id, stay_id])
+
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE city_stays
+            SET {assignments},
+                updated_at = NOW()
+            WHERE user_id = %s AND id = %s
+            RETURNING id, city, country, arrived_at, left_at, visa_expires_at,
+                      budget_total, budget_remaining, created_at, updated_at
+            """,
+            tuple(values),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="City stay not found")
+    conn.commit()
+    return _serialize_city_stay(row)
+
+
+@router.post("/city-stays/{stay_id}/leave")
+def leave_city_stay(stay_id: int, user_id: str = Depends(require_mobile_auth)):
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE city_stays
+            SET left_at = COALESCE(left_at, NOW()::date::text),
+                updated_at = NOW()
+            WHERE user_id = %s AND id = %s
+            RETURNING id, city, country, arrived_at, left_at, visa_expires_at,
+                      budget_total, budget_remaining, created_at, updated_at
+            """,
+            (user_id, stay_id),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="City stay not found")
+    conn.commit()
+    return _serialize_city_stay(row)

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/mobile", tags=["mobile-profile"])
 def get_profile(user_id: str = Depends(require_mobile_auth)):
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT id, name, picture, email FROM users WHERE id = %s", (user_id,))
+        cur.execute("SELECT id, name, picture, email, persona_type FROM users WHERE id = %s", (user_id,))
         user = cur.fetchone()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -35,6 +35,7 @@ def get_profile(user_id: str = Depends(require_mobile_auth)):
         "name": user[1],
         "picture": user[2],
         "email": user[3],
+        "persona_type": user[4],
         "badges": badges,
         "stats": {
             "pins": pin_count,

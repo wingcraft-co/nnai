@@ -49,4 +49,5 @@ jobs:
             tests/test_link_validator.py \
             tests/test_server_endpoints.py \
             tests/test_pins_api.py \
-            tests/test_visits_api.py
+            tests/test_visits_api.py \
+            tests/test_mobile_contract_api.py

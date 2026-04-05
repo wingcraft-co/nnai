@@ -191,7 +191,7 @@ export default function FormPage() {
         preferred_language: "한국어",
         dual_nationality: false,
         readiness_stage: "",
-        persona_type: personaType ?? "",
+        persona_type: personaType ?? null,
         immigration_purpose: form.immigration_purpose,
         travel_type: form.travel_type,
         timeline: form.timeline,

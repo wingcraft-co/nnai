@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from utils.mobile_auth import require_mobile_auth
+from utils.persona import persist_user_persona_type
 
 router = APIRouter(prefix="/api/mobile", tags=["mobile-recommend"])
 
@@ -18,7 +19,7 @@ class RecommendRequest(BaseModel):
     timeline: str
     preferred_countries: list[str] = Field(default_factory=list)
     preferred_language: str = "한국어"
-    persona_type: str = ""
+    persona_type: str | None = None
     income_type: str = ""
     travel_type: str = "혼자 (솔로)"
     children_ages: list[str] | None = None
@@ -35,7 +36,7 @@ class DetailRequest(BaseModel):
 
 @router.post("/recommend")
 async def mobile_recommend(req: RecommendRequest, user_id: str = Depends(require_mobile_auth)):
-    del user_id  # 인증 목적만 사용
+    persist_user_persona_type(user_id, req.persona_type)
     from app import nomad_advisor
     markdown, cities, parsed = nomad_advisor(
         nationality=req.nationality,

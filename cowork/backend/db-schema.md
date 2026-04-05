@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-04-01
+> 최종 업데이트: 2026-04-05
 
 ---
 
@@ -14,6 +14,21 @@
 | `users` | Google OAuth 로그인 유저 |
 | `pins` | 유저가 저장한 관심 도시 |
 | `visits` | 경로별 방문자 수 집계 |
+| `posts` | 모바일 피드 게시글 |
+| `post_likes` | 게시글 좋아요 매핑 |
+| `post_comments` | 게시글 댓글 |
+| `circles` | 모바일 커뮤니티 서클 |
+| `circle_members` | 서클 가입 매핑 |
+| `move_plans` | 모바일 이동 계획 |
+| `move_checklist_items` | 이동 계획 체크리스트 |
+| `user_badges` | 유저 배지 |
+| `city_stays` | 유저 도시 체류 상태 |
+| `wanderer_hops` | Wanderer 이동 홉 |
+| `planner_boards` | Planner 보드 |
+| `planner_tasks` | Planner 태스크 |
+| `free_spirit_spins` | Free Spirit 스핀 로그 |
+| `local_saved_events` | Local 저장 이벤트 |
+| `pioneer_milestones` | Pioneer 마일스톤 |
 | `verified_sources` | 검증 데이터 출처(소스) 목록 |
 | `verified_countries` | 검증된 국가별 비자 데이터 |
 | `verified_cities` | 검증된 도시별 노마드 지표 데이터 |
@@ -32,6 +47,7 @@ CREATE TABLE IF NOT EXISTS users (
     email      TEXT,               -- 구글 이메일
     name       TEXT,               -- 구글 이름
     picture    TEXT,               -- 프로필 이미지 URL
+    persona_type TEXT,             -- nnai 표준 페르소나 타입
     created_at TEXT                -- ISO 8601 타임스탬프 (UTC)
 );
 ```
@@ -42,6 +58,7 @@ CREATE TABLE IF NOT EXISTS users (
 | `email` | TEXT | 구글 계정 이메일 |
 | `name` | TEXT | 구글 계정 이름 |
 | `picture` | TEXT | 구글 프로필 이미지 URL |
+| `persona_type` | TEXT | `schengen_loop|slow_nomad|fire_optimizer|burnout_escape|expat_freedom` |
 | `created_at` | TEXT | 최초 로그인 시각 (ISO 8601 UTC) |
 
 **참고:** `ON CONFLICT(id) DO UPDATE` — 재로그인 시 email/name/picture 갱신.
@@ -101,6 +118,210 @@ CREATE TABLE IF NOT EXISTS visits (
 | `updated_at` | TEXT | 마지막 ping 시각 (ISO 8601 UTC) |
 
 **참고:** 유저 인증 없이 집계됩니다. 경로별 독립 집계.
+
+---
+
+## posts / post_likes / post_comments
+
+모바일 Feed API(`GET/POST /api/mobile/posts`, 좋아요/댓글)에 사용됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS posts (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    title       TEXT NOT NULL,
+    body        TEXT NOT NULL,
+    tags        JSONB NOT NULL DEFAULT '[]',
+    city        TEXT,
+    likes_count INTEGER NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS post_likes (
+    post_id     BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS post_comments (
+    id          BIGSERIAL PRIMARY KEY,
+    post_id     BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## circles / circle_members
+
+모바일 Discover 서클 기능에 사용됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS circles (
+    id           BIGSERIAL PRIMARY KEY,
+    name         TEXT NOT NULL,
+    description  TEXT,
+    member_count INTEGER NOT NULL DEFAULT 0,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS circle_members (
+    circle_id   BIGINT NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    joined_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (circle_id, user_id)
+);
+```
+
+---
+
+## move_plans / move_checklist_items
+
+모바일 Plans(`GET/POST/PATCH/DELETE /api/mobile/moves`) 기능에 사용됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS move_plans (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    title       TEXT NOT NULL,
+    from_city   TEXT,
+    to_city     TEXT,
+    stage       TEXT NOT NULL DEFAULT 'planning'
+                CHECK (stage IN ('planning', 'booked', 'completed')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS move_checklist_items (
+    id          BIGSERIAL PRIMARY KEY,
+    plan_id     BIGINT NOT NULL REFERENCES move_plans(id) ON DELETE CASCADE,
+    text        TEXT NOT NULL,
+    is_done     BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order  INTEGER NOT NULL DEFAULT 0
+);
+```
+
+---
+
+## user_badges
+
+모바일 프로필 배지(`GET /api/mobile/profile`)에 사용됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS user_badges (
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    badge       TEXT NOT NULL
+                CHECK (badge IN ('host', 'verified_reviewer', 'community_builder')),
+    earned_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, badge)
+);
+```
+
+---
+
+## city_stays
+
+모바일 City 탭의 체류 정보 테이블입니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS city_stays (
+    id                BIGSERIAL PRIMARY KEY,
+    user_id           TEXT NOT NULL REFERENCES users(id),
+    city              TEXT NOT NULL,
+    country           TEXT NOT NULL,
+    arrived_at        TEXT,
+    left_at           TEXT,
+    visa_expires_at   TEXT,
+    budget_total      DOUBLE PRECISION,
+    budget_remaining  DOUBLE PRECISION,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## wanderer_hops
+
+모바일 Wanderer 계약(`planned|booked`, `conditions`, `is_focus`)을 따릅니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS wanderer_hops (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    from_city   TEXT,
+    to_city     TEXT,
+    status      TEXT NOT NULL DEFAULT 'planned',
+    conditions  JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_focus    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT wanderer_hops_status_check CHECK (status IN ('planned', 'booked'))
+);
+```
+
+---
+
+## planner_boards / planner_tasks
+
+Planner 타입 액션 저장 테이블입니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS planner_boards (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    title       TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS planner_tasks (
+    id          BIGSERIAL PRIMARY KEY,
+    board_id    BIGINT NOT NULL REFERENCES planner_boards(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    title       TEXT NOT NULL,
+    is_done     BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## free_spirit_spins / local_saved_events / pioneer_milestones
+
+타입 액션 지원 테이블입니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS free_spirit_spins (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    result      TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS local_saved_events (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    event_id    TEXT NOT NULL,
+    title       TEXT,
+    status      TEXT NOT NULL DEFAULT 'saved',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, event_id)
+);
+
+CREATE TABLE IF NOT EXISTS pioneer_milestones (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    title       TEXT NOT NULL,
+    is_done     BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, title)
+);
+```
 
 ---
 
@@ -281,8 +502,25 @@ CREATE TABLE IF NOT EXISTS verification_logs (
 ```
 users (id)
   └── pins (user_id) — 1:N
+  └── posts (user_id) — 1:N
+      └── post_likes (post_id) — 1:N
+      └── post_comments (post_id) — 1:N
+  └── circle_members (user_id) — 1:N
+  └── move_plans (user_id) — 1:N
+      └── move_checklist_items (plan_id) — 1:N
+  └── user_badges (user_id) — 1:N
+  └── city_stays (user_id) — 1:N
+  └── wanderer_hops (user_id) — 1:N
+  └── planner_boards (user_id) — 1:N
+      └── planner_tasks (board_id) — 1:N
+  └── free_spirit_spins (user_id) — 1:N
+  └── local_saved_events (user_id) — 1:N
+  └── pioneer_milestones (user_id) — 1:N
 
 visits — 독립 테이블 (외래키 없음)
+
+circles (id)
+  └── circle_members (circle_id) — 1:N
 
 verified_sources (id)
   └── verified_city_sources (source_id) — 1:N

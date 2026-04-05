@@ -1,6 +1,8 @@
 """utils/persona.py — 페르소나 진단 로직"""
 from __future__ import annotations
 
+from utils.db import get_conn
+
 
 PERSONA_LABELS = {
     "schengen_loop":    "🗺️ 쉥겐 루프형 (유럽 루트 최적화)",
@@ -9,6 +11,8 @@ PERSONA_LABELS = {
     "burnout_escape":   "🌿 번아웃 탈출형",
     "expat_freedom":    "✈️ 사회 이탈형 (탈조선)",
 }
+
+PERSONA_TYPES = tuple(PERSONA_LABELS.keys())
 
 PERSONA_HINTS = {
     "schengen_loop": (
@@ -103,3 +107,25 @@ def diagnose_persona(
 def get_persona_hint(persona_type: str) -> str:
     """페르소나 유형에 맞는 LLM 힌트 문자열 반환."""
     return PERSONA_HINTS.get(persona_type, "")
+
+
+def normalize_persona_type(persona_type: str | None) -> str | None:
+    if not persona_type:
+        return None
+    if persona_type in PERSONA_TYPES:
+        return persona_type
+    return None
+
+
+def persist_user_persona_type(user_id: str, persona_type: str | None) -> None:
+    normalized = normalize_persona_type(persona_type)
+    if normalized is None:
+        return
+
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE users SET persona_type = %s WHERE id = %s",
+            (normalized, user_id),
+        )
+    conn.commit()

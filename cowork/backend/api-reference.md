@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-01
+> 최종 업데이트: 2026-04-05
 
 ---
 
@@ -13,8 +13,9 @@
 2. [추천 API](#추천-api)
 3. [핀 API](#핀-api)
 4. [방문자 카운터 API](#방문자-카운터-api)
-5. [공통 에러](#공통-에러)
-6. [CORS & 쿠키 정책](#cors--쿠키-정책)
+5. [모바일 API (JWT)](#모바일-api-jwt)
+6. [공통 에러](#공통-에러)
+7. [CORS & 쿠키 정책](#cors--쿠키-정책)
 
 ---
 
@@ -130,7 +131,7 @@ Content-Type: application/json
 | `timeline` | string | ✅ | — | 체류 기간 (예: `"1년 장기 체류"`) |
 | `preferred_countries` | string[] | ❌ | `[]` | 선호 국가/지역 (예: `["유럽"]`) |
 | `preferred_language` | string | ❌ | `"한국어"` | 응답 언어 (`"한국어"` / `"English"`) |
-| `persona_type` | string | ❌ | `""` | 페르소나 유형 |
+| `persona_type` | string \| null | ❌ | `null` | 페르소나 유형 (`schengen_loop|slow_nomad|fire_optimizer|burnout_escape|expat_freedom`) |
 | `income_type` | string | ❌ | `""` | 소득 유형 (예: `"프리랜서"`) |
 | `travel_type` | string | ❌ | `"혼자 (솔로)"` | 여행 타입 |
 | `children_ages` | string[] \| null | ❌ | `null` | 자녀 나이 목록 |
@@ -138,6 +139,8 @@ Content-Type: application/json
 | `readiness_stage` | string | ❌ | `""` | 준비 단계 (예: `"구체적으로 준비 중"`) |
 | `has_spouse_income` | string | ❌ | `"없음"` | 배우자 소득 여부 |
 | `spouse_income_krw` | integer | ❌ | `0` | 배우자 월 소득 (만원) |
+| `stay_style` | string \| null | ❌ | `null` | 체류 스타일 (`정착형|순환형|이동형`) |
+| `tax_sensitivity` | string \| null | ❌ | `null` | 세금 민감도 (`optimize|simple|unknown`) |
 
 **요청 예시:**
 ```json
@@ -152,7 +155,9 @@ Content-Type: application/json
   "preferred_language": "한국어",
   "income_type": "프리랜서",
   "travel_type": "혼자 (솔로)",
-  "readiness_stage": "구체적으로 준비 중"
+  "readiness_stage": "구체적으로 준비 중",
+  "stay_style": "정착형",
+  "tax_sensitivity": "optimize"
 }
 ```
 
@@ -207,12 +212,11 @@ Content-Type: application/json
 
 ### POST /api/detail
 
-**Step 2** — 선택한 도시의 상세 이민 가이드를 반환합니다. **로그인 필요.**
+**Step 2** — 선택한 도시의 상세 이민 가이드를 반환합니다.
 
 ```
 POST /api/detail
 Content-Type: application/json
-Cookie: nnai_session=...  (자동)
 ```
 
 **요청 바디:**
@@ -237,7 +241,7 @@ Cookie: nnai_session=...  (자동)
 }
 ```
 
-> **현재 구현 상태:** 로그인 체크가 서버에서 강제되지 않지만, 추후 인증 필수로 전환 예정. 지금은 미로그인도 호출 가능.
+> 현재 `/api/detail`은 인증 없이 호출 가능합니다.
 
 ---
 
@@ -440,6 +444,70 @@ GET /api/visits?path=/dev
 ```
 
 > 방문 기록이 없는 경로는 `count: 0`을 반환합니다.
+
+---
+
+## 모바일 API (JWT)
+
+모바일 API는 `Authorization: Bearer <jwt>`를 사용합니다.
+
+### 모바일 Auth
+
+- `POST /auth/mobile/token` → `{ token, user }`
+- `GET /auth/mobile/me`
+
+### Core Mobile
+
+- Feed: `GET/POST /api/mobile/posts`, `POST /api/mobile/posts/{post_id}/like`, `GET/POST /api/mobile/posts/{post_id}/comments`
+- Discover/City:
+  - `GET /api/mobile/cities`
+  - `GET /api/mobile/cities/{city_id}`
+  - `GET /api/mobile/circles`
+  - `POST /api/mobile/circles/{id}/join`
+  - `GET /api/mobile/pins`
+  - `POST /api/mobile/pins`
+  - `GET /api/mobile/city-stays`
+  - `POST /api/mobile/city-stays`
+  - `PATCH /api/mobile/city-stays/{id}`
+  - `POST /api/mobile/city-stays/{id}/leave`
+- Plans: `GET/POST/PATCH/DELETE /api/mobile/moves`, `PATCH /api/mobile/moves/{id}/items/{item_id}`
+- Profile: `GET /api/mobile/profile`
+- Recommend: `POST /api/mobile/recommend`, `POST /api/mobile/detail`
+- Upload: `POST /api/mobile/uploads/image` (multipart form-data, field: `file`)
+
+### Type Actions
+
+- Planner:
+  - `GET/POST /api/mobile/type-actions/planner/boards`
+  - `POST /api/mobile/type-actions/planner/boards/{board_id}/tasks`
+  - `PATCH /api/mobile/type-actions/planner/tasks/{task_id}`
+- Free Spirit: `POST /api/mobile/type-actions/free-spirit/spins`
+- Wanderer:
+  - `GET /api/mobile/type-actions/wanderer/hops`
+  - `POST /api/mobile/type-actions/wanderer/hops`
+  - `PATCH /api/mobile/type-actions/wanderer/hops/{hop_id}`
+  - `DELETE /api/mobile/type-actions/wanderer/hops/{hop_id}`
+- Local:
+  - `GET /api/mobile/type-actions/local/events/saved`
+  - `POST /api/mobile/type-actions/local/events/save`
+  - `PATCH /api/mobile/type-actions/local/events/{event_id}`
+- Pioneer:
+  - `GET /api/mobile/type-actions/pioneer/milestones`
+  - `PATCH /api/mobile/type-actions/pioneer/milestones/{milestone_id}`
+
+### 모바일 응답 계약 (필수 필드)
+
+- `GET /api/mobile/profile`
+  - `uid`, `name`, `picture`, `email`
+  - `persona_type` (`schengen_loop|slow_nomad|fire_optimizer|burnout_escape|expat_freedom|null`)
+  - `badges: string[]`
+  - `stats: { pins, posts, circles }`
+- `GET/POST/PATCH /api/mobile/type-actions/wanderer/hops*`
+  - `status`: `planned | booked`
+  - `conditions: [{ id, label, is_done }]`
+  - `is_focus: boolean`
+- `GET/POST/PATCH /api/mobile/city-stays*`
+  - `id, city, country, arrived_at, left_at, visa_expires_at, budget_total, budget_remaining, created_at, updated_at`
 
 ---
 

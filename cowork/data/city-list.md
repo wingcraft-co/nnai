@@ -1,6 +1,6 @@
 # city_scores.json 전체 도시 목록
 
-_Last updated: 2026-04-04_
+_Last updated: 2026-04-05_
 _Source: data/city_scores.json (50개 도시)_
 
 | # | city | city_kr | country | country_id |
@@ -12,9 +12,9 @@ _Source: data/city_scores.json (50개 도시)_
 | 5 | Chiang Mai | 치앙마이 | Thailand | TH |
 | 6 | Bangkok | 방콕 | Thailand | TH |
 | 7 | Tallinn | 탈린 | Estonia | EE |
-| 8 | Barcelona | 바르셀로나 | Spain | ES |
-| 9 | Madrid | 마드리드 | Spain | ES |
-| 10 | Bali (Canggu) | 발리 (짱구) | Indonesia | ID |
+| 8 | Barcelona | 바르셀로나 | Spain (Canary Islands) | ES |
+| 9 | Madrid | 마드리드 | Spain (Canary Islands) | ES |
+| 10 | Bali (Canggu) | 발리 (짱구) | Indonesia (Bali) | ID |
 | 11 | Berlin | 베를린 | Germany | DE |
 | 12 | Tbilisi | 트빌리시 | Georgia | GE |
 | 13 | San Jose | 산호세 | Costa Rica | CR |
@@ -25,7 +25,7 @@ _Source: data/city_scores.json (50개 도시)_
 | 18 | Cebu | 세부 | Philippines | PH |
 | 19 | Hanoi | 하노이 | Vietnam | VN |
 | 20 | Ho Chi Minh City | 호치민 | Vietnam | VN |
-| 21 | Valencia | 발렌시아 | Spain | ES |
+| 21 | Valencia | 발렌시아 | Spain (Canary Islands) | ES |
 | 22 | Prague | 프라하 | Czech Republic | CZ |
 | 23 | Budapest | 부다페스트 | Hungary | HU |
 | 24 | Amsterdam | 암스테르담 | Netherlands | NL |
@@ -48,10 +48,10 @@ _Source: data/city_scores.json (50개 도시)_
 | 41 | Oaxaca | 오악사카 | Mexico | MX |
 | 42 | Lima | 리마 | Peru | PE |
 | 43 | Buenos Aires | 부에노스아이레스 | Argentina | AR |
-| 44 | Medellin | 메데진 | Colombia | CO |
+| 44 | Medellin | 메데진 | Colombia (Medellín) | CO |
 | 45 | Miami | 마이애미 | United States | US |
 | 46 | Marrakech | 마라케시 | Morocco | MA |
-| 47 | Dubai | 두바이 | UAE | AE |
+| 47 | Dubai | 두바이 | UAE (Dubai) | AE |
 | 48 | Da Nang | 다낭 | Vietnam | VN |
 | 49 | Taipei | 타이페이 | Taiwan | TW |
 | 50 | Phuket | 푸켓 | Thailand | TH |
@@ -59,13 +59,13 @@ _Source: data/city_scores.json (50개 도시)_
 ## 대륙별 분류
 
 ### 아시아 (18개 도시)
-TH(5), VN(3), MY(2), JP(3), ID(1), PH(2), TW(1), TR(1)
+ID(1), JP(3), MY(2), PH(2), TH(5), TR(1), TW(1), VN(3)
 
 ### 유럽 (21개 도시)
-PT(2), EE(1), ES(3), DE(2), GR(2), CZ(1), HU(1), NL(1), AT(1), PL(2), IT(1), HR(1), RS(1), MK(1), CY(1)
+AT(1), CY(1), CZ(1), DE(2), EE(1), ES(3), GR(2), HR(1), HU(1), IT(1), MK(1), NL(1), PL(2), PT(2), RS(1)
 
 ### 중남미 (6개 도시)
-CR(2), MX(2), AR(1), CO(1)
+AR(1), CO(1), CR(2), MX(2)
 
 ### 기타 (5개 도시)
-GE(1), MA(1), AE(1), US(1), PE(1)
+AE(1), GE(1), MA(1), PE(1), US(1)
