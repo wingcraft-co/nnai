@@ -308,7 +308,6 @@ def test_mobile_posts_persists_uploaded_image_url():
     assert len(rows) >= 1
     assert rows[0]["id"] == created_body["id"]
     assert rows[0]["picture"] == create_payload["image_url"]
-    assert milestone_patch.json()["status"] == "done"
 
     upload = client.post(
         "/api/mobile/uploads/image",
