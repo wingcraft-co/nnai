@@ -13,24 +13,25 @@ _Last updated: 2026-04-05 KST_
 - Infra: Vercel (frontend, nnai.app) + Railway (backend, api.nnai.app) + Cloudflare DNS
 
 ## 현재 상태
-백엔드 스코어링 4-Block 재설계 + 폼 스텝 구조 개편 완료.
-유저 입력 8개 필드 전부 스코어링 반영. 폼 4스텝 확정.
-폼 카피 최종 검수 및 타로카드 UX 재설계 대기 중.
+폼 카피 전면 수정 완료. 스텝 5단계 확정 및 재배치.
+타이틀/라벨/버튼 카피 확정. children_ages 스코어링 반영 완료.
+타로카드 UX 재설계 대기 중.
 
 ## 최근 변경
-- 폼 스텝 재배치: Step 1 목적+동행 / Step 2 기간+형태 / Step 3 소득+세금+조건부 / Step 4 지역+라이프스타일
-- stay_style, tax_sensitivity 신규 인풋 추가 (단기 체류 시 숨김)
-- lifestyle 선택지 8개 → 4개 교체 (인프라/한인/저물가/영어)
-- 스코어링 4-Block 도입, lifestyle·timeline 키 불일치 수정
-- 대만(TW) 아시아 매핑 추가
+- 폼 스텝 4→5단계 재배치 (소득↔동행 순서 교체)
+- 타이틀/라벨/버튼 카피 전면 수정
+- children_ages 연령대별 스코어링 반영
+- CTA "도시 추천 받기" 확정
+- API 프록시 route.ts 하드코딩 URL → NEXT_PUBLIC_API_URL 환경변수화
 
 ## 진행 중인 작업
 - [x] 백엔드 스코어링 로직 전면 재설계
-- [x] 폼 스텝 구조 개편 (4스텝 확정)
+- [x] 폼 스텝 구조 재확정 (5단계)
 - [x] 신규 인풋 추가 (stay_style, tax_sensitivity)
 - [x] lifestyle 선택지 교체 + 백엔드 키 매핑
-- [ ] 폼 카피 수정 (스텝 타이틀, 라벨, 버튼)
-- [ ] 더 알아보기 → 타로카드 UX 재설계
+- [x] 폼 카피 수정
+- [x] children_ages 스코어링 반영
+- [ ] 타로카드 UX 재설계
 - [ ] LLM 재도입 시점 + 페르소나 백엔드 연동 방식 검토
 - [ ] 페르소나 결과 공유 기능
 - [ ] Google OAuth 프론트엔드 연동

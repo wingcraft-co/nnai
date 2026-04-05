@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## [2026-04-05 KST] — 폼 카피 전면 수정 + 스텝 구조 5단계 확정
+
+### 변경 파일
+- `app/[locale]/onboarding/form/page.tsx` : 스텝 5단계 재배치 + 카피 전면 수정
+- `backend/recommender.py` : children_ages 스코어링 반영
+- `frontend/src/app/api/recommend/route.ts` : 백엔드 URL 환경변수화
+- `frontend/src/app/api/detail/route.ts` : 백엔드 URL 환경변수화
+- `frontend/.env.local` : NEXT_PUBLIC_API_URL=https://api-dev.nnai.app 추가
+
+### 작업 요약
+- 무엇을: 폼 스텝 4→5단계 재배치, 타이틀/라벨/버튼 카피 전면 수정, children_ages 스코어링 반영
+- 왜: 스텝간 질문-라벨 층위 명확화, 소득-동행 순서 자연스럽게 재배치, 폼 톤 일관성 확보
+- 영향 범위: 폼 전체 UX, 백엔드 Block D companion_score, API 프록시 URL
+
+### 스텝 구조 확정
+- Step 1: 목적 (immigration_purpose)
+- Step 2: 체류 기간 + 체류 형태 (조건부)
+- Step 3: 소득 + 세금 혜택 (조건부)
+- Step 4: 동행 여부 + 조건부 필드
+- Step 5: 선호 지역 + 선호 환경 (optional, 건너뛰기 가능)
+
+### 카피 확정
+- 스텝 타이틀 5개 확정
+- 라벨 층위 정리 (불필요한 라벨 제거, 조건부 라벨 질문형 유지)
+- CTA: "도시 추천 받기"
+- 로딩: "당신에게 맞는 도시를 찾는 중이에요..."
+- 에러: "뭔가 막혔어요. 다시 해볼까요?"
+- 소득 비공개 안내: "비자 추천 정확도가 낮아질 수 있어요."
+
+### children_ages 스코어링 반영
+- 영아(0~2) → safety 가중치 강화 (0.8)
+- 초등(7~12) → english_score 가중치 추가
+- 중고등(13~18) → english_score + community_size 가중치 추가
+- 중복 선택 시 가중치 합산 적용 (정규화)
+
+### 기타
+- API 프록시 route.ts 하드코딩 URL → NEXT_PUBLIC_API_URL 환경변수 참조로 변경
+- develop 환경: api-dev.nnai.app / production 환경: api.nnai.app (fallback)
+
+### 다음 세션 참고사항
+- 타로카드 UX 재설계 (별도 세션)
+- 스코어링 검증 이슈 2, 3 후속 논의 (치앙마이 1위 고정, 환율 변환 오차)
+- Vercel develop 환경에 NEXT_PUBLIC_API_URL=https://api-dev.nnai.app 설정 확인 필요
+
+---
+
 ## [2026-04-05 KST] — 폼 구조 개편 + 신규 인풋 추가
 
 ### 변경 파일
