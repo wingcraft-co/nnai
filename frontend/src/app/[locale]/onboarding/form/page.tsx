@@ -7,6 +7,13 @@ import type { PersonaType } from "@/data/personas";
 import { PERSONAS } from "@/data/personas";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { SelectCard } from "@/components/onboarding/select-card";
+import dynamic from "next/dynamic";
+
+const IS_DEBUG = process.env.NEXT_PUBLIC_DEBUG_MODE === "1";
+
+const CityDebugPanel = IS_DEBUG
+  ? dynamic(() => import("@/components/debug/CityDebugPanel"), { ssr: false })
+  : null;
 
 // ── Options ──────────────────────────────────────────────────────
 
@@ -237,6 +244,14 @@ export default function FormPage() {
   }
 
   return (
+    <>
+    {CityDebugPanel && (
+      <CityDebugPanel
+        incomeRange={form.income_range}
+        timeline={form.timeline}
+        preferredCountries={form.preferred_countries}
+      />
+    )}
     <div className="mx-auto flex min-h-screen max-w-sm w-full flex-col">
       {/* 프로그레스바 */}
       <div className="flex items-center gap-3 pt-6 px-4">
@@ -481,5 +496,6 @@ export default function FormPage() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }

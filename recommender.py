@@ -218,15 +218,17 @@ _TAX_SENSITIVITY_MUL: dict[str, float] = {
 
 
 def _block_b(city: dict, country: dict, income_usd: float, lifestyle: list[str],
-             tax_sensitivity: str = "") -> float:
+             tax_sensitivity: str = "", timeline: str = "") -> float:
     """Financial fitness — cost efficiency + tax treaty bonus."""
     cost = _cost_score(city, income_usd)
     cost_mul = 1.3 if "저비용 생활" in lifestyle else 1.0
     # Cap cost score at 5.5 to prevent ultra-cheap cities from dominating
     cost_adjusted = min(5.5, cost * cost_mul)
 
+    # 90일 이하 단기 체류는 세금 거주지(183일)가 발생하지 않으므로 세금 보너스 미적용
+    is_short_stay = timeline == "90일 단기 체험"
     tax_mul = _TAX_SENSITIVITY_MUL.get(tax_sensitivity or "", 1.0)
-    tax_bonus = 2.0 if country.get("double_tax_treaty_with_kr") else 0.0
+    tax_bonus = 0.0 if is_short_stay else (2.0 if country.get("double_tax_treaty_with_kr") else 0.0)
     tax_adjusted = min(10.0, tax_bonus * tax_mul)
 
     # Reduce cost weight 0.7 → 0.5, increase tax weight 0.3 → 0.5
@@ -283,27 +285,36 @@ def _block_d(
     city: dict, country: dict, income_usd: float,
     travel_type: str, lifestyle: list[str], stay_style: str = "",
     children_ages: list[str] | None = None,
+    timeline: str = "",
 ) -> float:
     """Practical conditions — visa access, language, companion needs."""
     ranges = _score_ranges or {}
 
+    is_short_stay = timeline == "90일 단기 체험"
+
     # Visa accessibility (0–10)
     visa_type = country.get("visa_type", "")
     has_nomad_visa = bool(visa_type) and "없음" not in visa_type
-    visa_score = 0.0
-    if has_nomad_visa:
-        visa_score += 4.0
     renewable = country.get("renewable", False)
-    if renewable:
-        visa_score += 3.0
     stay = country.get("stay_months") or 0
-    visa_score += min(3.0, stay / 4.0)
 
-    # stay_style adjustments
-    if stay_style == "정착형" and renewable:
-        visa_score = min(10.0, visa_score * 1.5)   # renewable 가중치 +50%
-    elif stay_style == "이동형" and has_nomad_visa:
-        visa_score = min(10.0, visa_score * 1.5)   # visa flexibility 가중치 +50%
+    if is_short_stay:
+        # 90일 단기: 노마드 비자·갱신 여부 불필요 — 무비자 체류 기간(stay_months)만 평가
+        # 3개월 이상이면 만점, 미만이면 비례 감점
+        visa_score = min(10.0, stay / 3.0 * 10.0)
+    else:
+        visa_score = 0.0
+        if has_nomad_visa:
+            visa_score += 4.0
+        if renewable:
+            visa_score += 3.0
+        visa_score += min(3.0, stay / 4.0)
+
+        # stay_style adjustments
+        if stay_style == "정착형" and renewable:
+            visa_score = min(10.0, visa_score * 1.5)
+        elif stay_style == "이동형" and has_nomad_visa:
+            visa_score = min(10.0, visa_score * 1.5)
 
     # Language environment (0–10)
     english = _normalize(city.get("english_score", 5), *ranges.get("english_score", (4, 10)))
@@ -351,10 +362,14 @@ def _block_d(
             + community * (w_community / total_w)
         )
     elif "배우자" in travel_type or "가족" in travel_type or "파트너" in travel_type:
-        # Spouse/family (자녀 없음): prioritize renewable visa + safety
-        renew = 5.0 if renewable else 0.0
         safety = city.get("safety_score", 5)
-        companion_score = renew * 0.5 + safety * 0.5
+        if is_short_stay:
+            # 90일 단기: 갱신 불필요 — 안전 중심
+            companion_score = safety
+        else:
+            # 장기: renewable visa + safety
+            renew = 5.0 if renewable else 0.0
+            companion_score = renew * 0.5 + safety * 0.5
 
     raw = visa_score * 0.4 + lang_score * 0.3 + companion_score * 0.3
     return raw * 0.20
@@ -372,6 +387,7 @@ def _compute_score(
     stay_style: str = "",
     tax_sensitivity: str = "",
     children_ages: list[str] | None = None,
+    timeline: str = "",
 ) -> float:
     """4-Block composite score (0–10)."""
     return _compute_score_breakdown(
@@ -384,6 +400,7 @@ def _compute_score(
         stay_style=stay_style,
         tax_sensitivity=tax_sensitivity,
         children_ages=children_ages,
+        timeline=timeline,
     )["total"]
 
 
@@ -397,13 +414,14 @@ def _compute_score_breakdown(
     stay_style: str = "",
     tax_sensitivity: str = "",
     children_ages: list[str] | None = None,
+    timeline: str = "",
 ) -> dict[str, float]:
     """4-Block composite score breakdown (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
     a = _block_a(city, ls)
-    b = _block_b(city, country, income_usd, ls, tax_sensitivity)
+    b = _block_b(city, country, income_usd, ls, tax_sensitivity, timeline)
     c = _block_c(city, country, persona_type, income_usd)
-    d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages)
+    d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages, timeline)
     total = round(min(10.0, max(0.0, a + b + c + d)), 1)
     return {
         "block_a": round(a, 3),
@@ -509,6 +527,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
             stay_style=stay_style,
             tax_sensitivity=tax_sensitivity,
             children_ages=children_ages,
+            timeline=timeline,
         )
         score = breakdown["total"]
         candidates.append((score, city, country, breakdown))
