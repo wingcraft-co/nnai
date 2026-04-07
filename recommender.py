@@ -222,13 +222,15 @@ def _block_b(city: dict, country: dict, income_usd: float, lifestyle: list[str],
     """Financial fitness — cost efficiency + tax treaty bonus."""
     cost = _cost_score(city, income_usd)
     cost_mul = 1.3 if "저비용 생활" in lifestyle else 1.0
-    cost_adjusted = min(10.0, cost * cost_mul)
+    # Cap cost score at 5.5 to prevent ultra-cheap cities from dominating
+    cost_adjusted = min(5.5, cost * cost_mul)
 
     tax_mul = _TAX_SENSITIVITY_MUL.get(tax_sensitivity or "", 1.0)
     tax_bonus = 2.0 if country.get("double_tax_treaty_with_kr") else 0.0
     tax_adjusted = min(10.0, tax_bonus * tax_mul)
 
-    raw = cost_adjusted * 0.7 + tax_adjusted * 0.3
+    # Reduce cost weight 0.7 → 0.5, increase tax weight 0.3 → 0.5
+    raw = cost_adjusted * 0.5 + tax_adjusted * 0.5
     return raw * 0.25
 
 
