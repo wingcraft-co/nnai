@@ -883,8 +883,8 @@
       "visa_fee_usd": 600,
       "tax_note": "UAE 소득세 없음 (개인). 세계 최저 세율 국가",
       "cost_tier": "high",
-      "notes": "Virtual Working Programme; 무세금; 세계적 인프라; 여름 혹서 (45°C+); 2026년 4월 1일부터 VWP 신청 시 은행 잔고 6개월 명세 요구 (기존 3개월)",
-      "source": "https://www.mohre.gov.ae",
+      "notes": "Virtual Working Programme; 무세금; 세계적 인프라; 여름 혹서 (45°C+). UAE 공식 포털(2026-03-03 업데이트) 기준 원격근무 비자 핵심 요건은 해외 고용/사업 증빙 및 최소 월소득 USD 3,500이며, 세부 제출서류는 ICP/GDRFA 신청 채널별로 상이할 수 있어 신청 시점 재확인 권장.",
+      "source": "https://u.ae/en/information-and-services/visa-and-emirates-id/residence-visas/residence-visa-for-working-outside-the-uae",
       "schengen": false,
       "buffer_zone": false,
       "tax_residency_days": 183,
@@ -892,7 +892,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-04-03",
+      "data_verified_date": "2026-04-09",
       "visa_notes": [
         "월 $3,500 이상; 기본 신청비 $101 (UAE 외부) 또는 $334 (내부); 의료검사 $85~270 + Emirates ID $165 별도",
         "한국인 무비자 30일 (연장 60일 가능)"
@@ -1248,18 +1248,18 @@
       "name": "Taiwan",
       "name_kr": "대만",
       "cost_tier": "medium",
-      "notes": "디지털 노마드 비자 2025년 1월 도입; 2026년 1월 8일 최대 체류 2년으로 연장 (6개월+3회 연장); 30세 이상 연소득 $40,000 요건; 타이페이 IT 인프라 강세; 한국인 90일 무비자 입국",
-      "data_verified_date": "2026-04-03",
+      "notes": "디지털 노마드 방문비자(BOCA, 2025-01-02 공고) 기준으로 신청 가능하며, 급여/원격근무/보험/계좌요건 확인이 필요합니다. 현재 공지 기준 체류 기간은 방문비자 성격으로 운영되어 장기 연장 정책은 별도 추가 확인 필요.",
+      "data_verified_date": "2026-04-09",
       "visa_type": "Digital Nomad Visitor Visa",
       "min_income_usd": 3333,
       "visa_fee_usd": 30,
-      "stay_months": 24,
-      "renewable": true,
+      "stay_months": 6,
+      "renewable": false,
       "visa_notes": [
         "2026년 1월 8일부터 최대 2년 체류로 연장 (6개월 초기+3회 6개월 연장); 30세 이상 연소득 $40,000 요건; 20~29세 연소득 $20,000 요건; 월 평균 은행 잔고 $10,000 이상 (6개월); 국제 건강보험 필수",
         "한국인 90일 무비자 입국"
       ],
-      "source": "https://talent.nat.gov.tw/visa/digital-nomad",
+      "source": "https://www.boca.gov.tw/cp-158-7718-c0382-2.html",
       "key_docs": [
         "여권",
         "소득 증빙"

@@ -5,7 +5,11 @@
       "name": "Numbeo Cost of Living",
       "publisher": "Numbeo",
       "url": "https://www.numbeo.com/cost-of-living/",
-      "metric_scope": ["monthly_cost_usd", "mid_term_rent_usd", "meal/living benchmarks"],
+      "metric_scope": [
+        "monthly_cost_usd",
+        "mid_term_rent_usd",
+        "meal/living benchmarks"
+      ],
       "last_checked": "2026-04-03"
     },
     {
@@ -13,7 +17,9 @@
       "name": "Speedtest Global Index",
       "publisher": "Ookla",
       "url": "https://www.speedtest.net/global-index",
-      "metric_scope": ["internet_mbps"],
+      "metric_scope": [
+        "internet_mbps"
+      ],
       "last_checked": "2026-04-03"
     },
     {
@@ -21,15 +27,24 @@
       "name": "Official Immigration / MFA Portals",
       "publisher": "Government Agencies",
       "url": "./visa_urls.json",
-      "metric_scope": ["entry_tips", "visa practicality context"],
-      "last_checked": "2026-04-03"
+      "metric_scope": [
+        "entry_tips",
+        "visa practicality context"
+      ],
+      "last_checked": "2026-04-09"
     },
     {
       "id": "internal_editorial_scoring",
       "name": "Internal Editorial Scoring Guide",
       "publisher": "NNAI Data Team",
       "url": "N/A",
-      "metric_scope": ["safety_score", "english_score", "nomad_score", "coworking_score", "community_size"],
+      "metric_scope": [
+        "safety_score",
+        "english_score",
+        "nomad_score",
+        "coworking_score",
+        "community_size"
+      ],
       "last_checked": "2026-04-03"
     },
     {
@@ -37,7 +52,9 @@
       "name": "Nomads.com Fastest-Growing Destinations 2026",
       "publisher": "Nomads.com",
       "url": "https://nomads.com",
-      "metric_scope": ["community trend context"],
+      "metric_scope": [
+        "community trend context"
+      ],
       "last_checked": "2026-04-03"
     },
     {
@@ -45,7 +62,9 @@
       "name": "Global Peace Index 2024",
       "publisher": "Institute for Economics & Peace / Vision of Humanity",
       "url": "https://www.visionofhumanity.org/maps/",
-      "metric_scope": ["safety_score"],
+      "metric_scope": [
+        "safety_score"
+      ],
       "last_checked": "2026-04-08"
     },
     {
@@ -53,7 +72,9 @@
       "name": "Numbeo Crime / Safety by City",
       "publisher": "Numbeo",
       "url": "https://www.numbeo.com/crime/",
-      "metric_scope": ["safety_score"],
+      "metric_scope": [
+        "safety_score"
+      ],
       "last_checked": "2026-04-08"
     }
   ]
