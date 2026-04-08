@@ -303,6 +303,21 @@ def _cost_score(city: dict, income_usd: float) -> float:
     return max(0.0, min(10.0, (1.0 - _cost_ratio(city, income_usd)) * 10))
 
 
+def _high_income_low_cost_penalty(city: dict, income_usd: float) -> float:
+    """
+    Penalize extreme budget mismatch:
+    very high income profiles repeatedly selecting ultra-low-cost cities.
+    """
+    monthly_cost = float(city.get("monthly_cost_usd") or 0)
+    if income_usd < 5000:
+        return 0.0
+    if monthly_cost <= 1200:
+        return 1.3
+    if monthly_cost <= 1500:
+        return 0.8
+    return 0.0
+
+
 # ── Block A: 기본 적합도 (30%) ──────────────────────────────────
 
 def _lifestyle_miss_penalty(city: dict, country: dict, lifestyle: list[str]) -> float:
@@ -329,7 +344,47 @@ def _passes_lifestyle_must_have(city: dict, country: dict, lifestyle: list[str])
     return True
 
 
-def _block_a(city: dict, country: dict, lifestyle: list[str]) -> float:
+def _city_dominance_penalty(city: dict, lifestyle: list[str], income_usd: float = 0.0) -> float:
+    """
+    Generic anti-dominance penalty.
+    Applies to any city that is simultaneously very cheap and very high on nomad/work metrics.
+    """
+    monthly_cost = float(city.get("monthly_cost_usd") or 0)
+    nomad = float(city.get("nomad_score") or 0)
+    cowork = float(city.get("coworking_score") or 0)
+    community = str(city.get("korean_community_size") or "")
+
+    penalty = 0.0
+    if monthly_cost <= 1200:
+        penalty += 0.90
+    elif monthly_cost <= 1500:
+        penalty += 0.45
+
+    if nomad >= 9:
+        penalty += 0.55
+    if cowork >= 9:
+        penalty += 0.40
+    if community == "large":
+        penalty += 0.25
+
+    # Synergy penalty for the "very cheap + very high nomad/work" cluster.
+    if monthly_cost <= 1500 and nomad >= 8.5 and cowork >= 8.5:
+        penalty += 0.90
+
+    # If user explicitly wants low-cost/community, relax related components.
+    if "저비용 생활" in lifestyle:
+        penalty -= 0.35
+    if "한인 커뮤니티" in lifestyle:
+        penalty -= 0.10
+
+    # Low-income users should not be over-penalized for affordable city preference.
+    if income_usd > 0 and income_usd < 2200:
+        penalty *= 0.70
+
+    return max(0.0, min(2.5, penalty))
+
+
+def _block_a(city: dict, country: dict, lifestyle: list[str], income_usd: float = 0.0) -> float:
     """Base city fitness — nomad, safety, coworking, internet + lifestyle bonuses."""
     ranges = _score_ranges or {}
     nomad    = _normalize(city.get("nomad_score", 5),      *ranges.get("nomad_score",     (5, 9)))
@@ -359,6 +414,7 @@ def _block_a(city: dict, country: dict, lifestyle: list[str]) -> float:
         + climate_bonus
     )
     raw -= _lifestyle_miss_penalty(city, country, lifestyle)
+    raw -= _city_dominance_penalty(city, lifestyle, income_usd)
     return min(10.0, raw) * 0.30
 
 
@@ -387,6 +443,8 @@ def _block_b(city: dict, country: dict, income_usd: float, lifestyle: list[str],
 
     # Reduce cost weight 0.7 → 0.5, increase tax weight 0.3 → 0.5
     raw = cost_adjusted * 0.5 + tax_adjusted * 0.5
+    raw -= _high_income_low_cost_penalty(city, income_usd)
+    raw = max(0.0, raw)
     return raw * 0.25
 
 
@@ -600,6 +658,8 @@ def _wellbeing_proxy_breakdown(
 
     # Preference mismatch hurts expected satisfaction.
     score = max(0.0, score - (_lifestyle_miss_penalty(city, country, lifestyle) * 0.3))
+    score = max(0.0, score - (_city_dominance_penalty(city, lifestyle, income_usd) * 0.25))
+    score = max(0.0, score - (_high_income_low_cost_penalty(city, income_usd) * 0.5))
 
     # Lightweight penalty for stale visa metadata; uncertainty harms practical wellbeing.
     stale_penalty = 0.5 if _source_is_stale(country.get("data_verified_date")) else 0.0
@@ -671,7 +731,7 @@ def _compute_score_breakdown(
 ) -> dict[str, float]:
     """4-Block composite score breakdown (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
-    a = _block_a(city, country, ls)
+    a = _block_a(city, country, ls, income_usd)
     b = _block_b(city, country, income_usd, ls, tax_sensitivity, timeline)
     c = _block_c(city, country, persona_type, income_usd)
     d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages, timeline)
