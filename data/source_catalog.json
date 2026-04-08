@@ -39,6 +39,22 @@
       "url": "https://nomads.com",
       "metric_scope": ["community trend context"],
       "last_checked": "2026-04-03"
+    },
+    {
+      "id": "global_peace_index_2024",
+      "name": "Global Peace Index 2024",
+      "publisher": "Institute for Economics & Peace / Vision of Humanity",
+      "url": "https://www.visionofhumanity.org/maps/",
+      "metric_scope": ["safety_score"],
+      "last_checked": "2026-04-08"
+    },
+    {
+      "id": "numbeo_crime_index",
+      "name": "Numbeo Crime / Safety by City",
+      "publisher": "Numbeo",
+      "url": "https://www.numbeo.com/crime/",
+      "metric_scope": ["safety_score"],
+      "last_checked": "2026-04-08"
     }
   ]
 }

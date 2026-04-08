@@ -463,8 +463,22 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 payload       JSONB NOT NULL DEFAULT '{}'::jsonb
             );
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verified_city_external_metrics (
+                id            BIGSERIAL PRIMARY KEY,
+                city_id       TEXT NOT NULL,
+                source_id     TEXT NOT NULL,
+                metric_key    TEXT NOT NULL,
+                metric_value  DOUBLE PRECISION,
+                fetched_at    TEXT,
+                payload       JSONB NOT NULL DEFAULT '{}'::jsonb,
+                updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (city_id, source_id, metric_key)
+            );
+        """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_cities_country_id ON verified_cities(country_id);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_verification_logs_entity ON verification_logs(entity_type, entity_id);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_city_external_metrics_city_id ON verified_city_external_metrics(city_id);")
     conn.commit()
     return conn
 
