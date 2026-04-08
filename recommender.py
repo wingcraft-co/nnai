@@ -68,6 +68,20 @@ _LIFESTYLE_MATCH: dict[str, Any] = {
     "저비용 생활":         lambda city, country: country.get("cost_tier") == "low",
     "안전 중시":           lambda city, country: city.get("safety_score", 0) >= 8,
     "영어권 선호":         lambda city, country: city.get("english_score", 0) >= 7,
+    "해변":               lambda city, country: (city.get("climate") or "").lower() in _BEACH_CLIMATES,
+}
+
+# If selected, these preferences are treated as must-have in first-pass ranking.
+_MUST_HAVE_LIFESTYLES: set[str] = {"안전 중시", "영어권 선호", "코워킹스페이스 중시", "해변"}
+
+# Penalty applied when selected preference is not met (soft scoring).
+_LIFESTYLE_MISS_PENALTY: dict[str, float] = {
+    "안전 중시": 1.0,
+    "영어권 선호": 1.0,
+    "코워킹스페이스 중시": 0.8,
+    "해변": 0.9,
+    "한인 커뮤니티": 0.5,
+    "저비용 생활": 0.5,
 }
 
 # korean_community_size → numeric score
@@ -291,7 +305,31 @@ def _cost_score(city: dict, income_usd: float) -> float:
 
 # ── Block A: 기본 적합도 (30%) ──────────────────────────────────
 
-def _block_a(city: dict, lifestyle: list[str]) -> float:
+def _lifestyle_miss_penalty(city: dict, country: dict, lifestyle: list[str]) -> float:
+    penalty = 0.0
+    for pref in lifestyle:
+        check = _LIFESTYLE_MATCH.get(pref)
+        if check is None:
+            continue
+        if not check(city, country):
+            penalty += _LIFESTYLE_MISS_PENALTY.get(pref, 0.0)
+    return min(2.5, penalty)
+
+
+def _passes_lifestyle_must_have(city: dict, country: dict, lifestyle: list[str]) -> bool:
+    must_haves = [p for p in lifestyle if p in _MUST_HAVE_LIFESTYLES]
+    if not must_haves:
+        return True
+    for pref in must_haves:
+        check = _LIFESTYLE_MATCH.get(pref)
+        if check is None:
+            continue
+        if not check(city, country):
+            return False
+    return True
+
+
+def _block_a(city: dict, country: dict, lifestyle: list[str]) -> float:
     """Base city fitness — nomad, safety, coworking, internet + lifestyle bonuses."""
     ranges = _score_ranges or {}
     nomad    = _normalize(city.get("nomad_score", 5),      *ranges.get("nomad_score",     (5, 9)))
@@ -320,6 +358,7 @@ def _block_a(city: dict, lifestyle: list[str]) -> float:
         + internet * 0.15
         + climate_bonus
     )
+    raw -= _lifestyle_miss_penalty(city, country, lifestyle)
     return min(10.0, raw) * 0.30
 
 
@@ -559,6 +598,9 @@ def _wellbeing_proxy_breakdown(
         if climate in _BEACH_CLIMATES:
             score = min(10.0, score + 0.8)
 
+    # Preference mismatch hurts expected satisfaction.
+    score = max(0.0, score - (_lifestyle_miss_penalty(city, country, lifestyle) * 0.3))
+
     # Lightweight penalty for stale visa metadata; uncertainty harms practical wellbeing.
     stale_penalty = 0.5 if _source_is_stale(country.get("data_verified_date")) else 0.0
     score = max(0.0, score - stale_penalty)
@@ -629,7 +671,7 @@ def _compute_score_breakdown(
 ) -> dict[str, float]:
     """4-Block composite score breakdown (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
-    a = _block_a(city, ls)
+    a = _block_a(city, country, ls)
     b = _block_b(city, country, income_usd, ls, tax_sensitivity, timeline)
     c = _block_c(city, country, persona_type, income_usd)
     d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages, timeline)
@@ -697,6 +739,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
     timeline_raw = user_profile.get("timeline", "")
     timeline   = _TIMELINE_ALIASES.get(timeline_raw, timeline_raw)
     lifestyle  = user_profile.get("lifestyle") or []
+    lifestyle_norm = _normalize_lifestyle(lifestyle)
     preferred  = user_profile.get("preferred_countries") or []
     nationality = user_profile.get("nationality", "")
     language = user_profile.get("language", "한국어")
@@ -712,39 +755,50 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
     # Score and filter cities
     seen_country_ids: set[str] = set()
 
-    candidates: list[tuple[float, dict, dict, dict[str, float]]] = []
+    def _collect_candidates(require_must_have: bool) -> list[tuple[float, dict, dict, dict[str, float]]]:
+        rows: list[tuple[float, dict, dict, dict[str, float]]] = []
+        for city in cities_list:
+            cid = city.get("country_id", "")
+            country = country_map.get(cid)
+            if country is None:
+                # City belongs to a country not in visa_db — skip
+                continue
 
-    for city in cities_list:
-        cid = city.get("country_id", "")
-        country = country_map.get(cid)
-        if country is None:
-            # City belongs to a country not in visa_db — skip
-            continue
+            # Hard filters
+            if not _passes_income_filter(country, effective_income_usd):
+                continue
+            if not _passes_timeline_filter(country, timeline):
+                continue
+            if not _passes_continent_filter(cid, preferred):
+                continue
+            if not _passes_schengen_long_stay_filter(country, timeline, effective_income_usd):
+                continue
+            if require_must_have and not _passes_lifestyle_must_have(city, country, lifestyle_norm):
+                continue
 
-        # Hard filters
-        if not _passes_income_filter(country, effective_income_usd):
-            continue
-        if not _passes_timeline_filter(country, timeline):
-            continue
-        if not _passes_continent_filter(cid, preferred):
-            continue
-        if not _passes_schengen_long_stay_filter(country, timeline, effective_income_usd):
-            continue
+            breakdown = _compute_score_breakdown(
+                city=city,
+                country=country,
+                income_usd=effective_income_usd,
+                lifestyle=lifestyle_norm,
+                persona_type=persona_type,
+                travel_type=travel_type,
+                stay_style=stay_style,
+                tax_sensitivity=tax_sensitivity,
+                children_ages=children_ages,
+                timeline=timeline,
+            )
+            score = breakdown["total"]
+            rows.append((score, city, country, breakdown))
+        return rows
 
-        breakdown = _compute_score_breakdown(
-            city=city,
-            country=country,
-            income_usd=effective_income_usd,
-            lifestyle=lifestyle,
-            persona_type=persona_type,
-            travel_type=travel_type,
-            stay_style=stay_style,
-            tax_sensitivity=tax_sensitivity,
-            children_ages=children_ages,
-            timeline=timeline,
-        )
-        score = breakdown["total"]
-        candidates.append((score, city, country, breakdown))
+    must_have_active = any(p in _MUST_HAVE_LIFESTYLES for p in lifestyle_norm)
+    candidates = _collect_candidates(require_must_have=must_have_active)
+    must_have_relaxed = False
+    if must_have_active and not candidates:
+        # Safety valve: if strict must-have produces empty list, fall back to soft ranking.
+        candidates = _collect_candidates(require_must_have=False)
+        must_have_relaxed = True
 
     # Sort descending by score
     candidates.sort(key=lambda x: x[0], reverse=True)
@@ -768,7 +822,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
     for idx, (score, city, country, breakdown) in enumerate(top_cities_raw, start=1):
         cid = city.get("country_id", "")
         is_schengen = cid in _SCHENGEN_IDS
-        normalized_lifestyle = _normalize_lifestyle(lifestyle)
+        normalized_lifestyle = lifestyle_norm
         wellbeing_debug = _wellbeing_proxy_breakdown(
             city=city,
             country=country,
@@ -876,6 +930,18 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
                 "세금 거주지 문제와 한국과의 이중과세협약 부재에 유의하세요."
             )
 
+    if must_have_relaxed:
+        if language == "English":
+            warnings.append(
+                "Some must-have lifestyle filters were relaxed to avoid empty results. "
+                "Please tighten region or budget for stricter matches."
+            )
+        else:
+            warnings.append(
+                "일부 필수 라이프스타일 조건은 결과 0개를 피하기 위해 완화되었습니다. "
+                "더 엄격한 매칭을 원하면 지역/예산 조건을 함께 좁혀주세요."
+            )
+
     overall_warning = " ".join(warnings)
 
     result = {
@@ -894,7 +960,9 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
                 "travel_type": travel_type,
                 "stay_style": stay_style,
                 "tax_sensitivity": tax_sensitivity,
-                "lifestyle": _normalize_lifestyle(lifestyle),
+                "lifestyle": lifestyle_norm,
+                "must_have_lifestyle_active": must_have_active,
+                "must_have_lifestyle_relaxed": must_have_relaxed,
                 "preferred_countries": preferred,
             },
             "selection_rule": "국가 중복 제거 규칙으로 국가당 최고 점수 도시 1개만 선택",
