@@ -1,5 +1,86 @@
 # CHANGELOG
 
+## [2026-04-10 KST] — 체류 기간 모드 분기 + Block C 페르소나 재설계
+
+### 변경 파일
+- `recommender.py` : Block 함수 가중치 분리, `_get_block_weights()` 동적 분기, Block D 단기 visa 0, Block C 페르소나 가중치 전면 교체, 신규 가상 속성 3개(visa_freedom, climate_score, long_stay_score), 페르소나 미선택 시 Block C→A 합산
+- `server.py` : RecommendRequest에 total_budget_krw 추가
+- `app.py` : nomad_advisor() 시그니처 + 단기 체류 예산 변환 로직
+- `frontend/src/app/[locale]/onboarding/form/page.tsx` : 단기 체류 시 총 예산 입력 UI, FormData에 total_budget 추가, canProceed 분기, payload 변경
+- `cowork/backend/api-reference.md` : total_budget_krw 필드 추가
+- `tests/test_recommender.py` : 가중치 테스트 6개 추가, pioneer 테스트 재설계
+
+### 작업 요약
+- 무엇을: 체류 기간(단기/중기/장기) 기반 Block 가중치 동적 분기 + Block C 페르소나 가중치 서사 정렬 재설계 + 단기 체류 총 예산 UI
+- 왜: 단기 체류자에게 비자/비용 Block이 과도하게 영향, 페르소나 서사(프론트)와 스코어링(백엔드) 괴리 해소
+- 영향 범위: 백엔드 추천 로직 전체, 프론트엔드 폼 Step 3, API 스키마
+
+### 가중치 동적 분기
+| 모드 | Block A | Block B | Block C | Block D |
+|------|---------|---------|---------|---------|
+| 단기 (≤3개월) | 0.40 | 0.10 | 0.40 | 0.10 |
+| 중기 (≤12개월) | 0.30 | 0.25 | 0.30 | 0.15 |
+| 장기 (>12개월) | 0.30 | 0.25 | 0.25 | 0.20 |
+
+### Block C 페르소나 가중치 (신규)
+| 페르소나 | 속성 1 | 속성 2 | 속성 3 |
+|----------|--------|--------|--------|
+| wanderer | nomad(3.5) | visa_freedom(2.5) | cowork(1.5) |
+| local | community(3.5) | safety(2.5) | long_stay(1.5) |
+| planner | cost(3.0) | tax_days(2.5) | renewable(2.0) |
+| free_spirit | safety(3.0) | climate(2.5) | cost(2.0) |
+| pioneer | renewable(3.5) | english(2.5) | community(1.5) |
+
+### 다음 세션 참고사항
+- Block C penalty scale 재튜닝 필요 (페르소나 가중치 변경으로 기존 scale 최적값 변동 가능)
+- 타로카드 UX 재설계 (별도 세션)
+- dev.nnai.app에서 단기 체류 총 예산 UI 실사용 테스트 필요
+
+---
+
+## [2026-04-10 KST] — 아내팀(rosie/case) 작업 pull 반영 (04-06~04-09, 24커밋)
+
+### 변경 파일 (주요)
+- `recommender.py` : Min-Max Normalization, internet_mbps 스코어링, Block B/C 조정, dominance penalty
+- `server.py` : 라우트 추가 (mobile uploads)
+- `app.py` : 추천 로직 LLM 제거 연동
+- `api/mobile_type_actions.py` : 신규 — 모바일 type-actions API
+- `api/mobile_uploads.py` : 신규 — 모바일 업로드 엔드포인트
+- `api/mobile_auth.py`, `api/mobile_discover.py`, `api/mobile_feed.py` : 모바일 API 확장
+- `frontend/src/components/debug/CityDebugPanel.tsx` : 신규 — 디버그 스코어링 로그 패널
+- `frontend/src/app/[locale]/result/page.tsx` : 디버그 패널 연동
+- `data/city_scores.json` : 누락 도시 추가 + 안전 지표 블렌딩
+- `data/rawdata/*.csv` : AE/TW 비자 메타데이터 검증 갱신
+- `utils/db.py` : 마이그레이션 테이블 추가
+- `migrations/002~005` : 신규 DB 마이그레이션 4개
+- `scripts/recompute_city_safety_blended.py` : 신규 — GPI 안전 지표 블렌딩 스크립트
+- `scripts/recompute_city_safety_from_gpi.py` : 신규 — GPI 원본 데이터 스크립트
+- `tests/test_recommender.py` : 치앙마이 dominance 회귀 테스트 추가
+- `tests/test_mobile_*.py` : 모바일 API 테스트 3개 추가
+- `docs/plans/2026-04-09-block-c-dominance-penalty.md` : Block C dominance penalty 구현 계획
+- `docs/specs/2026-04-09-block-c-dominance-penalty-design.md` : Block C 설계 스펙
+
+### 작업 요약
+- 무엇을: 추천 로직 대폭 개선 (스코어링 정규화, 독점 방지, 안전 지표 블렌딩) + 모바일 API 확장 + rawdata 검증
+- 왜: 치앙마이 등 저비용+고nomad 도시가 거의 모든 프로필에서 TOP3에 반복 등장하는 구조적 문제 해결 + 모바일 앱 API 계약 수립
+- 영향 범위: 백엔드 추천 로직 전체, 모바일 API, 프론트엔드 디버그 패널, DB 스키마
+
+### 주요 변경사항
+- **Step1 TOP3에서 LLM 완전 제거** — 순수 DB 규칙 기반 추천
+- **Min-Max Normalization** — cost_of_living, internet_mbps 등 원시 값 정규화
+- **Block B** — 저가 도시 과도한 cost_score 우대 완화
+- **Block C dominance penalty** — `_BLOCK_C_PENALTY_SCALE_DEFAULT=0.20` 적용, 라이프스타일 미지정 시 저비용+고nomad 도시 억제
+- **외부 안전 지표** — GPI 블렌딩으로 safety_score 정교화
+- **모바일 API** — type-actions 614줄 신규, uploads, persona_type 표준화
+- **rawdata** — AE(UAE), TW(대만) 비자 메타데이터 웹 검증 후 갱신
+
+### 다음 세션 참고사항
+- 타로카드 UX 재설계 (우리 팀 다음 작업)
+- Block C penalty scale 값(0.20)이 최종 튜닝인지 아내팀 확인 필요
+- 마이그레이션 002~005 프로덕션 DB 적용 여부 확인 필요
+
+---
+
 ## [2026-04-05 KST] — 폼 카피 전면 수정 + 스텝 구조 5단계 확정
 
 ### 변경 파일

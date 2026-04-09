@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-05 KST_
+_Last updated: 2026-04-10 KST_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -10,20 +10,30 @@ _Last updated: 2026-04-05 KST_
 - Frontend: Next.js 16 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui, Framer Motion
 - Backend: FastAPI (Python 3), Gemini 2.5 Flash (OpenAI compat)
 - DB: PostgreSQL
-- Infra: Vercel (frontend, nnai.app) + Railway (backend, api.nnai.app) + Cloudflare DNS
+- Infra: Vercel (frontend, nnai.app / dev.nnai.app) + Railway (backend, api.nnai.app / api-dev.nnai.app) + Cloudflare DNS
 
 ## 현재 상태
-폼 카피 전면 수정 완료. 스텝 5단계 확정 및 재배치.
-타이틀/라벨/버튼 카피 확정. children_ages 스코어링 반영 완료.
-**Step1 TOP3 추천은 규칙 기반 DB Recommender로 고정** (LLM 개입 없음, 2026-04-07 확정)
-타로카드 UX 재설계 대기 중.
+**Step1 TOP3 추천은 규칙 기반 DB Recommender로 고정** (LLM 개입 없음).
+Block 가중치가 체류 기간(단기/중기/장기)에 따라 동적 분기됨.
+Block C 페르소나 가중치 전면 재설계 완료 — 서사와 스코어링 정렬.
+단기 체류자에게 "총 예산" 입력 UI 제공 (월 소득 대신).
+페르소나 미선택 시 Block C 가중치가 Block A에 합산됨.
 
-## 최근 변경
-- 폼 스텝 4→5단계 재배치 (소득↔동행 순서 교체)
-- 타이틀/라벨/버튼 카피 전면 수정
-- children_ages 연령대별 스코어링 반영
-- CTA "도시 추천 받기" 확정
-- API 프록시 route.ts 하드코딩 URL → NEXT_PUBLIC_API_URL 환경변수화
+## 최근 변경 (04-10 우리팀 작업)
+- Block 가중치 동적 분기: 단기(A40/B10/C40/D10), 중기(A30/B25/C30/D15), 장기(A30/B25/C25/D20)
+- Block 함수에서 가중치 곱셈 제거, `_compute_score_breakdown()`에서 일괄 적용
+- 단기 Block D visa_score 0 처리
+- `total_budget_krw` 백엔드 파이프라인 (server.py, app.py)
+- 프론트엔드 단기 체류 시 총 예산 입력 UI (form/page.tsx)
+- Block C 페르소나 가중치 재설계:
+  - wanderer: nomad(3.5) + visa_freedom(2.5) + cowork(1.5)
+  - local: community(3.5) + safety(2.5) + long_stay(1.5)
+  - planner: cost(3.0) + tax_days(2.5) + renewable(2.0)
+  - free_spirit: safety(3.0) + climate(2.5) + cost(2.0)
+  - pioneer: renewable(3.5) + english(2.5) + community(1.5)
+- 신규 가상 속성: visa_freedom, climate_score, long_stay_score
+- 페르소나 미선택 시 Block C→Block A 가중치 합산
+- API 문서 동기화 (total_budget_krw)
 
 ## 진행 중인 작업
 - [x] 백엔드 스코어링 로직 전면 재설계
@@ -32,10 +42,18 @@ _Last updated: 2026-04-05 KST_
 - [x] lifestyle 선택지 교체 + 백엔드 키 매핑
 - [x] 폼 카피 수정
 - [x] children_ages 스코어링 반영
+- [x] Block C dominance penalty (치앙마이 독점 방지)
+- [x] Min-Max Normalization + internet_mbps 스코어링
+- [x] 모바일 API 계약 (type-actions, uploads)
+- [x] rawdata AE/TW 검증 및 동기화
+- [x] Block 가중치 동적 분기 (체류 기간 기반)
+- [x] Block C 페르소나 가중치 재설계 (서사 정렬)
+- [x] 단기 체류 총 예산 UI + 백엔드 파이프라인
 - [ ] 타로카드 UX 재설계
 - [ ] LLM 재도입 시점 + 페르소나 백엔드 연동 방식 검토
 - [ ] 페르소나 결과 공유 기능
 - [ ] Google OAuth 프론트엔드 연동
+- [ ] Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영)
 
 ## 서비스 포지셔닝 (2026-03-30 확정)
 
