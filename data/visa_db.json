@@ -40,9 +40,9 @@
           "introduced_date": "2024-06-07"
         }
       ],
-      "data_verified_date": "2024-06",
+      "data_verified_date": "2026-04-10",
       "visa_notes": [
-        "테크 분야 $24,000/년 ($2,000/월); 非테크 분야 $60,000/년; 신청비 MYR 1,000 (~$220)",
+        "MDEC DE Rantau 기준 테크 직군은 연 $24,000 이상, 비테크 직군은 연 $60,000 이상 소득 요건",
         "한국인 무비자 90일 (MOU)"
       ]
     },
@@ -371,9 +371,9 @@
       "mid_term_rental_available": false,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2025-12",
+      "data_verified_date": "2026-04-10",
       "visa_notes": [
-        "월 $3,000 (부양가족 있으면 $4,000); 신청비 $100; 국내 소득세 면제; 1년 갱신 가능",
+        "법률 제10008 기준 월 $3,000, 가족 포함 시 월 $4,000 소득 요건; 1년 체류 후 갱신 가능",
         "한국인 무비자 90일"
       ]
     },
@@ -612,7 +612,7 @@
       "name": "Malta",
       "name_kr": "몰타",
       "visa_type": "Nomad Residence Permit",
-      "min_income_usd": 2700,
+      "min_income_usd": 4045,
       "stay_months": 12,
       "renewable": true,
       "key_docs": [
@@ -624,7 +624,7 @@
       "tax_note": "몰타 거주자 비거주자 세율 15% (특별 프로그램 적용 시)",
       "cost_tier": "medium",
       "notes": "쉥겐 내 영어 공용어 국가. 지중해 섬나라. EU 디지털 허브 성장 중",
-      "source": "https://nomad.gov.mt",
+      "source": "https://nomad.residencymalta.gov.mt/topic/eligibility/",
       "schengen": true,
       "buffer_zone": false,
       "tax_residency_days": 183,
@@ -632,14 +632,20 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2025-12"
+      "data_verified_date": "2026-04-10",
+      "min_income_monthly_eur": 3500,
+      "min_income_annual_eur": 42000,
+      "visa_notes": [
+        "Residency Malta 기준 2024-04-01 이후 신규 신청자는 연 총소득 €42,000 이상 필요",
+        "초기 1년 허가 후 최대 3회 갱신 가능"
+      ]
     },
     {
       "id": "CY",
       "name": "Cyprus",
       "name_kr": "사이프러스",
       "visa_type": "Digital Nomad Visa",
-      "min_income_usd": 3500,
+      "min_income_usd": 4045,
       "stay_months": 12,
       "renewable": true,
       "key_docs": [
@@ -651,7 +657,7 @@
       "tax_note": "사이프러스 비거주자 현지 소득세 없음. EU 비쉥겐 섬나라",
       "cost_tier": "medium",
       "notes": "EU 회원국이나 쉥겐 비편입 — 쉥겐 소진 후 버퍼로 활용 가능. 영어 광범위 통용",
-      "source": "https://www.mfa.gov.cy",
+      "source": "https://www.moi.gov.cy/dmmip/md.nsf/All/93641364946C6F77C2258921002BFE31/%24file/DIGITAL%20NOMAD%20VISA%20SCHEME%20-%20EL.pdf?OpenElement=",
       "schengen": false,
       "buffer_zone": true,
       "tax_residency_days": 183,
@@ -659,7 +665,12 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2025-12"
+      "data_verified_date": "2026-04-10",
+      "min_income_monthly_eur": 3500,
+      "visa_notes": [
+        "키프로스 디지털 노마드 스킴 기준 세후 월 €3,500 이상 소득 필요",
+        "1년 체류 후 최대 2년 추가 갱신 가능"
+      ]
     },
     {
       "id": "AL",
@@ -696,10 +707,10 @@
       "id": "RS",
       "name": "Serbia",
       "name_kr": "세르비아",
-      "visa_type": "무비자 체류 (30일 → 연장 가능)",
+      "visa_type": "무비자 체류 (90일/180일)",
       "min_income_usd": 0,
       "stay_months": 3,
-      "renewable": true,
+      "renewable": false,
       "key_docs": [
         "유효 여권",
         "체류 연장 신청 시 숙박 증빙",
@@ -709,7 +720,7 @@
       "tax_note": "비거주자 현지 소득세 없음",
       "cost_tier": "low",
       "notes": "베오그라드 물가 유럽 최저권. 비쉥겐. 쉥겐 소진 후 비용 효율적 버퍼. 노마드 커뮤니티 성장 중",
-      "source": "https://www.mfa.gov.rs",
+      "source": "https://mfa.gov.rs/en/citizens/travel-serbia/visa-regime/koreja-republika",
       "schengen": false,
       "buffer_zone": true,
       "tax_residency_days": 183,
@@ -717,7 +728,11 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2025-12"
+      "data_verified_date": "2026-04-10",
+      "visa_notes": [
+        "세르비아 외교부 기준 한국 일반여권은 180일 중 최대 90일 무비자 체류 가능",
+        "단기 체류만으로 임시거주 신청 근거가 되지 않아 기본값은 갱신 불가로 유지"
+      ]
     },
     {
       "id": "MK",
