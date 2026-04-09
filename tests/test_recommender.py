@@ -221,3 +221,36 @@ def test_wellbeing_proxy_penalizes_overbudget_city():
         travel_type="혼자 (솔로)",
     )
     assert s_cheap > s_expensive
+
+
+def test_chiang_mai_not_in_top3_for_generic_mid_income_profile():
+    """라이프스타일 미지정 중소득 프로필에서 치앙마이는 TOP 3에 등장하지 않아야 한다."""
+    result = recommend_from_db(_profile(income_usd=3000, lifestyle=[], persona_type=""))
+    top3_cities = [c["city"] for c in result["top_cities"]]
+    assert "Chiang Mai" not in top3_cities, (
+        f"치앙마이가 TOP 3에 등장함: {top3_cities}"
+    )
+
+
+def test_chiang_mai_can_appear_for_pioneer_low_cost_profile():
+    """pioneer + 저비용 선호 프로필에서는 치앙마이가 TOP 5 안에 등장할 수 있어야 한다."""
+    result = recommend_from_db(
+        _profile(income_usd=2000, lifestyle=["저비용 생활"], persona_type="pioneer"),
+        top_n=5,
+    )
+    top5_cities = [c["city"] for c in result["top_cities"]]
+    assert "Chiang Mai" in top5_cities, (
+        f"pioneer+저비용 프로필에서 치앙마이가 TOP 5에 없음: {top5_cities}"
+    )
+
+
+def test_high_income_coworking_profile_unaffected():
+    """고소득 + 코워킹 중시 프로필의 TOP 3는 기존대로 유럽/고인프라 도시여야 한다."""
+    result = recommend_from_db(
+        _profile(income_usd=6000, lifestyle=["코워킹스페이스 중시"], persona_type="free_spirit")
+    )
+    top3_cities = [c["city"] for c in result["top_cities"]]
+    # 고소득+코워킹 → 유럽 중심, 치앙마이 없어야 함
+    assert "Chiang Mai" not in top3_cities, (
+        f"고소득/코워킹 프로필에서도 치앙마이 등장: {top3_cities}"
+    )
