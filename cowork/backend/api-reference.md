@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-05
+> 최종 업데이트: 2026-04-10
 
 ---
 
@@ -141,6 +141,7 @@ Content-Type: application/json
 | `spouse_income_krw` | integer | ❌ | `0` | 배우자 월 소득 (만원) |
 | `stay_style` | string \| null | ❌ | `null` | 체류 스타일 (`정착형|순환형|이동형`) |
 | `tax_sensitivity` | string \| null | ❌ | `null` | 세금 민감도 (`optimize|simple|unknown`) |
+| `total_budget_krw` | integer \| null | ❌ | `null` | 단기 체류 시 총 예산 (만원 단위). 중기/장기는 `null`. |
 
 **요청 예시:**
 ```json
