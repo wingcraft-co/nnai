@@ -101,6 +101,7 @@ interface FormData {
   spouse_income_krw: number;
   preferred_countries: string[];
   lifestyle: string[];
+  total_budget: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -115,6 +116,7 @@ const INITIAL_FORM: FormData = {
   spouse_income_krw: 0,
   preferred_countries: [],
   lifestyle: [],
+  total_budget: "",
 };
 
 const TOTAL_STEPS = 5;
@@ -169,7 +171,11 @@ export default function FormPage() {
     switch (currentStep) {
       case 1: return form.immigration_purpose !== "";
       case 2: return form.timeline !== "";
-      case 3: return form.income_range !== "";
+      case 3:
+        if (isShortStay) {
+          return form.total_budget !== "" || form.income_range === "0";
+        }
+        return form.income_range !== "";
       case 4: return form.travel_type !== "";
       case 5: return true;
       default: return false;
@@ -203,7 +209,8 @@ export default function FormPage() {
         travel_type: form.travel_type,
         timeline: form.timeline,
         stay_style: isShortStay ? "" : form.stay_style,
-        income_krw: Number(form.income_range),
+        income_krw: isShortStay ? 0 : Number(form.income_range),
+        total_budget_krw: isShortStay && form.total_budget ? Number(form.total_budget) : null,
         tax_sensitivity: isShortStay ? "" : form.tax_sensitivity,
         children_ages: hasChildren(form.travel_type) ? form.children_ages : null,
         has_spouse_income: hasSpouse(form.travel_type) ? form.has_spouse_income : "없음",
@@ -352,34 +359,70 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* Step 3: 소득 + 세금 민감도 */}
+            {/* Step 3: 소득 또는 총 예산 */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">월 소득 (만원)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {INCOME_RANGE_OPTIONS.map((option) => {
-                      const isActive = form.income_range === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setForm({ ...form, income_range: option.value })}
-                          className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
-                            isActive
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border bg-muted text-foreground hover:bg-accent"
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
+                {isShortStay ? (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">
+                      이번 여정의 총 예산이 얼마예요?
+                    </label>
+                    <p className="text-xs text-muted-foreground/60">
+                      숙소, 식비, 교통 등 전체 예상 금액을 입력해주세요
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="예: 500"
+                        value={form.total_budget}
+                        onChange={(e) => setForm({ ...form, total_budget: e.target.value, income_range: "" })}
+                        className={INPUT_CLASS}
+                      />
+                      <span className="text-sm text-muted-foreground shrink-0">만원</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, income_range: "0", total_budget: "" })}
+                      className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                        form.income_range === "0"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-muted text-foreground hover:bg-accent"
+                      }`}
+                    >
+                      비공개
+                    </button>
+                    {form.income_range === "0" && (
+                      <p className="text-xs text-destructive mt-1">비자 추천 정확도가 낮아질 수 있어요.</p>
+                    )}
                   </div>
-                  {form.income_range === "0" && (
-                    <p className="text-xs text-destructive mt-1">비자 추천 정확도가 낮아질 수 있어요.</p>
-                  )}
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">월 소득 (만원)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {INCOME_RANGE_OPTIONS.map((option) => {
+                        const isActive = form.income_range === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setForm({ ...form, income_range: option.value })}
+                            className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                              isActive
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-muted text-foreground hover:bg-accent"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {form.income_range === "0" && (
+                      <p className="text-xs text-destructive mt-1">비자 추천 정확도가 낮아질 수 있어요.</p>
+                    )}
+                  </div>
+                )}
 
                 {!isShortStay && (
                   <div className="space-y-2">
