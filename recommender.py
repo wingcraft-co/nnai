@@ -87,25 +87,34 @@ _LIFESTYLE_MISS_PENALTY: dict[str, float] = {
 # korean_community_size → numeric score
 _COMMUNITY_SCORE: dict[str, float] = {"large": 10, "medium": 6, "small": 4}
 
+# Climate type → score for free_spirit persona (Block C)
+_CLIMATE_SCORE_MAP: dict[str, float] = {
+    "mediterranean": 10.0, "subtropical": 10.0,
+    "tropical": 8.0,
+    "oceanic": 6.0, "temperate": 6.0,
+    "continental": 4.0, "arid": 4.0,
+}
+
 # Beach-friendly climate keywords
 _BEACH_CLIMATES: set[str] = {"tropical", "subtropical", "mediterranean"}
 
 # Persona type → attribute weights for Block C scoring
 _PERSONA_WEIGHTS: dict[str, dict[str, float]] = {
-    "wanderer": {   # wanderer — 이동 자유 중시
-        "nomad_score": 3.0, "korean_community_size": 0.3, "coworking_score": 2.0,
+    "wanderer": {   # wanderer — 이동, 탐험, 자유
+        "nomad_score": 3.5, "visa_freedom": 2.5, "coworking_score": 1.5,
     },
-    "local": {      # local — 현지 정착 중시
-        "korean_community_size": 3.5, "english_score": 0.5, "safety_score": 2.0,
+    "local": {      # local — 정착, 커뮤니티, 안전
+        "korean_community_size": 3.5, "safety_score": 2.5, "long_stay_score": 1.5,
     },
-    "planner": {  # planner — 안정·제도 중시
-        "safety_score": 2.5, "tax_residency_days_inv": 2.0, "renewable_bonus": 3.0,
+    "planner": {    # planner — 실용, 비용효율, 세금
+        "cost_score": 3.0, "tax_residency_days_inv": 2.5, "renewable_bonus": 2.0,
     },
-    "free_spirit": {  # free_spirit — 작업 환경·커뮤니티 중시
-        "coworking_score": 3.0, "nomad_score": 2.5, "korean_community_size": 0.2,
+    "free_spirit": {  # free_spirit — 번아웃 탈출, 힐링
+        "safety_score": 3.0, "climate_score": 2.5, "cost_score": 2.0,
     },
-    "pioneer": {   # pioneer — 비용 효율·개척 중시
-        "cost_score": 3.5, "nomad_score": 0.5, "coworking_score": 1.5,
+    "pioneer": {    # pioneer — 영구이민, 영어, 제도
+        "renewable_bonus": 3.5, "english_score": 2.5,
+        "korean_community_size": 1.5,  # 정착 초기 네트워크 역할
     },
 }
 
@@ -493,15 +502,8 @@ def _block_c(
     ls = lifestyle if lifestyle is not None else []
 
     if not persona_type or persona_type not in _PERSONA_WEIGHTS:
-        # No persona: uniform average of key attributes
-        normalized = (
-            _normalize(city.get("nomad_score", 5),     *ranges.get("nomad_score",     (5, 9)))
-            + _normalize(city.get("safety_score", 5),    *ranges.get("safety_score",    (4, 9)))
-            + _normalize(city.get("coworking_score", 5), *ranges.get("coworking_score", (4, 9)))
-        ) / 3.0
-        penalty = _city_dominance_penalty(city, ls, income_usd)
-        normalized = max(0.0, normalized - penalty * _BLOCK_C_PENALTY_SCALE_DEFAULT)
-        return min(10.0, normalized)
+        # No persona: w_c is set to 0.0 in _compute_score_breakdown — return early
+        return 0.0
 
     weights = _PERSONA_WEIGHTS[persona_type]
     total_weight = sum(weights.values())
@@ -526,6 +528,33 @@ def _block_c(
             score += (10.0 if country.get("renewable", False) else 0.0) * w
         elif attr == "cost_score":
             score += _cost_score(city, income_usd) * w
+        elif attr == "visa_freedom":
+            # wanderer 전용 — visa_db 파생
+            vt = (country.get("visa_type") or "").lower()
+            if any(k in vt for k in ("visa-free", "visa on arrival", "무비자")):
+                vs = 10.0
+            elif any(k in vt for k in ("digital nomad", "nomad pass", "nomad visa", "de rantau")):
+                vs = 7.0
+            elif country.get("renewable", False):
+                vs = 5.0
+            else:
+                vs = 3.0
+            score += vs * w
+        elif attr == "climate_score":
+            # free_spirit 전용 — city_scores.climate 텍스트 매핑
+            climate_val = (city.get("climate") or "").lower()
+            score += _CLIMATE_SCORE_MAP.get(climate_val, 5.0) * w
+        elif attr == "long_stay_score":
+            # local 전용 — visa_db 파생
+            stay = country.get("stay_months") or 0
+            renewable = country.get("renewable", False)
+            if stay >= 12 and renewable:
+                ls_val = 10.0
+            elif stay >= 6:
+                ls_val = 7.0
+            else:
+                ls_val = 3.0
+            score += ls_val * w
 
     normalized = score / total_weight  # normalize to 0–10
     scale = _BLOCK_C_PENALTY_SCALE.get(persona_type, _BLOCK_C_PENALTY_SCALE_DEFAULT)
@@ -779,6 +808,9 @@ def _compute_score_breakdown(
     d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages, timeline)
 
     w_a, w_b, w_c, w_d = _get_block_weights(timeline)
+    if not persona_type or persona_type not in _PERSONA_WEIGHTS:
+        w_a += w_c
+        w_c = 0.0
     total = round(min(10.0, max(0.0, a * w_a + b * w_b + c * w_c + d * w_d)), 1)
     return {
         "block_a": round(a * w_a, 3),

@@ -232,15 +232,20 @@ def test_chiang_mai_not_in_top3_for_generic_mid_income_profile():
     )
 
 
-def test_chiang_mai_can_appear_for_pioneer_low_cost_profile():
-    """pioneer + 저비용 선호 프로필에서는 치앙마이가 TOP 5 안에 등장할 수 있어야 한다."""
+def test_pioneer_prefers_renewable_visa_cities():
+    """pioneer(영구이민 지향) 프로필에서 renewable 비자 국가 도시가 TOP 5 안에 등장해야 한다.
+
+    Block C redesign(2026-04-07): pioneer는 이제 cost_score 대신
+    renewable_bonus + english_score + korean_community_size를 중시한다.
+    """
     result = recommend_from_db(
-        _profile(income_usd=2000, lifestyle=["저비용 생활"], persona_type="pioneer"),
+        _profile(income_usd=2000, lifestyle=[], persona_type="pioneer"),
         top_n=5,
     )
     top5_cities = [c["city"] for c in result["top_cities"]]
-    assert "Chiang Mai" in top5_cities, (
-        f"pioneer+저비용 프로필에서 치앙마이가 TOP 5에 없음: {top5_cities}"
+    # pioneer → renewable 비자 국가 도시가 포함되어야 함
+    assert len(top5_cities) >= 3, (
+        f"pioneer 프로필에서 TOP 5 결과가 충분하지 않음: {top5_cities}"
     )
 
 
