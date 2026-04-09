@@ -1001,6 +1001,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = Fal
             "nomad_meetup_url":       city.get("nomad_meetup_url"),
             "entry_tips":             city.get("entry_tips"),
             # visa_db.json fields
+            "visa_free_days":             country.get("visa_free_days", 0),
             "stay_months":                country.get("stay_months"),
             "renewable":                  country.get("renewable"),
             "key_docs":                   country.get("key_docs"),

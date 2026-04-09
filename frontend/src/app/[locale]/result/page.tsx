@@ -33,6 +33,7 @@ interface CityData {
   anyplace_search_url: string | null;
   nomad_meetup_url: string | null;
   entry_tips: Record<string, unknown> | null;
+  visa_free_days: number;
   stay_months: number | null;
   renewable: boolean | null;
   key_docs: string[] | null;
@@ -375,6 +376,13 @@ export default function ResultPage() {
 
             {/* 3. 정보 블록 */}
             <div className="space-y-2 text-sm text-muted-foreground">
+              <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground mr-2">
+                {city.visa_free_days > 0 && city.plan_b_trigger
+                  ? `🛂 무비자 90일 (셴겐)`
+                  : city.visa_free_days > 0
+                  ? `🛂 무비자 ${city.visa_free_days}일`
+                  : `🛂 비자 필요`}
+              </span>
               <p>
                 {"비자: "}{city.visa_type}
                 {city.stay_months != null && ` · ${city.stay_months}개월`}
