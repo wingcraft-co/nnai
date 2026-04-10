@@ -6,7 +6,7 @@ import TarotReading from "@/components/tarot/TarotReading";
 import CityCompare from "@/components/tarot/CityCompare";
 import type { CityData, TarotSession } from "@/components/tarot/types";
 import { TAROT_SESSION_KEY } from "@/components/tarot/types";
-import { ShieldCheck, Wifi, Languages, Banknote, Lock, ChevronDown } from "lucide-react";
+import { ShieldCheck, Wifi, Languages, Banknote, Lock } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -713,74 +713,6 @@ export default function ResultPage() {
             </button>
           )}
 
-          {/* Debug Panel — Block A/B/C/D breakdown */}
-          {(() => {
-            const debugLogs = (parsedData as Record<string, unknown> | null)?.debug_logs as {
-              score_model?: string;
-              selected?: Array<{
-                rank: number;
-                city: string;
-                city_kr?: string;
-                country_id: string;
-                final_score: number;
-                blocks: { block_a: number; block_b: number; block_c: number; block_d: number };
-              }>;
-              inputs?: Record<string, unknown>;
-            } | undefined;
-
-            if (!debugLogs?.selected) return null;
-
-            return (
-              <details className="border border-border rounded-lg overflow-hidden">
-                <summary className="px-4 py-2 text-xs font-medium text-muted-foreground cursor-pointer flex items-center gap-1 bg-muted/50 hover:bg-muted transition-colors">
-                  <ChevronDown className="size-3" />
-                  스코어링 디버그 (Block A/B/C/D)
-                </summary>
-                <div className="p-4 space-y-3 text-xs">
-                  {/* Inputs */}
-                  {debugLogs.inputs && (
-                    <div className="bg-muted/30 rounded p-2 space-y-1">
-                      <p className="font-semibold text-muted-foreground">입력값</p>
-                      {Object.entries(debugLogs.inputs).map(([k, v]) => (
-                        <p key={k} className="text-muted-foreground">
-                          <span className="text-foreground">{k}:</span>{" "}
-                          {typeof v === "object" ? JSON.stringify(v) : String(v)}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Score table */}
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="py-1 text-muted-foreground">#</th>
-                        <th className="py-1 text-muted-foreground">도시</th>
-                        <th className="py-1 text-muted-foreground text-right">A</th>
-                        <th className="py-1 text-muted-foreground text-right">B</th>
-                        <th className="py-1 text-muted-foreground text-right">C</th>
-                        <th className="py-1 text-muted-foreground text-right">D</th>
-                        <th className="py-1 text-muted-foreground text-right font-bold">총점</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {debugLogs.selected.map((row) => (
-                        <tr key={row.rank} className="border-b border-border/50">
-                          <td className="py-1 text-muted-foreground">{row.rank}</td>
-                          <td className="py-1 text-foreground">{row.city_kr ?? row.city}</td>
-                          <td className="py-1 text-right text-muted-foreground">{row.blocks.block_a.toFixed(2)}</td>
-                          <td className="py-1 text-right text-muted-foreground">{row.blocks.block_b.toFixed(2)}</td>
-                          <td className="py-1 text-right text-muted-foreground">{row.blocks.block_c.toFixed(2)}</td>
-                          <td className="py-1 text-right text-muted-foreground">{row.blocks.block_d.toFixed(2)}</td>
-                          <td className="py-1 text-right font-bold text-foreground">{row.final_score.toFixed(1)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            );
-          })()}
 
           <button
             type="button"
