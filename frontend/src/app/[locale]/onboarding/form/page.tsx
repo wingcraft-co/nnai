@@ -413,7 +413,11 @@ export default function FormPage() {
         {/* 페르소나 배지 */}
         {personaType && (
           <div className="mb-6 border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
-            {PERSONAS[personaType].label}를 위한 도시를 찾아볼게요
+            {PERSONAS[personaType].label}{(() => {
+              const lastChar = PERSONAS[personaType].label.slice(-1);
+              const code = lastChar.charCodeAt(0) - 0xAC00;
+              return code >= 0 && code % 28 > 0 ? "을" : "를";
+            })()} 위한 도시를 찾아볼게요
           </div>
         )}
 
