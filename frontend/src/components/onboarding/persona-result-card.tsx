@@ -40,7 +40,7 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
         <p className="text-base text-muted-foreground mb-1">
           당신의 노마드 타입은,
         </p>
-        <div className="flex items-end gap-2 mb-8">
+        <div className="flex items-end gap-4 mb-8">
           <h1 className="text-4xl font-bold text-primary">
             {persona.label}
           </h1>
