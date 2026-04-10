@@ -412,15 +412,8 @@ export default function FormPage() {
 
         {/* 페르소나 배지 */}
         {personaType && (
-          <div className="mb-6 border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary flex items-center justify-center gap-2">
-            <span>{PERSONAS[personaType].label}으로 분석합니다</span>
-            <button
-              type="button"
-              onClick={() => router.push("/onboarding/quiz")}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              다시 하기
-            </button>
+          <div className="mb-6 border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
+            {PERSONAS[personaType].label}으로 분석합니다
           </div>
         )}
 
