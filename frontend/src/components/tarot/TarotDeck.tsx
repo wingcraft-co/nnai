@@ -13,8 +13,9 @@ interface TarotDeckProps {
   initialSelectedIndices?: number[];
 }
 
-const FAN_ANGLES = [-20, -10, 0, 10, 20];
-const FAN_Y = [20, 8, 0, 8, 20];
+const FAN_ANGLES = [-18, -9, 0, 9, 18];
+const FAN_X = [-90, -45, 0, 45, 90];  // px offset from center
+const FAN_Y = [12, 4, 0, 4, 12];
 
 export default function TarotDeck({
   cardCount,
@@ -73,10 +74,11 @@ export default function TarotDeck({
       {/* Fan layout */}
       <div
         className="relative flex items-end justify-center"
-        style={{ width: 260, height: 180 }}
+        style={{ width: 360, height: 200 }}
       >
         {Array.from({ length: count }).map((_, i) => {
           const angle = FAN_ANGLES[i] ?? 0;
+          const xOffset = FAN_X[i] ?? 0;
           const yOffset = FAN_Y[i] ?? 0;
           const isSelected = selectedIndices.includes(i);
 
@@ -97,18 +99,18 @@ export default function TarotDeck({
               className="absolute"
               style={{
                 bottom: yOffset,
-                left: "50%",
+                left: `calc(50% + ${xOffset}px)`,
+                marginLeft: -40, // half card width
                 transformOrigin: "bottom center",
+                zIndex: isSelected || isReadingSelected ? 10 : 5 - Math.abs(i - 2),
               }}
-              initial={{ rotate: angle, x: "-50%" }}
               animate={{
                 rotate: angle,
-                x: "-50%",
-                scale: isSelected || isReadingSelected ? 1.08 : 1,
-                y: isSelected || isReadingSelected ? -8 : 0,
+                scale: isSelected || isReadingSelected ? 1.12 : 1,
+                y: isSelected || isReadingSelected ? -12 : 0,
               }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              whileHover={{ scale: 1.05, y: -4 }}
+              whileHover={{ scale: 1.08, y: -6 }}
             >
               <TarotCard
                 city={revealedCity}
@@ -153,41 +155,33 @@ export default function TarotDeck({
       </AnimatePresence>
 
       {/* CTA button */}
-      <AnimatePresence mode="wait">
-        {!isRevealed && selectedIndices.length === MAX_SELECT && (
-          <motion.button
-            key="reveal-cta"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            onClick={handleRevealClick}
-            disabled={isLoading}
-            className="px-8 py-3 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, #c9a84c, #e8c96e)",
-              color: "#1a1a2e",
-            }}
-          >
-            {isLoading ? "분석 중..." : "카드 열기"}
-          </motion.button>
-        )}
-        {isRevealed && readingIndex !== null && (
-          <motion.button
-            key="reading-cta"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            onClick={handleReadingClick}
-            className="px-8 py-3 rounded-lg text-sm font-semibold transition-all"
-            style={{
-              background: "linear-gradient(135deg, #c9a84c, #e8c96e)",
-              color: "#1a1a2e",
-            }}
-          >
-            리딩 받기
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {!isRevealed && selectedIndices.length === MAX_SELECT && (
+        <button
+          type="button"
+          onClick={handleRevealClick}
+          disabled={isLoading}
+          className="px-8 py-3 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+          style={{
+            background: "linear-gradient(135deg, #c9a84c, #e8c96e)",
+            color: "#1a1a2e",
+          }}
+        >
+          {isLoading ? "분석 중..." : "카드 열기"}
+        </button>
+      )}
+      {isRevealed && readingIndex !== null && (
+        <button
+          type="button"
+          onClick={handleReadingClick}
+          className="px-8 py-3 rounded-lg text-sm font-semibold transition-all"
+          style={{
+            background: "linear-gradient(135deg, #c9a84c, #e8c96e)",
+            color: "#1a1a2e",
+          }}
+        >
+          리딩 받기
+        </button>
+      )}
     </div>
   );
 }
