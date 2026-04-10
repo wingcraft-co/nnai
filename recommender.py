@@ -984,6 +984,8 @@ def _compute_score_breakdown(
 # ---------------------------------------------------------------------------
 
 def _passes_income_filter(country: dict, income_usd: float) -> bool:
+    if income_usd <= 0:
+        return True  # 비공개(0) → 소득 필터 건너뜀
     min_inc = country.get("min_income_usd") or 0
     return income_usd >= min_inc
 

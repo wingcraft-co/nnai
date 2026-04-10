@@ -1,13 +1,564 @@
 {
-  "total_combos": 120000,
-  "elapsed_seconds": 35.5,
+  "total_combos": 604800,
+  "elapsed_seconds": 138.7,
   "errors_count": 0,
-  "empty_results_count": 0,
+  "empty_results_count": 100800,
   "score_anomalies_count": 0,
   "differentiation_failures": 0,
   "differentiation_total": 9,
   "errors": [],
-  "empty_results": [],
+  "empty_results": [
+    {
+      "index": 5,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 11,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 17,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 23,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 29,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 35,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 41,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 47,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 53,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 59,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 65,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 71,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 77,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 83,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 89,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 95,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 101,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 107,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 113,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 119,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 0,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 125,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 131,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 137,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 143,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 149,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 155,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 161,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 167,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 173,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 179,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 185,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 191,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 197,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 203,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 209,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "자녀 동반 (배우자 없이)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 215,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 221,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 227,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 233,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 239,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 150,
+      "travel": "가족 전체 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 245,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 251,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 257,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 263,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 269,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "혼자 (솔로)",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 275,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 281,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 287,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 293,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    },
+    {
+      "index": 299,
+      "persona": "wanderer",
+      "purpose": "원격 근무",
+      "timeline": "1~3개월 단기 체류",
+      "income": 250,
+      "travel": "배우자/파트너 동반",
+      "continent": [
+        "북미"
+      ]
+    }
+  ],
   "score_anomalies": [],
   "diff_failures": []
 }

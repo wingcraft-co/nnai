@@ -27,9 +27,10 @@ from recommender import recommend_from_db
 PERSONAS = ["wanderer", "local", "planner", "free_spirit", "pioneer", ""]
 PURPOSES = ["원격 근무", "프리랜서 활동", "온라인 비즈니스 운영", "장기 여행", "은퇴 후 거주"]
 TIMELINES = ["1~3개월 단기 체류", "6개월 중기 체류", "1년 장기 체류", "영주권/이민 목표"]
-INCOMES_KRW = [150, 250, 400, 600, 800]  # 만원 (exclude 0/비공개 for scoring)
+INCOMES_KRW = [0, 150, 250, 400, 600, 800]  # 만원 (0 = 비공개)
 TRAVEL_TYPES = ["혼자 (솔로)", "배우자/파트너 동반", "자녀 동반 (배우자 없이)", "가족 전체 동반"]
 STAY_STYLES = ["정착형", "순환형", "이동형"]
+TAX_SENSITIVITIES = ["optimize", "simple", "unknown"]
 LIFESTYLES_SINGLE = [
     [],
     ["일하기 좋은 인프라"],
@@ -37,7 +38,7 @@ LIFESTYLES_SINGLE = [
     ["저렴한 물가와 생활비"],
     ["영어로 생활 가능"],
 ]
-CONTINENTS = [[], ["아시아"], ["유럽"], ["중남미"]]
+CONTINENTS = [[], ["아시아"], ["유럽"], ["중남미"], ["중동/아프리카"], ["북미"]]
 
 # USD conversion (approximation for testing)
 USD_RATE = 0.000714
@@ -92,8 +93,10 @@ def generate_full_combos():
     ):
         is_short = timeline == "1~3개월 단기 체류"
         styles = [""] if is_short else STAY_STYLES
+        taxes = [""] if is_short else TAX_SENSITIVITIES
         for style in styles:
-            combos.append((persona, purpose, timeline, income, travel, style, lifestyle, continent))
+            for tax in taxes:
+                combos.append((persona, purpose, timeline, income, travel, style, tax, lifestyle, continent))
     return combos
 
 
@@ -145,8 +148,9 @@ def run_audit():
     start = time.time()
     batch_size = 1000
 
-    for i, (persona, purpose, timeline, income, travel, style, lifestyle, continent) in enumerate(combos):
+    for i, (persona, purpose, timeline, income, travel, style, tax, lifestyle, continent) in enumerate(combos):
         profile = build_profile(persona, purpose, timeline, income, travel, style, lifestyle, continent)
+        profile["tax_sensitivity"] = tax
 
         try:
             result = recommend_from_db(profile, top_n=5, debug_mode=False)
@@ -185,7 +189,7 @@ def run_audit():
                 })
 
         # Cache for differentiation check
-        key = f"{persona}|{purpose}|{timeline}|{income}|{travel}|{style}|{'_'.join(lifestyle)}|{'_'.join(continent)}"
+        key = f"{persona}|{purpose}|{timeline}|{income}|{travel}|{style}|{tax}|{'_'.join(lifestyle)}|{'_'.join(continent)}"
         results_cache[key] = [c.get("city", "") for c in top_cities]
 
         # Progress
