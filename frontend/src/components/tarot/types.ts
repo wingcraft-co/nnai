@@ -1,0 +1,56 @@
+// Shared types for all tarot components
+
+export interface CityData {
+  city: string;
+  city_kr: string;
+  country: string;
+  country_id: string;
+  visa_type: string;
+  visa_url: string;
+  monthly_cost_usd: number;
+  score: number;
+  plan_b_trigger: boolean;
+  climate: string | null;
+  data_verified_date: string | null;
+  city_description: string | null;
+  city_insight: string | null;
+  internet_mbps: number | null;
+  safety_score: number | null;
+  english_score: number | null;
+  nomad_score: number | null;
+  cowork_usd_month: number | null;
+  community_size: string | null;
+  korean_community_size: string | null;
+  mid_term_rent_usd: number | null;
+  flatio_search_url: string | null;
+  anyplace_search_url: string | null;
+  nomad_meetup_url: string | null;
+  entry_tips: Record<string, unknown> | null;
+  visa_free_days: number;
+  stay_months: number | null;
+  renewable: boolean | null;
+  key_docs: string[] | null;
+  visa_fee_usd: number | null;
+  tax_note: string | null;
+  double_tax_treaty_with_kr: boolean | null;
+  visa_notes: string[] | null;
+}
+
+export type TarotStage =
+  | "loading"
+  | "deck"
+  | "selecting"
+  | "revealed"
+  | "reading"
+  | "comparing";
+
+export interface TarotSession {
+  session_id: string;
+  selectedIndices: number[];
+  revealedCities: CityData[];
+  readingCityIndex: number | null;
+  readingMarkdown: string | null;
+  stage: TarotStage;
+}
+
+export const TAROT_SESSION_KEY = "tarot_session";
