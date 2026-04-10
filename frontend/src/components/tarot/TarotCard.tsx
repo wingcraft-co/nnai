@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ShieldCheck, Wifi, Languages } from "lucide-react";
+import { ShieldCheck, Wifi, Languages, Banknote } from "lucide-react";
 import type { CityData } from "./types";
 
 // Flag emoji mapping by country_id (ISO-2)
@@ -124,7 +124,7 @@ export default function TarotCard({
               </p>
               <div className="w-full border-t border-border mt-1.5 pt-1.5 space-y-1">
                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span>💰</span>
+                  <Banknote className="size-3 shrink-0" />
                   <span className="truncate">{toKRW(city.monthly_cost_usd)}</span>
                 </div>
                 {city.internet_mbps != null && (
