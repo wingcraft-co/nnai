@@ -211,6 +211,38 @@ readingCity: number (리딩 선택한 카드 인덱스)
 readingMarkdown: string (LLM 응답)
 ```
 
+### OAuth 세션 복원 (localStorage)
+
+OAuth 리다이렉트 후 유저의 카드 선택 상태가 유실되지 않도록,
+localStorage에 세션 데이터를 저장한다.
+기존 `persona_type` 저장과 동일한 패턴.
+
+**저장 시점:** "카드 열기" CTA 탭 직후 (3장 공개 요청 전)
+**저장 키:** `tarot_session`
+**저장 내용:**
+```json
+{
+  "session_id": "abc123",
+  "selectedIndices": [0, 2, 4],
+  "revealedCities": [...],
+  "readingCity": null,
+  "stage": "revealed"
+}
+```
+
+**복원 시점:** result 페이지 마운트 시 localStorage 체크
+- `tarot_session`이 존재하면 → 저장된 stage로 즉시 복원 (셔플 애니메이션 스킵)
+- 없으면 → 정상 플로우 (폼 데이터에서 API 호출)
+
+**갱신:** stage가 변할 때마다 localStorage 갱신 (reading, comparing 단계 포함)
+**삭제:** 비교 뷰 완료 후 또는 새 추천 요청 시 삭제
+
+**OAuth 플로우:**
+1. "리딩 받기" 탭 → 미로그인 감지 → localStorage 저장 → OAuth 리다이렉트
+2. OAuth 완료 → result 페이지 복귀
+3. localStorage에서 `tarot_session` 읽기 → stage="revealed" 복원
+4. 유저가 다시 "리딩 받기" 탭 → 이번엔 로그인 상태 → 리딩 진행
+
 ---
 
 ## BM (향후)
