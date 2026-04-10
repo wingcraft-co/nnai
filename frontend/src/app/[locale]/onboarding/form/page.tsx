@@ -168,7 +168,6 @@ export default function FormPage() {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoAdvancePaused, setAutoAdvancePaused] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("persona_type") as PersonaType | null;
@@ -286,7 +285,6 @@ export default function FormPage() {
   }
 
   useEffect(() => {
-    if (autoAdvancePaused) return;
     if (currentStep >= 5) return;
     if (!shouldAutoAdvance()) return;
 
@@ -310,12 +308,20 @@ export default function FormPage() {
   ]);
 
   function handleBack() {
-    if (currentStep > 1) {
-      setAutoAdvancePaused(true);
-      setCurrentStep(currentStep - 1);
-      // Re-enable auto-advance after user has time to interact
-      setTimeout(() => setAutoAdvancePaused(false), 1000);
+    if (currentStep <= 1) return;
+    const prev = currentStep - 1;
+
+    // Reset fields belonging to the step we're going back to
+    const resetFields: Partial<FormData> = {};
+    switch (prev) {
+      case 1: resetFields.immigration_purpose = ""; break;
+      case 2: resetFields.timeline = ""; resetFields.stay_style = ""; break;
+      case 3: resetFields.income_range = ""; resetFields.total_budget = ""; resetFields.tax_sensitivity = ""; break;
+      case 4: resetFields.travel_type = ""; resetFields.has_spouse_income = "없음"; resetFields.spouse_income_krw = 0; resetFields.children_ages = []; break;
     }
+
+    setForm((f) => ({ ...f, ...resetFields }));
+    setCurrentStep(prev);
   }
 
   return (
