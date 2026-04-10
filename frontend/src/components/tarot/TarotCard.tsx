@@ -54,21 +54,11 @@ function toKRW(usd: number): string {
   return `약 ${manwon}만원`;
 }
 
-type GlowTier = "legendary" | "epic" | "rare" | "common";
-
-const GLOW_COLORS: Record<GlowTier, string> = {
-  legendary: "shadow-[0_0_20px_6px_rgba(255,165,0,0.6)]",   // orange
-  epic: "shadow-[0_0_20px_6px_rgba(163,53,238,0.5)]",       // purple
-  rare: "shadow-[0_0_16px_4px_rgba(0,112,221,0.5)]",        // blue
-  common: "",
-};
-
 interface TarotCardProps {
   city: CityData | null;
   isSelected?: boolean;
   isLocked?: boolean;
   isFlipped?: boolean;
-  glowTier?: GlowTier;
   onClick?: () => void;
   style?: React.CSSProperties;
 }
@@ -78,12 +68,10 @@ export default function TarotCard({
   isSelected = false,
   isLocked = false,
   isFlipped = false,
-  glowTier,
   onClick,
   style,
 }: TarotCardProps) {
   const flag = city ? (FLAG_EMOJI[city.country_id] ?? "🌍") : null;
-  const glowClass = glowTier && isFlipped ? GLOW_COLORS[glowTier] : "";
 
   return (
     <div
@@ -120,8 +108,6 @@ export default function TarotCard({
           className={`absolute inset-0 rounded-lg flex flex-col items-center justify-center gap-1 p-2 overflow-hidden border-2 bg-card ${
             isSelected
               ? "border-primary shadow-[0_0_16px_4px] shadow-primary/40"
-              : glowClass
-              ? `border-border ${glowClass}`
               : "border-border"
           }`}
           style={{
