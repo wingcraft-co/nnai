@@ -5,6 +5,7 @@ import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { QUIZ_QUESTIONS, calculatePersona } from "@/data/quiz-questions";
 import type { PersonaType } from "@/data/personas";
+import { House } from "lucide-react";
 import { QuizCard } from "@/components/onboarding/quiz-card";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
 
@@ -38,13 +39,23 @@ export default function QuizPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-sm w-full flex-col">
       <div className="flex items-center gap-3 pt-6 px-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          className={`shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground ${currentIndex === 0 ? "invisible" : ""}`}
-        >
-          이전
-        </button>
+        {currentIndex === 0 ? (
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <House className="size-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            이전
+          </button>
+        )}
         <ProgressBar current={currentIndex + 1} total={QUIZ_QUESTIONS.length} />
       </div>
       <div className="flex flex-1 flex-col justify-start pt-24 px-4">
