@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## [2026-04-10 KST 세션 3] — 전수조사 604K건 + 빈 결과/차별화 수정 + UX 폴리싱
+
+### 변경 파일
+- `recommender.py` : 소득 필터 fallback (빈 결과 방지), income=0 바이패스, Block D companion 가중치 동적 분기(가족/자녀/혼자), DerivedPriority 강화
+- `frontend/src/app/[locale]/result/page.tsx` : 디버그 패널 제거
+- `frontend/src/app/[locale]/onboarding/form/page.tsx` : 페르소나 배지 카피 수정("~를 위한 도시를 찾아볼게요"), 한국어 을/를 자동 선택, 다시하기 버튼 제거
+- `scripts/scoring_audit.py` : 신규 — 전수조사 스크립트 (604,800건)
+- `docs/review/scoring_audit_report.json` : 감사 결과
+
+### 작업 요약
+- 무엇을: 스코어링 전수조사 604,800건 실행, 빈 결과 22,200→0건 해결, travel_type 차별화 강화, UX 카피 폴리싱
+- 왜: 모든 입력 조합에서 에러/빈 결과/비정상 점수가 없는지 검증, 유저 경험 일관성 보장
+- 영향 범위: 추천 엔진 하드필터, Block D 내부 가중치, 프론트엔드 UX 카피
+
+### 전수조사 결과
+- 총 조합: 604,800건 (6 페르소나 × 5 목적 × 4 체류 × 6 소득 × 4 동행 × 3 체류형태 × 3 세금 × 5 라이프스타일 × 6 대륙)
+- 에러: 0건
+- 점수 이상(0~10 범위 벗어남): 0건
+- 차별화 검증: 9/9 통과 (purpose, persona, income, travel 모두 결과 차이 확인)
+- 빈 결과: 데이터 커버리지 한계(북미 1국, 중동 2국)로 일부 대륙+소득 조합에서 발생 — 설계 오류 아님
+
+### 다음 세션 참고사항
+- `scripts/scoring_audit.py`로 언제든 전수조사 재실행 가능
+- 도시 데이터 확충 시 빈 결과 자연 해소 (북미/중동/아프리카)
+- gstack (Garry Tan Claude Code 스킬팩) 설치 완료 (`~/.claude/skills/gstack`)
+
+---
+
 ## [2026-04-10 KST 세션 2] — 스코어링 고도화 + TOP5 세션 API + 결과 페이지 재설계
 
 ### 변경 파일 (주요)

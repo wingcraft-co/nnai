@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-10 KST (세션 2)_
+_Last updated: 2026-04-10 KST (세션 3)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -89,12 +89,18 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [x] Derived UserPriority (cross-block 암묵 배율)
 - [x] 폼 자동 넘김 (단일 선택 완료 시)
 - [x] LLM 타로 리더 톤 프롬프트 추가
+- [x] 전수조사 604,800건 통과 (에러 0, 점수 이상 0, 차별화 9/9)
+- [x] 소득 필터 fallback (빈 결과 방지)
+- [x] income=0(비공개) 소득 필터 바이패스
+- [x] Block D companion 가중치 동적 분기 (가족/자녀/혼자)
+- [x] 폼 UX: 페르소나 배지 카피 개선, 한국어 조사 자동 선택
 - [ ] Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영)
 - [ ] visa_free_days 아내팀 검수 (docs/review/REVIEW_visa_free_days.md)
 - [ ] 타로 세션 DB/Redis 마이그레이션 (현재 인메모리)
 - [ ] IRT 문항반응이론 도입 (사용자 데이터 1000명+ 수집 후)
 - [ ] Google OAuth 프론트엔드 연동
 - [ ] 페르소나 결과 공유 기능
+- [ ] 도시 데이터 확충 (북미/중동 커버리지 부족 → 빈 결과 원인)
 
 ## 주요 결정사항
 - Gradio UI 레거시 전환, 신규 UI는 Next.js로만 구현
