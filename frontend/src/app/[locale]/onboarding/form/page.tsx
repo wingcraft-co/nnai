@@ -392,7 +392,9 @@ export default function FormPage() {
             exit={{ opacity: 0, transition: { duration: 0.25 } }}
           >
             <h2 className="whitespace-pre-line text-xl font-medium leading-relaxed text-foreground mb-8">
-              {STEP_TITLES[currentStep - 1]}
+              {currentStep === 3 && isShortStay
+                ? "이번 여정의\n예산은 얼마예요?"
+                : STEP_TITLES[currentStep - 1]}
             </h2>
 
             {/* Step 1: 목적 */}
@@ -439,11 +441,8 @@ export default function FormPage() {
                 {isShortStay ? (
                   <div className="space-y-2">
                     <label className="text-sm text-muted-foreground">
-                      이번 여정의 총 예산이 얼마예요?
+                      월 예산 (만원)
                     </label>
-                    <p className="text-xs text-muted-foreground/60">
-                      숙소, 식비, 교통 등 전체 예상 금액 (만원)
-                    </p>
                     <div className="grid grid-cols-2 gap-2">
                       {BUDGET_RANGE_OPTIONS.map((option) => {
                         const isActive = form.total_budget === option.value;
