@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## [2026-04-10 KST] — visa_free_days 필드 추가 + 결과 카드 비자 배지
+
+### 변경 파일
+- `data/visa_db.json` : 39개국에 visa_free_days 필드 추가 (한국 여권 기준)
+- `frontend/src/data/visa_db.json` : 프론트엔드 복사본 동기화
+- `recommender.py` : API 응답에 visa_free_days 포함
+- `frontend/src/app/[locale]/result/page.tsx` : City 타입 추가 + 비자 배지 UI
+- `docs/review/REVIEW_visa_free_days.md` : 아내팀 검수 요청 문서
+
+### 작업 요약
+- 무엇을: 한국 여권 기준 무비자 체류 일수를 visa_db에 구조화하고, 결과 카드에 배지로 표시
+- 왜: 무비자 정보가 visa_notes 텍스트에만 묻혀 있어 스코어링/UI에서 활용 불가했음
+- 영향 범위: visa_db 스키마, API 응답, 프론트엔드 결과 카드
+
+### 배지 분기 로직
+- 셴겐 + 무비자 → "🛂 무비자 90일 (셴겐)"
+- 비셴겐 + 무비자 → "🛂 무비자 {N}일"
+- 무비자 불가(CV) → "🛂 비자 필요"
+
+### 다음 세션 참고사항
+- 아내팀(rosie) visa_free_days 전수 검수 필요 (docs/review/REVIEW_visa_free_days.md)
+- 특히 TH(60일→30일 축소 논의), MX(심사관 재량), CA(eTA), KE(ETA) 확인 필요
+
+---
+
 ## [2026-04-10 KST] — 체류 기간 모드 분기 + Block C 페르소나 재설계
 
 ### 변경 파일
