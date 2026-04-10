@@ -192,7 +192,31 @@ async def api_recommend(req: RecommendRequest, request: Request):
         tax_sensitivity=req.tax_sensitivity,
         total_budget_krw=req.total_budget_krw,
     )
-    return {"markdown": markdown, "cities": cities, "parsed": parsed}
+    # 타로 세션: 5장 저장, 상세 데이터 미포함 응답
+    from api.tarot_session import create_session
+    session_id = create_session(cities)
+
+    return {
+        "session_id": session_id,
+        "card_count": len(cities),
+        "parsed": parsed,
+    }
+
+
+class RevealRequest(BaseModel):
+    session_id: str
+    selected_indices: list[int]
+
+
+@app.post("/api/reveal")
+async def api_reveal(req: RevealRequest):
+    from api.tarot_session import reveal_cards
+    try:
+        revealed = reveal_cards(req.session_id, req.selected_indices)
+    except ValueError as e:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"error": str(e)})
+    return {"revealed_cities": revealed}
 
 
 @app.post("/api/detail")

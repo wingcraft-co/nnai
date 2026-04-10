@@ -34,9 +34,9 @@ def test_returns_top_cities_list():
     assert isinstance(result["top_cities"], list)
 
 
-def test_returns_at_most_3_cities():
+def test_returns_at_most_5_cities():
     result = recommend_from_db(_profile())
-    assert len(result["top_cities"]) <= 3
+    assert len(result["top_cities"]) <= 5
 
 
 def test_city_dict_has_required_fields():
@@ -121,10 +121,10 @@ def test_no_duplicate_countries_in_results():
     assert len(country_ids) == len(set(country_ids)), f"중복 국가: {country_ids}"
 
 
-def test_top_n_default_still_returns_3():
-    """Default top_n=3 keeps existing callers unchanged."""
+def test_top_n_default_returns_5():
+    """Default top_n=5 returns up to 5 cities."""
     result = recommend_from_db(_profile(income_usd=3000))
-    assert len(result["top_cities"]) <= 3
+    assert len(result["top_cities"]) <= 5
 
 def test_top_n_8_returns_up_to_8():
     """top_n=8 can return more than 3 cities."""

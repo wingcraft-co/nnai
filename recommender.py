@@ -866,7 +866,7 @@ def _passes_schengen_long_stay_filter(
 # Public API
 # ---------------------------------------------------------------------------
 
-def recommend_from_db(user_profile: dict, top_n: int = 3, debug_mode: bool = False) -> dict:
+def recommend_from_db(user_profile: dict, top_n: int = 5, debug_mode: bool = False) -> dict:
     """Filter and rank cities from DB; return top-N with warnings."""
     countries_list, cities_list = _load_data()
 
