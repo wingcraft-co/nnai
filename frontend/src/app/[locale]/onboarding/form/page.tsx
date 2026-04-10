@@ -165,6 +165,7 @@ const INPUT_CLASS =
 export default function FormPage() {
   const router = useRouter();
   const [personaType, setPersonaType] = useState<PersonaType | null>(null);
+  const [personaVector, setPersonaVector] = useState<Record<string, number> | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [isLoading, setIsLoading] = useState(false);
@@ -173,6 +174,10 @@ export default function FormPage() {
   useEffect(() => {
     const stored = localStorage.getItem("persona_type") as PersonaType | null;
     setPersonaType(stored);
+    const vectorStr = localStorage.getItem("persona_vector");
+    if (vectorStr) {
+      try { setPersonaVector(JSON.parse(vectorStr)); } catch {}
+    }
   }, []);
 
   const isShortStay = form.timeline === "1~3개월 단기 체류";
@@ -215,6 +220,7 @@ export default function FormPage() {
         dual_nationality: false,
         readiness_stage: "",
         persona_type: personaType ?? null,
+        persona_vector: personaVector,
         immigration_purpose: form.immigration_purpose,
         travel_type: form.travel_type,
         timeline: form.timeline,

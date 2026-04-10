@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { QUIZ_QUESTIONS, calculatePersona } from "@/data/quiz-questions";
+import { QUIZ_QUESTIONS, calculatePersona, calculatePersonaVector } from "@/data/quiz-questions";
 import type { PersonaType } from "@/data/personas";
 import { House } from "lucide-react";
 import { QuizCard } from "@/components/onboarding/quiz-card";
@@ -24,7 +24,9 @@ export default function QuizPage() {
       setCurrentIndex(currentIndex + 1);
     } else {
       const persona = calculatePersona(newAnswers);
+      const personaVector = calculatePersonaVector(newAnswers);
       localStorage.setItem("persona_type", persona);
+      localStorage.setItem("persona_vector", JSON.stringify(personaVector));
       router.push("/onboarding/quiz/result");
     }
   }
