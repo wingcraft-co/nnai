@@ -112,7 +112,7 @@ window.location.href = `${API_BASE}/auth/logout`;
 
 ### POST /api/recommend
 
-**Step 1** — 사용자 프로필을 기반으로 최적 거주 도시 TOP 3를 추천합니다.
+**Step 1** — 사용자 프로필을 기반으로 최적 거주 도시 TOP 5를 추천합니다. 도시 상세 데이터는 `/api/reveal` 호출 후 반환됩니다.
 
 ```
 POST /api/recommend
@@ -165,59 +165,78 @@ Content-Type: application/json
 **응답 (200 OK):**
 ```json
 {
-  "markdown": "## 🌏 추천 도시 TOP 3\n...",
-  "cities": [
-    {
-      "city": "Lisbon",
-      "city_kr": "리스본",
-      "country": "Portugal",
-      "country_id": "PT",
-      "visa_type": "D8 Digital Nomad Visa",
-      "monthly_cost_usd": 2200,
-      "score": 9
-    }
-  ],
+  "session_id": "abc123def456",
+  "card_count": 5,
   "parsed": {
-    "top_cities": [
-      {
-        "city": "Lisbon",
-        "city_kr": "리스본",
-        "country": "Portugal",
-        "country_id": "PT",
-        "visa_type": "D8 Digital Nomad Visa",
-        "visa_url": "https://...",
-        "monthly_cost_usd": 2200,
-        "score": 9,
-        "reasons": [{"point": "추천 근거 텍스트", "source_url": null}],
-        "realistic_warnings": ["경고 메시지"],
-        "tax_warning": null
-      }
-    ],
+    "top_cities": [...],
     "overall_warning": "공통 경고 메시지",
-    "_user_profile": {
-      "nationality": "Korean",
-      "income_usd": 3570,
-      "income_krw": 500,
-      "purpose": "원격 근무",
-      "lifestyle": ["해변", "영어권"],
-      "languages": ["영어 업무 수준"],
-      "timeline": "1년 장기 체류"
-    }
+    "_user_profile": { ... }
   }
 }
 ```
 
+> 도시 상세 데이터는 응답에 포함되지 않습니다. `/api/reveal`을 호출해야 합니다.
+
 **Step 1 추천 로직:**
 - **스코어링 모델:** 규칙 기반 DB Recommender (LLM 개입 없음)
-- **4-Block 점수 계산 (0~10):**
-  1. **Block A (30%)** — 기본 적합도: nomad_score + safety_score + coworking_score + lifestyle bonuses
-  2. **Block B (25%)** — 재정 적합도: cost efficiency + tax treaty benefits
-  3. **Block C (25%)** — 페르소나 적합도: persona_type 기반 attribute weights
-  4. **Block D (20%)** — 실용 조건: visa accessibility + language environment + 동행자 조건
+- **4-Block 점수 계산 (0~10):** 체류 기간에 따라 가중치 동적 분기
+  - 단기(≤3개월): A=40%, B=10%, C=40%, D=10%
+  - 중기(≤12개월): A=30%, B=25%, C=30%, D=15%
+  - 장기(>12개월): A=30%, B=25%, C=25%, D=20%
 - **Hard Filters:** 최소 소득, 체류기간, 선호 지역, 솅겐 장기체류 소득 제한
-- **결과 선정:** 점수 내림차순 정렬 + 국가당 최고점 도시 1개 + 상위 N개(기본 3개)
+- **결과 선정:** 점수 내림차순 정렬 + 국가당 최고점 도시 1개 + 상위 5개
 
 > **주의:** `parsed` 객체 전체를 Step 2 요청 시 `parsed_data`로 그대로 전달해야 합니다.
+
+---
+
+### POST /api/reveal (신규)
+
+유저가 선택한 3장의 카드를 공개하고 도시 상세 데이터를 반환합니다.
+
+```
+POST /api/reveal
+Content-Type: application/json
+```
+
+**요청 바디:**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `session_id` | string | ✅ | `/api/recommend` 응답의 session_id |
+| `selected_indices` | int[] | ✅ | 선택한 카드 인덱스 3개 (0-4) |
+
+**요청 예시:**
+```json
+{
+  "session_id": "abc123def456",
+  "selected_indices": [0, 2, 4]
+}
+```
+
+**응답 (200 OK):**
+```json
+{
+  "revealed_cities": [
+    {
+      "city": "Lisbon",
+      "city_kr": "리스본",
+      "country_id": "PT",
+      "monthly_cost_usd": 2200,
+      "visa_free_days": 90,
+      "internet_mbps": 120,
+      ...
+    }
+  ]
+}
+```
+
+**에러 (400):**
+```json
+{ "error": "Must select exactly 3 cards" }
+{ "error": "Cards already revealed" }
+{ "error": "Session not found" }
+```
 
 ---
 
