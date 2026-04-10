@@ -1,16 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { PERSONAS, type PersonaType } from "@/data/personas";
-
-const personaGif: Record<PersonaType, string> = {
-  wanderer: "/wanderer.gif",
-  local: "/local.gif",
-  planner: "/planner.gif",
-  free_spirit: "/free_spirit.gif",
-  pioneer: "/pioneer.gif",
-};
 
 interface PersonaResultCardProps {
   personaType: PersonaType;
@@ -35,26 +26,14 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
 
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-8 px-4 py-12">
-      {/* 헤더 — 타이틀 + 캐릭터(우측) */}
+      {/* 헤더 */}
       <motion.div {...fadeUp(0)}>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">
-              당신의 노마드 타입은,
-            </p>
-            <h1 className="text-3xl font-bold text-primary">
-              {persona.label}
-            </h1>
-          </div>
-          <Image
-            src={personaGif[personaType]}
-            alt={persona.label}
-            width={80}
-            height={80}
-            unoptimized
-            className="shrink-0"
-          />
-        </div>
+        <p className="text-base text-muted-foreground mb-1">
+          당신의 노마드 타입은,
+        </p>
+        <h1 className="text-4xl font-bold text-primary mb-8">
+          {persona.label}
+        </h1>
         <div className="space-y-1">
           {persona.description.map((line, i) => (
             <p key={i} className="text-sm text-muted-foreground leading-relaxed">
