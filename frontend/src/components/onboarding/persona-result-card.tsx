@@ -37,7 +37,7 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
     <div className="mx-auto flex max-w-sm flex-col gap-8 px-4 py-12">
       {/* 헤더 — 타이틀 + 캐릭터(우측) */}
       <motion.div {...fadeUp(0)}>
-        <div className="flex items-end justify-between mb-6">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-sm text-muted-foreground mb-1">
               당신의 노마드 타입은,
@@ -49,8 +49,8 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
           <Image
             src={personaGif[personaType]}
             alt={persona.label}
-            width={36}
-            height={36}
+            width={80}
+            height={80}
             unoptimized
             className="shrink-0"
           />
