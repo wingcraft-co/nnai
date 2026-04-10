@@ -87,68 +87,60 @@ export default function TarotCard({
       >
         {/* Back face */}
         <div
-          className="absolute inset-0 rounded-lg flex items-center justify-center"
+          className={`absolute inset-0 rounded-lg flex items-center justify-center border-2 ${
+            isSelected
+              ? "border-primary shadow-[0_0_16px_4px] shadow-primary/40"
+              : "border-primary/30"
+          }`}
           style={{
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
-            background: "#1a1a2e",
-            border: isSelected
-              ? "2px solid #c9a84c"
-              : "2px solid rgba(201,168,76,0.4)",
-            boxShadow: isSelected
-              ? "0 0 16px 4px rgba(201,168,76,0.55)"
-              : undefined,
+            background: "var(--card)",
           }}
         >
-          <span
-            className="text-2xl font-serif"
-            style={{ color: "rgba(201,168,76,0.7)" }}
-          >
+          <span className="text-2xl font-serif text-primary/60">
             ✦
           </span>
         </div>
 
         {/* Front face */}
         <div
-          className="absolute inset-0 rounded-lg flex flex-col items-center justify-center gap-1 p-2 overflow-hidden"
+          className={`absolute inset-0 rounded-lg flex flex-col items-center justify-center gap-1 p-2 overflow-hidden border-2 bg-card ${
+            isSelected
+              ? "border-primary shadow-[0_0_16px_4px] shadow-primary/40"
+              : "border-border"
+          }`}
           style={{
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
-            background: "#ffffff",
-            border: isSelected
-              ? "2px solid #c9a84c"
-              : "2px solid #e5e7eb",
-            boxShadow: isSelected
-              ? "0 0 16px 4px rgba(201,168,76,0.55)"
-              : undefined,
           }}
         >
           {city && (
             <>
               <span className="text-3xl leading-none">{flag}</span>
-              <p className="text-sm font-bold text-center text-gray-800 leading-tight line-clamp-2">
+              <p className="text-sm font-bold text-center text-foreground leading-tight line-clamp-2">
                 {city.city_kr}
               </p>
-              <div className="w-full border-t border-gray-200 mt-1.5 pt-1.5 space-y-1">
-                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+              <div className="w-full border-t border-border mt-1.5 pt-1.5 space-y-1">
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                   <span>💰</span>
                   <span className="truncate">{toKRW(city.monthly_cost_usd)}</span>
                 </div>
                 {city.internet_mbps != null && (
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Wifi className="size-3 shrink-0" />
                     <span>{city.internet_mbps}Mbps</span>
                   </div>
                 )}
                 {city.english_score != null && (
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Languages className="size-3 shrink-0" />
                     <span>영어 {city.english_score}/10</span>
                   </div>
                 )}
                 {city.safety_score != null && (
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <ShieldCheck className="size-3 shrink-0" />
                     <span>치안 {city.safety_score}/10</span>
                   </div>
@@ -169,10 +161,7 @@ export default function TarotCard({
       {/* Selection glow ring (back face) — shown when selected and not flipped */}
       {isSelected && !isFlipped && (
         <div
-          className="absolute inset-0 rounded-lg pointer-events-none"
-          style={{
-            boxShadow: "0 0 20px 6px rgba(201,168,76,0.6)",
-          }}
+          className="absolute inset-0 rounded-lg pointer-events-none shadow-[0_0_20px_6px] shadow-primary/50"
         />
       )}
     </div>

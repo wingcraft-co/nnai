@@ -160,11 +160,7 @@ export default function TarotDeck({
           type="button"
           onClick={handleRevealClick}
           disabled={isLoading}
-          className="px-8 py-3 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
-          style={{
-            background: "linear-gradient(135deg, #c9a84c, #e8c96e)",
-            color: "#1a1a2e",
-          }}
+          className="px-8 py-3 text-sm font-semibold transition-all disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           {isLoading ? "분석 중..." : "카드 열기"}
         </button>
@@ -173,11 +169,7 @@ export default function TarotDeck({
         <button
           type="button"
           onClick={handleReadingClick}
-          className="px-8 py-3 rounded-lg text-sm font-semibold transition-all"
-          style={{
-            background: "linear-gradient(135deg, #c9a84c, #e8c96e)",
-            color: "#1a1a2e",
-          }}
+          className="px-8 py-3 text-sm font-semibold transition-all bg-primary text-primary-foreground hover:bg-primary/90"
         >
           리딩 받기
         </button>
