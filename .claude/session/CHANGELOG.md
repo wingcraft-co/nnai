@@ -1,5 +1,58 @@
 # CHANGELOG
 
+## [2026-04-10 KST 세션 2] — 스코어링 고도화 + TOP5 세션 API + 결과 페이지 재설계
+
+### 변경 파일 (주요)
+- `recommender.py` : immigration_purpose Block A 가중치, Fuzzy 페르소나 블렌딩, Derived UserPriority, _get_block_weights 동적 분기, Block C 가상 속성 3개, Block D 단기 visa 0
+- `api/tarot_session.py` : 신규 — 5장 서버사이드 세션 저장 + reveal 게이팅
+- `server.py` : /api/reveal 엔드포인트 추가, RecommendRequest에 total_budget_krw + persona_vector, recommend 응답 session_id 전환
+- `app.py` : total_budget_krw 소득 변환 분기, persona_vector 전달
+- `prompts/builder.py` : Step 2 LLM 프롬프트에 타로 리더 톤 추가
+- `data/visa_db.json` : visa_free_days 필드 39개국 추가
+- `frontend/src/app/[locale]/result/page.tsx` : 전면 재설계 — 정보 중심 4-Stage (선택→상세→리딩→비교) + 디버그 패널
+- `frontend/src/app/[locale]/onboarding/form/page.tsx` : 자동 넘김, 단기 예산 버튼, 배우자 소득 버튼, 홈 아이콘, grace+rocky 캐릭터, purpose 동적 타이틀
+- `frontend/src/app/[locale]/onboarding/quiz/page.tsx` : Fuzzy 벡터 계산+저장, 홈 아이콘
+- `frontend/src/data/quiz-questions.ts` : calculatePersonaVector() 추가
+- `frontend/src/components/onboarding/persona-result-card.tsx` : 페르소나 캐릭터 + 땅 라인
+- `frontend/src/components/tarot/` : TarotReading, CityCompare (결과 페이지에서 사용)
+- `frontend/src/app/api/reveal/route.ts` : 신규 프록시
+- `cowork/backend/api-reference.md` : /api/reveal 추가, /api/recommend 응답 변경
+- `tests/test_tarot_session.py` : 신규 9개 테스트
+- `tests/test_recommender.py` : 가중치 테스트 6개 추가
+
+### 작업 요약
+
+**스코어링 엔진 고도화:**
+- Block 가중치를 체류 기간별 동적 분기 (각 block 함수에서 곱셈 제거, 중앙 일괄 적용)
+- immigration_purpose → Block A 내부 가중치 동적 변경 (원격근무=cowork↑, 은퇴=safety↑)
+- Fuzzy 페르소나: 퀴즈 7문항 다수결 → 비율 벡터 블렌딩 (wanderer 57%, planner 29%...)
+- Derived UserPriority: 소득/동행/체류형태/lifestyle에서 block별 배율 암묵 추론 (cross-block)
+- Block C 페르소나 가중치 전면 교체 (서사 정렬) + 가상 속성 3개 (visa_freedom, climate_score, long_stay_score)
+
+**TOP5 세션 기반 API:**
+- /api/recommend → session_id만 반환 (도시 데이터 미포함)
+- /api/reveal → 유저가 선택한 3장만 반환 (백엔드 게이팅, BM 대비)
+- 인메모리 세션 (api/tarot_session.py) — Railway 재배포 시 초기화됨
+
+**프론트엔드:**
+- 결과 페이지: 타로 카드 애니메이션 → 정보 중심 4-Stage UI로 전환
+- 폼: 자동 넘김 (단일 선택 완료 시 0.3초 후 다음 스텝), 이전 시 필드 초기화
+- 폼: 단기 체류 시 소득→예산 버튼, 배우자 소득 텍스트→버튼, Step 3 타이틀 동적 변경
+- UX: 홈 아이콘(퀴즈/폼 첫 스텝), 캐릭터 슬라이드 이동, 퀴즈 결과 캐릭터+땅라인
+
+**데이터:**
+- visa_db.json에 visa_free_days 추가 (39개국, 한국 여권 기준)
+- 프론트 복사본 동기화, 결과 카드 비자 배지
+
+### 다음 세션 참고사항
+- **타로 세션 인메모리**: Railway 재배포 시 세션 날아감. 사용자가 recommend → reveal 사이에 배포되면 "Session not found" 에러. DB/Redis 마이그레이션 우선순위 높음.
+- **Railway DEBUG_MODE=1**: 결과 페이지 디버그 패널이 이 환경변수가 켜져있어야 데이터 표시됨. dev 환경에 설정 필요.
+- **Block C penalty scale**: 페르소나 가중치가 전면 변경되었으므로 기존 scale 값(0.25~1.5) 재튜닝 필요.
+- **visa_free_days 검수**: docs/review/REVIEW_visa_free_days.md 참조. TH(60일→30일 논의), MX(심사관 재량), CA(eTA), KE(ETA) 확인 필요.
+- **IRT**: 퀴즈 응답 로그를 DB에 저장하는 구조 마련 후, 1000명+ 데이터 수집 시 문항별 변별도 캘리브레이션 가능.
+
+---
+
 ## [2026-04-10 KST] — visa_free_days 필드 추가 + 결과 카드 비자 배지
 
 ### 변경 파일
