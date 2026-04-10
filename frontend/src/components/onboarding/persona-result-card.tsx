@@ -52,7 +52,7 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
               height={36}
               unoptimized
             />
-            <div className="absolute bottom-0 h-px bg-border" style={{ right: 0, width: 108 }} />
+            <div className="absolute bottom-0 h-px bg-border" style={{ right: 0, width: 72 }} />
           </div>
         </div>
         <div className="space-y-1">
