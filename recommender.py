@@ -423,13 +423,29 @@ def _city_dominance_penalty(city: dict, lifestyle: list[str], income_usd: float 
     return max(0.0, min(2.5, penalty))
 
 
-def _block_a(city: dict, country: dict, lifestyle: list[str], income_usd: float = 0.0) -> float:
+# Purpose-based Block A weight profiles
+# (nomad, safety, cowork, internet) — must sum to 1.0
+_PURPOSE_WEIGHTS: dict[str, tuple[float, float, float, float]] = {
+    "원격 근무":          (0.25, 0.20, 0.35, 0.20),  # cowork+internet 중심
+    "프리랜서 활동":      (0.30, 0.20, 0.30, 0.20),  # cowork+internet 중심
+    "온라인 비즈니스 운영": (0.30, 0.20, 0.25, 0.25), # internet 강화
+    "장기 여행":          (0.45, 0.30, 0.10, 0.15),  # nomad+safety 중심, cowork 약화
+    "은퇴 후 거주":       (0.15, 0.45, 0.10, 0.30),  # safety 최우선, internet 강화
+}
+_DEFAULT_PURPOSE_WEIGHTS = (0.40, 0.25, 0.20, 0.15)
+
+
+def _block_a(city: dict, country: dict, lifestyle: list[str], income_usd: float = 0.0,
+             purpose: str = "") -> float:
     """Base city fitness — nomad, safety, coworking, internet + lifestyle bonuses."""
     ranges = _score_ranges or {}
     nomad    = _normalize(city.get("nomad_score", 5),      *ranges.get("nomad_score",     (5, 9)))
     safety   = _normalize(city.get("safety_score", 5),     *ranges.get("safety_score",    (4, 9)))
     cowork   = _normalize(city.get("coworking_score", 5),  *ranges.get("coworking_score", (4, 9)))
     internet = _normalize(city.get("internet_mbps", 100),  *ranges.get("internet_mbps",  (50, 300)))
+
+    # Purpose-based base weights
+    w_nomad, w_safety, w_cowork, w_internet = _PURPOSE_WEIGHTS.get(purpose, _DEFAULT_PURPOSE_WEIGHTS)
 
     # Lifestyle bonuses — multipliers
     safety_mul = 1.5 if "안전 중시" in lifestyle else 1.0
@@ -446,10 +462,10 @@ def _block_a(city: dict, country: dict, lifestyle: list[str], income_usd: float 
             nomad_mul += 0.15
 
     raw = (
-        nomad  * nomad_mul * 0.40
-        + safety * safety_mul * 0.25
-        + cowork * cowork_mul * 0.20
-        + internet * 0.15
+        nomad  * nomad_mul * w_nomad
+        + safety * safety_mul * w_safety
+        + cowork * cowork_mul * w_cowork
+        + internet * w_internet
         + climate_bonus
     )
     raw -= _lifestyle_miss_penalty(city, country, lifestyle)
@@ -772,6 +788,7 @@ def _compute_score(
     tax_sensitivity: str = "",
     children_ages: list[str] | None = None,
     timeline: str = "",
+    purpose: str = "",
 ) -> float:
     """4-Block composite score (0–10)."""
     return _compute_score_breakdown(
@@ -785,6 +802,7 @@ def _compute_score(
         tax_sensitivity=tax_sensitivity,
         children_ages=children_ages,
         timeline=timeline,
+        purpose=purpose,
     )["total"]
 
 
@@ -799,10 +817,11 @@ def _compute_score_breakdown(
     tax_sensitivity: str = "",
     children_ages: list[str] | None = None,
     timeline: str = "",
+    purpose: str = "",
 ) -> dict[str, float]:
     """4-Block composite score breakdown (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
-    a = _block_a(city, country, ls, income_usd)
+    a = _block_a(city, country, ls, income_usd, purpose=purpose)
     b = _block_b(city, country, income_usd, ls, tax_sensitivity, timeline)
     c = _block_c(city, country, persona_type, income_usd, ls)
     d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages, timeline)
@@ -884,6 +903,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 5, debug_mode: bool = Fal
     stay_style = user_profile.get("stay_style") or ""
     tax_sensitivity = user_profile.get("tax_sensitivity") or ""
     children_ages = user_profile.get("children_ages") or []
+    purpose = user_profile.get("purpose", "")
 
     # Build country lookup
     country_map: dict[str, dict] = {c["id"]: c for c in countries_list}
@@ -923,6 +943,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 5, debug_mode: bool = Fal
                 tax_sensitivity=tax_sensitivity,
                 children_ages=children_ages,
                 timeline=timeline,
+                purpose=purpose,
             )
             score = breakdown["total"]
             rows.append((score, city, country, breakdown))
