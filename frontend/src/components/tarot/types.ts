@@ -34,11 +34,11 @@ export interface CityData {
   tax_note: string | null;
   double_tax_treaty_with_kr: boolean | null;
   visa_notes: string[] | null;
+  reading_text: string | null;
 }
 
 export type TarotStage =
   | "loading"
-  | "deck"
   | "selecting"
   | "revealed"
   | "reading"

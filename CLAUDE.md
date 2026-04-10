@@ -323,6 +323,12 @@ git push "https://flexxiblethinking:{HUGGINGFACE_TOKEN}@huggingface.co/spaces/fl
 - `nnai-project-reference.md` — Agent Team 공통 참조
 - `docs/frontguide.docx` (iCloud) — 프론트엔드 워크플로우 가이드
 
+## Design System
+Always read `docs/designs/tarot-card-design.md` before making any visual or UI decisions on the tarot cards.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+In QA mode, flag any code that doesn't match the design spec.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
