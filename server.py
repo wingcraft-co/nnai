@@ -157,6 +157,7 @@ class RecommendRequest(BaseModel):
     stay_style: str | None = None
     tax_sensitivity: str | None = None
     total_budget_krw: int | None = None
+    persona_vector: dict[str, float] | None = None
 
 
 class DetailRequest(BaseModel):
@@ -191,6 +192,7 @@ async def api_recommend(req: RecommendRequest, request: Request):
         stay_style=req.stay_style,
         tax_sensitivity=req.tax_sensitivity,
         total_budget_krw=req.total_budget_krw,
+        persona_vector=req.persona_vector,
     )
     # 타로 세션: 5장 저장, 상세 데이터 미포함 응답
     from api.tarot_session import create_session

@@ -505,26 +505,15 @@ def _block_b(city: dict, country: dict, income_usd: float, lifestyle: list[str],
 
 # ── Block C: 페르소나 적합도 (25%) ──────────────────────────────
 
-def _block_c(
+def _score_persona_attrs(
     city: dict,
     country: dict,
-    persona_type: str,
     income_usd: float,
-    lifestyle: list[str] | None = None,
+    weights: dict[str, float],
 ) -> float:
-    """Persona-driven scoring — different personas value different attributes."""
+    """Compute weighted attribute score for a given weights dict. Returns unnormalized sum."""
     ranges = _score_ranges or {}
-    # lifestyle is expected to be pre-normalized by caller (_normalize_lifestyle)
-    ls = lifestyle if lifestyle is not None else []
-
-    if not persona_type or persona_type not in _PERSONA_WEIGHTS:
-        # No persona: w_c is set to 0.0 in _compute_score_breakdown — return early
-        return 0.0
-
-    weights = _PERSONA_WEIGHTS[persona_type]
-    total_weight = sum(weights.values())
     score = 0.0
-
     for attr, w in weights.items():
         if attr == "nomad_score":
             score += _normalize(city.get("nomad_score", 5), *ranges.get("nomad_score", (5, 9))) * w
@@ -545,7 +534,6 @@ def _block_c(
         elif attr == "cost_score":
             score += _cost_score(city, income_usd) * w
         elif attr == "visa_freedom":
-            # wanderer 전용 — visa_db 파생
             vt = (country.get("visa_type") or "").lower()
             if any(k in vt for k in ("visa-free", "visa on arrival", "무비자")):
                 vs = 10.0
@@ -557,11 +545,9 @@ def _block_c(
                 vs = 3.0
             score += vs * w
         elif attr == "climate_score":
-            # free_spirit 전용 — city_scores.climate 텍스트 매핑
             climate_val = (city.get("climate") or "").lower()
             score += _CLIMATE_SCORE_MAP.get(climate_val, 5.0) * w
         elif attr == "long_stay_score":
-            # local 전용 — visa_db 파생
             stay = country.get("stay_months") or 0
             renewable = country.get("renewable", False)
             if stay >= 12 and renewable:
@@ -571,11 +557,54 @@ def _block_c(
             else:
                 ls_val = 3.0
             score += ls_val * w
+    return score
 
-    normalized = score / total_weight  # normalize to 0–10
-    scale = _BLOCK_C_PENALTY_SCALE.get(persona_type, _BLOCK_C_PENALTY_SCALE_DEFAULT)
+
+def _block_c(
+    city: dict,
+    country: dict,
+    persona_type: str,
+    income_usd: float,
+    lifestyle: list[str] | None = None,
+    persona_vector: dict[str, float] | None = None,
+) -> float:
+    """Persona-driven scoring — supports fuzzy persona blending."""
+    ls = lifestyle if lifestyle is not None else []
+
+    # No persona at all → return 0 (weight redistributed to Block A)
+    if not persona_type and not persona_vector:
+        return 0.0
+
+    # Determine effective persona weights: fuzzy vector or single persona
+    if persona_vector and any(v > 0 for v in persona_vector.values()):
+        # Fuzzy: blend all persona weight profiles by membership
+        blended_weights: dict[str, float] = {}
+        for ptype, membership in persona_vector.items():
+            if membership <= 0 or ptype not in _PERSONA_WEIGHTS:
+                continue
+            for attr, w in _PERSONA_WEIGHTS[ptype].items():
+                blended_weights[attr] = blended_weights.get(attr, 0) + w * membership
+        if not blended_weights:
+            return 0.0
+        weights = blended_weights
+        total_weight = sum(weights.values())
+        # Dominance penalty scale: weighted average of persona-specific scales
+        penalty_scale = sum(
+            _BLOCK_C_PENALTY_SCALE.get(pt, _BLOCK_C_PENALTY_SCALE_DEFAULT) * m
+            for pt, m in persona_vector.items() if m > 0
+        )
+    elif persona_type and persona_type in _PERSONA_WEIGHTS:
+        # Single persona fallback
+        weights = _PERSONA_WEIGHTS[persona_type]
+        total_weight = sum(weights.values())
+        penalty_scale = _BLOCK_C_PENALTY_SCALE.get(persona_type, _BLOCK_C_PENALTY_SCALE_DEFAULT)
+    else:
+        return 0.0
+
+    score = _score_persona_attrs(city, country, income_usd, weights)
+    normalized = score / total_weight if total_weight > 0 else 0.0
     penalty = _city_dominance_penalty(city, ls, income_usd)
-    normalized = max(0.0, normalized - penalty * scale)
+    normalized = max(0.0, normalized - penalty * penalty_scale)
     return min(10.0, normalized)
 
 
@@ -789,6 +818,7 @@ def _compute_score(
     children_ages: list[str] | None = None,
     timeline: str = "",
     purpose: str = "",
+    persona_vector: dict[str, float] | None = None,
 ) -> float:
     """4-Block composite score (0–10)."""
     return _compute_score_breakdown(
@@ -803,6 +833,7 @@ def _compute_score(
         children_ages=children_ages,
         timeline=timeline,
         purpose=purpose,
+        persona_vector=persona_vector,
     )["total"]
 
 
@@ -818,16 +849,20 @@ def _compute_score_breakdown(
     children_ages: list[str] | None = None,
     timeline: str = "",
     purpose: str = "",
+    persona_vector: dict[str, float] | None = None,
 ) -> dict[str, float]:
     """4-Block composite score breakdown (0–10)."""
     ls = _normalize_lifestyle(lifestyle)
     a = _block_a(city, country, ls, income_usd, purpose=purpose)
     b = _block_b(city, country, income_usd, ls, tax_sensitivity, timeline)
-    c = _block_c(city, country, persona_type, income_usd, ls)
+    c = _block_c(city, country, persona_type, income_usd, ls, persona_vector=persona_vector)
     d = _block_d(city, country, income_usd, travel_type, ls, stay_style, children_ages, timeline)
 
     w_a, w_b, w_c, w_d = _get_block_weights(timeline)
-    if not persona_type or persona_type not in _PERSONA_WEIGHTS:
+    has_persona = bool(persona_type and persona_type in _PERSONA_WEIGHTS) or bool(
+        persona_vector and any(v > 0 for v in persona_vector.values())
+    )
+    if not has_persona:
         w_a += w_c
         w_c = 0.0
     total = round(min(10.0, max(0.0, a * w_a + b * w_b + c * w_c + d * w_d)), 1)
@@ -899,6 +934,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 5, debug_mode: bool = Fal
     nationality = user_profile.get("nationality", "")
     language = user_profile.get("language", "한국어")
     persona_type = user_profile.get("persona_type", "")
+    persona_vector = user_profile.get("persona_vector") or None
     travel_type = user_profile.get("travel_type", "")
     stay_style = user_profile.get("stay_style") or ""
     tax_sensitivity = user_profile.get("tax_sensitivity") or ""
@@ -944,6 +980,7 @@ def recommend_from_db(user_profile: dict, top_n: int = 5, debug_mode: bool = Fal
                 children_ages=children_ages,
                 timeline=timeline,
                 purpose=purpose,
+                persona_vector=persona_vector,
             )
             score = breakdown["total"]
             rows.append((score, city, country, breakdown))

@@ -55,6 +55,7 @@ def nomad_advisor(
     stay_style: str | None = None,
     tax_sensitivity: str | None = None,
     total_budget_krw: int | None = None,
+    persona_vector: dict | None = None,
 ) -> tuple[str, list, dict]:
     """
     Step 1 파이프라인: RAG → 프롬프트 → LLM → 파싱 → 마크다운 + 도시 리스트
@@ -106,6 +107,7 @@ def nomad_advisor(
         "spouse_income_krw":  spouse_income_krw,
         "stay_style":         stay_style,
         "tax_sensitivity":    tax_sensitivity,
+        "persona_vector":     persona_vector,
     }
 
     # 사전 검증 — hard_block 시 LLM 호출 없이 즉시 안내 메시지 반환
