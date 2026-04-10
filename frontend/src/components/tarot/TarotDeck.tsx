@@ -13,9 +13,9 @@ interface TarotDeckProps {
   initialSelectedIndices?: number[];
 }
 
-const FAN_ANGLES = [-18, -9, 0, 9, 18];
-const FAN_X = [-90, -45, 0, 45, 90];  // px offset from center
-const FAN_Y = [12, 4, 0, 4, 12];
+const FAN_ANGLES = [-16, -8, 0, 8, 16];
+const FAN_X = [-120, -60, 0, 60, 120];  // px offset from center
+const FAN_Y = [16, 5, 0, 5, 16];
 
 export default function TarotDeck({
   cardCount,
@@ -74,7 +74,7 @@ export default function TarotDeck({
       {/* Fan layout */}
       <div
         className="relative flex items-end justify-center"
-        style={{ width: 360, height: 200 }}
+        style={{ width: 420, height: 260 }}
       >
         {Array.from({ length: count }).map((_, i) => {
           const angle = FAN_ANGLES[i] ?? 0;
@@ -100,7 +100,7 @@ export default function TarotDeck({
               style={{
                 bottom: yOffset,
                 left: `calc(50% + ${xOffset}px)`,
-                marginLeft: -40, // half card width
+                marginLeft: -60, // half card width
                 transformOrigin: "bottom center",
                 zIndex: isSelected || isReadingSelected ? 10 : 5 - Math.abs(i - 2),
               }}

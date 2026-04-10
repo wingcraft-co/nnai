@@ -76,7 +76,7 @@ export default function TarotCard({
   return (
     <div
       className="relative cursor-pointer select-none"
-      style={{ width: 80, height: 120, perspective: 800, ...style }}
+      style={{ width: 120, height: 180, perspective: 800, ...style }}
       onClick={onClick}
     >
       <motion.div
@@ -126,30 +126,30 @@ export default function TarotCard({
         >
           {city && (
             <>
-              <span className="text-2xl leading-none">{flag}</span>
-              <p className="text-[10px] font-bold text-center text-gray-800 leading-tight line-clamp-2">
+              <span className="text-3xl leading-none">{flag}</span>
+              <p className="text-sm font-bold text-center text-gray-800 leading-tight line-clamp-2">
                 {city.city_kr}
               </p>
-              <div className="w-full border-t border-gray-100 mt-1 pt-1 space-y-0.5">
-                <div className="flex items-center gap-0.5 text-[8px] text-gray-500">
+              <div className="w-full border-t border-gray-200 mt-1.5 pt-1.5 space-y-1">
+                <div className="flex items-center gap-1 text-[10px] text-gray-500">
                   <span>💰</span>
                   <span className="truncate">{toKRW(city.monthly_cost_usd)}</span>
                 </div>
                 {city.internet_mbps != null && (
-                  <div className="flex items-center gap-0.5 text-[8px] text-gray-500">
-                    <Wifi className="size-2 shrink-0" />
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                    <Wifi className="size-3 shrink-0" />
                     <span>{city.internet_mbps}Mbps</span>
                   </div>
                 )}
                 {city.english_score != null && (
-                  <div className="flex items-center gap-0.5 text-[8px] text-gray-500">
-                    <Languages className="size-2 shrink-0" />
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                    <Languages className="size-3 shrink-0" />
                     <span>영어 {city.english_score}/10</span>
                   </div>
                 )}
                 {city.safety_score != null && (
-                  <div className="flex items-center gap-0.5 text-[8px] text-gray-500">
-                    <ShieldCheck className="size-2 shrink-0" />
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                    <ShieldCheck className="size-3 shrink-0" />
                     <span>치안 {city.safety_score}/10</span>
                   </div>
                 )}
