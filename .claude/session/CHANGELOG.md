@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## [2026-04-11 KST 세션 4] — 타로카드 UI 전면 재설계 (Amber Mono 2.0 디자인 시스템)
+
+### 변경 파일
+- `docs/designs/tarot-card-design.md` : 신규 — 타로카드 디자인 시스템 (색상, 타이포, 카드 뒷면/앞면 스펙)
+- `frontend/src/components/tarot/TarotCard.tsx` : 전면 재작성 — 컴패스 로즈 뒷면, Label+Value 앞면, 잠금 상태. 3D 플립 제거.
+- `frontend/src/components/tarot/TarotDeck.tsx` : 전면 재작성 — 정적 5장 가로 배치, 부채꼴/셔플 제거
+- `frontend/src/components/tarot/TarotReading.tsx` : 전면 재작성 — 3장 순차 리딩 + 타이핑 효과 (30ms/글자)
+- `frontend/src/components/tarot/CityCompare.tsx` : 하드코딩 HEX/gray 클래스 → CSS 변수 전환
+- `frontend/src/components/tarot/types.ts` : reading_text 필드 추가, "deck" 스테이지 제거
+- `frontend/src/app/[locale]/result/page.tsx` : 전면 재설계 — dark 모드 래퍼, 새 스테이지 플로우
+- `prompts/system.py` : reading_text 필드 추가 (타로 리더 톤 짧은 리딩)
+- `prompts/system_en.py` : reading_text 필드 추가 (영문)
+- `CLAUDE.md` : Design System 참조 섹션 + Skill routing 섹션 추가
+
+### 작업 요약
+- 무엇을: 타로카드 UI를 정적 프리미엄 디자인으로 전면 교체. gstack /design-consultation으로 디자인 시스템 수립 후 컴포넌트 재구현.
+- 왜: 기존 3D 플립 애니메이션이 시각적으로 조악하고 웹 기반 퀄리티가 낮음. 애니메이션 없이 정적 비주얼만으로 타로의 신비감과 고급감 표현.
+- 영향 범위: 결과 페이지 전체 (selecting → revealed → reading → comparing), LLM 프롬프트 스키마
+
+### 디자인 결정
+- 카드 뒷면: Compass Rose (8포인트 나침반 + 코너 장식) — CSS 전용, 이미지 없음
+- 카드 앞면: Label + Value (소문자 라벨 + 데이터 값) — 정보 명확성 우선
+- 색상: CSS 변수만 사용 (HEX 하드코딩 금지), dark 모드 강제
+- 폰트: font-serif (Noto Serif KR) 한글, font-mono (Geist Mono) 영문/데이터
+- 허용 애니메이션: opacity 페이드인 (0.4s), scale whileTap (1.02), 타이핑 효과
+- 금지: rotateY/X, 파티클, 물리 기반, 복잡한 stagger
+
+### 다음 세션 참고사항
+- `reading_text`는 LLM 프롬프트에 추가됐으나 아직 백엔드 실서버에서 생성되지 않을 수 있음 (기존 캐시된 응답엔 미포함)
+- gstack 설정 완료: telemetry=community, proactive=true, routing rules in CLAUDE.md
+- 디자인 프리뷰 HTML: `~/.gstack/projects/wingcraft-co-nnai/designs/tarot-cards-20260410/tarot-preview.html`
+
+---
+
 ## [2026-04-10 KST 세션 3] — 전수조사 604K건 + 빈 결과/차별화 수정 + UX 폴리싱
 
 ### 변경 파일
