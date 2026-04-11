@@ -1,64 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import TarotCard from "./TarotCard";
 import type { CityData } from "./types";
 
 // ── Stage type ────────────────────────────────────────────────────
 
-export type DeckStage = "selecting" | "revealing" | "reading" | "done";
-
-// ── Typing hook ───────────────────────────────────────────────────
-
-function useTypingEffect(text: string, speed: number = 50) {
-  const [displayed, setDisplayed] = useState("");
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    setDisplayed("");
-    setDone(false);
-    if (!text) {
-      setDone(true);
-      return;
-    }
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      setDisplayed(text.slice(0, i));
-      if (i >= text.length) {
-        clearInterval(interval);
-        setDone(true);
-      }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [text, speed]);
-
-  return { displayed, done };
-}
-
-// ── Reading text (invisible renderer, triggers onComplete) ────────
-
-function CardReadingText({
-  text,
-  onComplete,
-}: {
-  text: string;
-  onComplete: () => void;
-}) {
-  const { done } = useTypingEffect(text, 50);
-  const calledRef = useRef(false);
-
-  useEffect(() => {
-    if (done && !calledRef.current) {
-      calledRef.current = true;
-      const timer = setTimeout(onComplete, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [done, onComplete]);
-
-  return null;
-}
+export type DeckStage = "selecting" | "revealing" | "done";
 
 // ── City detail accordion ─────────────────────────────────────────
 
@@ -122,10 +71,8 @@ interface TarotDeckProps {
   selectedIndices: number[];
   revealedCities: CityData[] | null;
   flippedIndices: number[];
-  currentReadingIndex: number;
   onToggleSelect: (index: number) => void;
   onConfirm: () => void;
-  onReadingCardComplete: () => void;
   onRetry: () => void;
   onGuideClick: () => void;
   isLoading: boolean;
@@ -139,10 +86,8 @@ export default function TarotDeck({
   selectedIndices,
   revealedCities,
   flippedIndices,
-  currentReadingIndex,
   onToggleSelect,
   onConfirm,
-  onReadingCardComplete,
   onRetry,
   onGuideClick,
   isLoading,
@@ -151,9 +96,8 @@ export default function TarotDeck({
   const allSelected = selectedIndices.length === MAX_SELECT;
   const isSelecting = stage === "selecting";
   const isRevealing = stage === "revealing";
-  const isReading = stage === "reading";
   const isDone = stage === "done";
-  const isPostReveal = isRevealing || isReading || isDone;
+  const isPostReveal = isRevealing || isDone;
 
   // ── Accordion state (done stage) ────────────────────────────────
 
@@ -178,36 +122,15 @@ export default function TarotDeck({
     return seqIdx >= 0 && flippedIndices.includes(seqIdx);
   }
 
-  function isReadingActive(i: number): boolean {
-    if (!isReading) return false;
-    const seqIdx = selectedIndices.indexOf(i);
-    return seqIdx === currentReadingIndex;
-  }
-
-  // ── Reading text ────────────────────────────────────────────────
-
-  const currentReadingCity = isReading && revealedCities
-    ? revealedCities[currentReadingIndex] ?? null
-    : null;
-
-  const onReadingCompleteRef = useRef(onReadingCardComplete);
-  onReadingCompleteRef.current = onReadingCardComplete;
-
-  const handleReadingDone = useCallback(() => {
-    onReadingCompleteRef.current();
-  }, []);
-
   // ── Render card ─────────────────────────────────────────────────
 
   function renderCard(i: number) {
     const state = getCardState(i);
     const city = getCityForCard(i);
     const flipped = isCardFlipped(i);
-    const reading = isReadingActive(i);
     const locked = state === "locked";
     const isSelected = selectedIndices.includes(i);
 
-    const scale = reading ? 1.15 : 1;
     const opacity = locked && isPostReveal ? 0.15 : 1;
 
     // Done stage: tappable revealed cards
@@ -222,7 +145,7 @@ export default function TarotDeck({
     return (
       <div key={i} className="flex flex-col items-center">
         <motion.div
-          animate={{ scale, opacity }}
+          animate={{ opacity }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <TarotCard
@@ -233,14 +156,6 @@ export default function TarotDeck({
             isFlipped={flipped}
             onClick={(isSelecting || (isDone && isSelected)) ? handleClick : undefined}
           />
-
-          {reading && currentReadingCity && (
-            <CardReadingText
-              key={`reading-${currentReadingIndex}`}
-              text={currentReadingCity.reading_text ?? ""}
-              onComplete={handleReadingDone}
-            />
-          )}
         </motion.div>
 
         {/* Accordion detail — done stage */}

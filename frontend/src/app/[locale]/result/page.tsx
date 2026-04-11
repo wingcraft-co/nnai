@@ -46,7 +46,6 @@ export default function ResultPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
-  const [currentReadingIndex, setCurrentReadingIndex] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
 
   // ── Save session ────────────────────────────────────────────────
@@ -120,7 +119,6 @@ export default function ResultPage() {
       setSelectedIndices([]);
       setRevealedCities(null);
       setFlippedIndices([]);
-      setCurrentReadingIndex(0);
       setStage("selecting");
 
       saveSession({
@@ -222,7 +220,6 @@ export default function ResultPage() {
 
       setRevealedCities(data.revealed_cities);
       setFlippedIndices([]);
-      setCurrentReadingIndex(0);
       setStage("revealing");
 
       saveSession({ selectedIndices, revealedCities: data.revealed_cities, stage: "revealing" });
@@ -246,24 +243,10 @@ export default function ResultPage() {
       setFlippedIndices([0, 1, 2]);
       await delay(2000);
 
-      setStage("reading");
-      setCurrentReadingIndex(0);
-      saveSession({ revealedCities: cities, stage: "reading" });
+      setStage("done");
+      saveSession({ revealedCities: cities, stage: "done" });
     })();
   }
-
-  // ── Reading advance ────────────────────────────────────────────
-
-  const handleReadingCardComplete = useCallback(() => {
-    if (!revealedCities) return;
-    const next = currentReadingIndex + 1;
-    if (next < revealedCities.length) {
-      setCurrentReadingIndex(next);
-    } else {
-      setStage("done");
-      saveSession({ revealedCities, stage: "done" });
-    }
-  }, [currentReadingIndex, revealedCities, saveSession]);
 
   // ── Guide / retry ──────────────────────────────────────────────
 
@@ -282,7 +265,6 @@ export default function ResultPage() {
     setParsedData(null);
     setError(null);
     setIsLoading(false);
-    setCurrentReadingIndex(0);
     localStorage.removeItem(SESSION_V2_KEY);
     localStorage.removeItem(TAROT_SESSION_KEY);
     localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
@@ -349,10 +331,8 @@ export default function ResultPage() {
             selectedIndices={selectedIndices}
             revealedCities={revealedCities}
             flippedIndices={flippedIndices}
-            currentReadingIndex={currentReadingIndex}
             onToggleSelect={toggleSelect}
             onConfirm={handleConfirm}
-            onReadingCardComplete={handleReadingCardComplete}
             onRetry={handleRetry}
             onGuideClick={handleGuideClick}
             isLoading={isLoading}
