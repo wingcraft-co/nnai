@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import TarotCard from "./TarotCard";
 import type { CityData } from "./types";
 
@@ -33,15 +33,16 @@ export default function TarotDeck({
   }
 
   function getCityForCard(i: number): CityData | null {
-    if (!isRevealed) return cities[i] ?? null;
+    if (!isRevealed) return null; // 뒷면 — 데이터 불필요
     const pos = selectedIndices.indexOf(i);
-    return pos >= 0 ? (revealedCities[pos] ?? null) : (cities[i] ?? null);
+    return pos >= 0 ? (revealedCities[pos] ?? null) : null; // locked — 데이터 차단
   }
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* 5-card static row */}
-      <div className="flex justify-center gap-4 flex-wrap">
+      {/* 5-card layout: mobile 3+2, desktop 5-col */}
+      {/* Desktop: single row */}
+      <div className="hidden md:flex justify-center gap-4">
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="w-[160px]">
             <TarotCard
@@ -56,23 +57,44 @@ export default function TarotDeck({
           </div>
         ))}
       </div>
-
-      {/* Status text */}
-      <AnimatePresence mode="wait">
-        {!isRevealed && (
-          <motion.p
-            key="select-hint"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-sm text-muted-foreground text-center"
-          >
-            {!allSelected
-              ? `끌리는 카드 ${MAX_SELECT - selectedIndices.length}장을 골라보세요`
-              : "준비되셨나요?"}
-          </motion.p>
+      {/* Mobile: row of 3 + row of 2 centered */}
+      <div className="flex flex-col items-center gap-3 md:hidden">
+        <div className="flex justify-center gap-3">
+          {Array.from({ length: Math.min(3, count) }).map((_, i) => (
+            <div key={i} className="w-[calc((100vw-4rem)/3)] max-w-[120px]">
+              <TarotCard
+                state={getCardState(i)}
+                cityData={getCityForCard(i)}
+                isSelected={selectedIndices.includes(i)}
+                onClick={() => {
+                  if (isLoading || isRevealed) return;
+                  onToggleSelect(i);
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        {count > 3 && (
+          <div className="flex justify-center gap-3">
+            {Array.from({ length: count - 3 }).map((_, j) => {
+              const i = j + 3;
+              return (
+                <div key={i} className="w-[calc((100vw-4rem)/3)] max-w-[120px]">
+                  <TarotCard
+                    state={getCardState(i)}
+                    cityData={getCityForCard(i)}
+                    isSelected={selectedIndices.includes(i)}
+                    onClick={() => {
+                      if (isLoading || isRevealed) return;
+                      onToggleSelect(i);
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         )}
-      </AnimatePresence>
+      </div>
 
       {/* Confirm CTA */}
       {!isRevealed && allSelected && (

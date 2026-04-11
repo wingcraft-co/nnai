@@ -38,7 +38,7 @@ interface TarotReadingProps {
   onRequestDetail: (cityIndex: number) => void;
 }
 
-function useTypingEffect(text: string, speed: number = 30) {
+function useTypingEffect(text: string, speed: number = 50) {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
 
@@ -77,9 +77,8 @@ function CityReading({
   isLast: boolean;
 }) {
   const flag = FLAG_EMOJI[city.country_id] ?? "\u{1F30D}";
-  const readingText =
-    city.reading_text ?? `${city.city_kr} 카드가 당신 앞에 놓였네요.`;
-  const { displayed, done } = useTypingEffect(readingText);
+  const readingText = city.reading_text ?? "";
+  const { displayed, done } = useTypingEffect(readingText, 50);
 
   const visaDays =
     city.visa_free_days > 0
@@ -111,14 +110,16 @@ function CityReading({
       </div>
 
       {/* Reading text with typing effect */}
-      <div className="w-full border-l-2 border-primary pl-4 min-h-[3rem]">
-        <p className="font-serif text-base text-foreground leading-relaxed">
-          {displayed}
-          {!done && (
-            <span className="animate-pulse text-primary">|</span>
-          )}
-        </p>
-      </div>
+      {readingText && (
+        <div className="w-full border-l-2 border-primary pl-4 min-h-[3rem]">
+          <p className="font-serif text-base text-foreground leading-relaxed">
+            {displayed}
+            {!done && (
+              <span className="animate-pulse text-primary">|</span>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Metrics fade in after typing completes */}
       {done && (
@@ -197,7 +198,14 @@ export default function TarotReading({
     }
   }, [currentIndex, cities.length]);
 
-  // Reading complete: show detail CTA for each city
+  const [toastVisible, setToastVisible] = useState(false);
+
+  function handleGuideClick() {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+  }
+
+  // Reading complete: CTA screen
   if (readingComplete) {
     return (
       <motion.div
@@ -209,31 +217,41 @@ export default function TarotReading({
         <h2 className="font-serif text-xl font-bold text-foreground text-center">
           세 장의 카드가 모두 열렸습니다
         </h2>
-        <p className="text-sm text-muted-foreground text-center">
-          더 깊은 가이드를 받아보세요
-        </p>
-
-        <div className="w-full flex flex-col gap-3">
-          {cities.map((city, i) => (
-            <button
-              key={city.city}
-              type="button"
-              onClick={() => onRequestDetail(i)}
-              className="w-full py-3 text-sm font-medium border border-border text-foreground hover:border-primary transition-colors"
-            >
-              {FLAG_EMOJI[city.country_id] ?? "\u{1F30D}"} {city.city_kr}{" "}
-              전체 가이드 받기
-            </button>
-          ))}
-        </div>
 
         <button
           type="button"
           onClick={onComplete}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="w-full py-3.5 text-sm font-semibold bg-primary text-primary-foreground transition-opacity"
         >
           도시 비교 보기 →
         </button>
+
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-xs text-muted-foreground">
+            더 깊은 가이드가 필요하다면
+          </p>
+          <button
+            type="button"
+            onClick={handleGuideClick}
+            className="px-6 py-2.5 text-sm font-medium border border-border text-foreground hover:border-primary transition-colors"
+          >
+            전체 가이드 받기
+          </button>
+        </div>
+
+        {/* Toast */}
+        <AnimatePresence>
+          {toastVisible && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              className="fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-3 bg-card border border-border text-sm text-foreground"
+            >
+              곧 오픈될 예정이에요 🔜
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     );
   }

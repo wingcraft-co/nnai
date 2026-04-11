@@ -453,14 +453,6 @@ export default function ResultPage() {
             onConfirm={handleConfirmSelection}
             isLoading={isLoading}
           />
-
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            처음부터 다시하기
-          </button>
         </div>
       )}
 

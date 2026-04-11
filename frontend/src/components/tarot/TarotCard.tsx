@@ -292,26 +292,23 @@ export default function TarotCard({
   onClick,
 }: TarotCardProps) {
   const isLocked = state === "locked";
-  const isFront = state === "front" || state === "locked";
 
   return (
     <motion.div
-      className="relative cursor-pointer select-none aspect-[2/3]"
-      whileTap={{ scale: 1.02 }}
+      className={`relative select-none aspect-[2/3] ${isLocked ? "" : "cursor-pointer"}`}
+      whileTap={isLocked ? undefined : { scale: 1.02 }}
       transition={{ duration: 0.1 }}
-      onClick={onClick}
+      onClick={isLocked ? undefined : onClick}
     >
-      {isFront && cityData ? (
-        <div className={isLocked ? "opacity-20 w-full h-full" : "w-full h-full"}>
-          <FrontFace cityData={cityData} />
-        </div>
+      {state === "front" && cityData ? (
+        <FrontFace cityData={cityData} />
       ) : (
         <BackFace isSelected={isSelected} />
       )}
 
       {/* Lock overlay */}
       {isLocked && (
-        <div className="absolute inset-0 rounded-lg flex items-center justify-center">
+        <div className="absolute inset-0 rounded-lg flex items-center justify-center bg-card/60">
           <span style={{ fontSize: 32 }}>🔒</span>
         </div>
       )}

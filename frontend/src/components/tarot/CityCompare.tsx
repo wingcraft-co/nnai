@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Wifi, Languages } from "lucide-react";
 
 const FLAG_EMOJI: Record<string, string> = {
@@ -178,6 +179,13 @@ function CityCard({ city, rank }: { city: CityData; rank: number }) {
 }
 
 export default function CityCompare({ cities, onRetry }: CityCompareProps) {
+  const [toastVisible, setToastVisible] = useState(false);
+
+  function handleGuideClick() {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-10">
       {/* Header */}
@@ -186,6 +194,13 @@ export default function CityCompare({ cities, onRetry }: CityCompareProps) {
         <p className="text-sm text-muted-foreground mt-1">
           추천된 {cities.length}개 도시를 나란히 비교해보세요
         </p>
+        <button
+          type="button"
+          onClick={handleGuideClick}
+          className="mt-4 px-6 py-2.5 text-sm font-medium border border-border text-foreground hover:border-primary transition-colors"
+        >
+          전체 가이드 받기
+        </button>
       </motion.div>
 
       {/* Desktop: 3-col grid / Mobile: vertical scroll */}
@@ -207,6 +222,20 @@ export default function CityCompare({ cities, onRetry }: CityCompareProps) {
           처음부터 다시하기
         </button>
       </motion.div>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toastVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-3 bg-card border border-border text-sm text-foreground z-50"
+          >
+            곧 오픈될 예정이에요 🔜
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
