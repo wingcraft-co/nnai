@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import TarotDeck from "@/components/tarot/TarotDeck";
-import TarotReading from "@/components/tarot/TarotReading";
+import TarotCard from "@/components/tarot/TarotCard";
 import CityCompare from "@/components/tarot/CityCompare";
 import type { CityData, TarotSession } from "@/components/tarot/types";
 import { TAROT_SESSION_KEY } from "@/components/tarot/types";
@@ -15,7 +16,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.nnai.app";
 
 // ── Stage type ─────────────────────────────────────────────────────
 
-type Stage = "loading" | "selecting" | "revealed" | "reading" | "comparing";
+type Stage = "loading" | "selecting" | "revealed" | "reading" | "complete" | "comparing";
 
 // ── SessionV2 stored in localStorage ──────────────────────────────
 
@@ -31,6 +32,71 @@ interface SessionV2 {
 }
 
 const SESSION_V2_KEY = "result_session_v2";
+
+// ── Typing effect hook ────────────────────────────────────────────
+
+function useTypingEffect(text: string, speed: number = 50) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    if (!text) {
+      setDone(true);
+      return;
+    }
+
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return { displayed, done };
+}
+
+// ── Reading text component (typing under card) ────────────────────
+
+function ReadingText({
+  text,
+  onComplete,
+}: {
+  text: string;
+  onComplete: () => void;
+}) {
+  const { displayed, done } = useTypingEffect(text, 50);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (done && !calledRef.current) {
+      calledRef.current = true;
+      const timer = setTimeout(onComplete, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [done, onComplete]);
+
+  if (!text) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="w-full max-w-xs border-l-2 border-primary pl-4 mt-4"
+    >
+      <p className="font-serif text-sm text-foreground leading-relaxed">
+        {displayed}
+        {!done && <span className="animate-pulse text-primary">|</span>}
+      </p>
+    </motion.div>
+  );
+}
 
 // ── Result Page ────────────────────────────────────────────────────
 
@@ -49,6 +115,8 @@ export default function ResultPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
+  const [currentReadingIndex, setCurrentReadingIndex] = useState(0);
+  const [toastVisible, setToastVisible] = useState(false);
 
   // ── Persist session ──────────────────────────────────────────────
 
@@ -78,7 +146,7 @@ export default function ResultPage() {
             ? "selecting"
             : session.stage === "revealed"
             ? "revealed"
-            : session.stage === "reading"
+            : session.stage === "reading" || session.stage === "complete"
             ? "reading"
             : session.stage === "comparing"
             ? "comparing"
@@ -136,7 +204,9 @@ export default function ResultPage() {
       setAllCities(topCities);
       setSelectedIndices([]);
       setRevealedCities(null);
+      setFlippedIndices([]);
       setReadingMarkdown("");
+      setCurrentReadingIndex(0);
 
       setStage("selecting");
 
@@ -174,49 +244,54 @@ export default function ResultPage() {
     if (savedV2Str) {
       try {
         const saved = JSON.parse(savedV2Str) as SessionV2;
-        setSessionId(saved.session_id);
-        setAllCities(saved.allCities ?? []);
-        setSelectedIndices(saved.selectedIndices ?? []);
-        setRevealedCities(
-          saved.revealedCities?.length ? saved.revealedCities : null
-        );
-        setParsedData(saved.parsedData ?? null);
-        setReadingMarkdown(saved.readingMarkdown ?? "");
 
-        let resumeStage = saved.stage;
-        // If reading but no data, fall back to revealed
-        if (resumeStage === "reading" && !saved.revealedCities?.length) {
-          resumeStage = "revealed";
+        // If saved stage is "selecting", don't restore — start fresh
+        if (saved.stage === "selecting") {
+          localStorage.removeItem(SESSION_V2_KEY);
+          localStorage.removeItem(TAROT_SESSION_KEY);
+        } else {
+          setSessionId(saved.session_id);
+          setAllCities(saved.allCities ?? []);
+          setSelectedIndices(saved.selectedIndices ?? []);
+          setRevealedCities(
+            saved.revealedCities?.length ? saved.revealedCities : null
+          );
+          setParsedData(saved.parsedData ?? null);
+          setReadingMarkdown(saved.readingMarkdown ?? "");
+
+          let resumeStage: Stage = saved.stage;
+          if (resumeStage === "reading" && !saved.revealedCities?.length) {
+            resumeStage = "selecting";
+          }
+          // Cards already flipped for post-reveal stages
+          if (resumeStage === "revealed" || resumeStage === "reading" || resumeStage === "complete" || resumeStage === "comparing") {
+            setFlippedIndices([0, 1, 2]);
+          }
+          setStage(resumeStage);
+          return;
         }
-        // If resuming at revealed/reading/comparing, cards are already flipped
-        if (resumeStage === "revealed" || resumeStage === "reading" || resumeStage === "comparing") {
-          setFlippedIndices([0, 1, 2]);
-        }
-        setStage(resumeStage);
-        return;
       } catch {
         localStorage.removeItem(SESSION_V2_KEY);
       }
     }
 
-    // Fallback: legacy tarot session (for OAuth redirect return)
+    // Fallback: legacy tarot session (for OAuth redirect return only)
     const legacyStr = localStorage.getItem(TAROT_SESSION_KEY);
     if (legacyStr) {
       try {
         const saved = JSON.parse(legacyStr) as TarotSession;
-        if (saved.session_id) {
+        if (saved.session_id && saved.stage !== "selecting") {
           setSessionId(saved.session_id);
           setRevealedCities(
             saved.revealedCities?.length ? saved.revealedCities : null
           );
           setReadingMarkdown(saved.readingMarkdown ?? "");
+          setFlippedIndices([0, 1, 2]);
 
-          let resumeStage: Stage = "selecting";
-          if (saved.stage === "revealed") resumeStage = "revealed";
+          let resumeStage: Stage = "complete";
+          if (saved.stage === "revealed") resumeStage = "complete";
           else if (saved.stage === "reading") {
-            resumeStage = saved.revealedCities?.length
-              ? "reading"
-              : "revealed";
+            resumeStage = saved.revealedCities?.length ? "complete" : "selecting";
           } else if (saved.stage === "comparing") resumeStage = "comparing";
 
           setStage(resumeStage);
@@ -272,6 +347,7 @@ export default function ResultPage() {
 
       setRevealedCities(data.revealed_cities);
       setFlippedIndices([]);
+      setCurrentReadingIndex(0);
       setStage("revealed");
 
       saveSession({
@@ -282,8 +358,8 @@ export default function ResultPage() {
         stage: "revealed",
       });
 
-      // Sequential flip sequence
-      startRevealSequence();
+      // Sequential flip → reading sequence
+      startRevealAndReadingSequence(data.revealed_cities);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "카드 열기에 실패했어요.";
@@ -293,108 +369,47 @@ export default function ResultPage() {
     }
   }
 
-  // ── Sequential flip → auto-transition to reading ────────────────
+  // ── Sequential flip → reading (card stays, text below) ──────────
 
-  function startRevealSequence() {
+  function startRevealAndReadingSequence(cities: CityData[]) {
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
     (async () => {
+      // Phase 1: Sequential flip
       await delay(400);
       setFlippedIndices([0]);
-      await delay(1100);
+      await delay(2000);
       setFlippedIndices([0, 1]);
-      await delay(1100);
+      await delay(2000);
       setFlippedIndices([0, 1, 2]);
-      await delay(1000);
+      await delay(2500);
+
+      // Phase 2: Reading — card stays, text types below
       setStage("reading");
+      setCurrentReadingIndex(0);
+
       saveSession({
-        revealedCities: revealedCities ?? [],
+        revealedCities: cities,
         stage: "reading",
       });
     })();
   }
 
-  // ── Request detail → OAuth gate + /api/detail ───────────────────
+  // ── Reading: advance to next card (called by ReadingText onComplete)
 
-  async function handleRequestDetail(cityIndex: number) {
-    if (!revealedCities || !parsedData) return;
-    setError(null);
-
-    // Auth check
-    try {
-      const meRes = await fetch(`${API_URL}/auth/me`, {
-        credentials: "include",
-      });
-      if (!meRes.ok) {
-        // Save state and redirect to OAuth
-        const v2: SessionV2 = {
-          session_id: sessionId ?? "",
-          allCities,
-          selectedIndices,
-          revealedCities,
-          readingCityIndex: cityIndex,
-          readingMarkdown: null,
-          parsedData,
-          stage: "reading",
-        };
-        localStorage.setItem(SESSION_V2_KEY, JSON.stringify(v2));
-        const legacy: TarotSession = {
-          session_id: sessionId ?? "",
-          selectedIndices,
-          revealedCities,
-          readingCityIndex: cityIndex,
-          readingMarkdown: null,
-          stage: "reading",
-        };
-        localStorage.setItem(TAROT_SESSION_KEY, JSON.stringify(legacy));
-        window.location.href = `${API_URL}/auth/google`;
-        return;
-      }
-    } catch {
-      const v2: SessionV2 = {
-        session_id: sessionId ?? "",
-        allCities,
-        selectedIndices,
-        revealedCities,
-        readingCityIndex: cityIndex,
-        readingMarkdown: null,
-        parsedData,
-        stage: "reading",
-      };
-      localStorage.setItem(SESSION_V2_KEY, JSON.stringify(v2));
-      window.location.href = `${API_URL}/auth/google`;
-      return;
-    }
-
-    // Logged in — fetch detail
-    setReadingMarkdown("");
-    saveSession({
-      revealedCities,
-      readingCityIndex: cityIndex,
-      readingMarkdown: null,
-      stage: "reading",
-    });
-
-    try {
-      const res = await fetch("/api/detail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parsed_data: parsedData, city_index: cityIndex }),
-      });
-      if (!res.ok) throw new Error(`detail error: ${res.status}`);
-      const data = (await res.json()) as { markdown: string };
-
-      setReadingMarkdown(data.markdown);
+  const handleReadingComplete = useCallback(() => {
+    if (!revealedCities) return;
+    const nextIndex = currentReadingIndex + 1;
+    if (nextIndex < revealedCities.length) {
+      setCurrentReadingIndex(nextIndex);
+    } else {
+      setStage("complete");
       saveSession({
         revealedCities,
-        readingCityIndex: cityIndex,
-        readingMarkdown: data.markdown,
-        stage: "reading",
+        stage: "complete" as Stage,
       });
-    } catch {
-      setError("리딩을 불러오지 못했어요. 다시 시도해주세요.");
     }
-  }
+  }, [currentReadingIndex, revealedCities, saveSession]);
 
   function handleCompare() {
     setStage("comparing");
@@ -404,13 +419,37 @@ export default function ResultPage() {
     });
   }
 
+  function handleGuideClick() {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+  }
+
   function handleRetry() {
+    // Full state reset
+    setStage("loading");
+    setSessionId(null);
+    setAllCities([]);
+    setSelectedIndices([]);
+    setRevealedCities(null);
+    setFlippedIndices([]);
+    setReadingMarkdown("");
+    setParsedData(null);
+    setError(null);
+    setIsLoading(false);
+    setCurrentReadingIndex(0);
+
+    // Clear all localStorage
     localStorage.removeItem(SESSION_V2_KEY);
     localStorage.removeItem(TAROT_SESSION_KEY);
     localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
     localStorage.removeItem("persona_type");
+
     router.push("/onboarding/quiz");
   }
+
+  // ── Current reading city ─────────────────────────────────────────
+
+  const currentReadingCity = revealedCities?.[currentReadingIndex] ?? null;
 
   // ── Render ──────────────────────────────────────────────────────
 
@@ -473,16 +512,13 @@ export default function ResultPage() {
         </div>
       )}
 
-      {/* Revealed: front faces shown, auto-transitions to reading */}
+      {/* Revealed: sequential flip animation */}
       {stage === "revealed" && (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 gap-8">
           <div className="text-center">
             <h1 className="font-serif text-xl font-bold text-foreground mb-1">
-              카드가 열렸습니다
+              카드가 열립니다
             </h1>
-            <p className="text-sm text-muted-foreground">
-              리딩을 준비하고 있어요...
-            </p>
           </div>
 
           <TarotDeck
@@ -497,19 +533,94 @@ export default function ResultPage() {
         </div>
       )}
 
-      {/* Reading: sequential 3-card reading */}
-      {stage === "reading" && revealedCities && (
-        <TarotReading
-          cities={revealedCities}
-          onComplete={handleCompare}
-          onRequestDetail={handleRequestDetail}
-        />
+      {/* Reading: card + typing text below */}
+      {stage === "reading" && currentReadingCity && (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 gap-6">
+          {/* Card number */}
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Card {currentReadingIndex + 1} of {revealedCities?.length ?? 3}
+          </span>
+
+          {/* Card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentReadingIndex}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.3 }}
+              className="w-[180px] md:w-[200px]"
+            >
+              <TarotCard
+                state="front"
+                cityData={currentReadingCity}
+                isFlipped={true}
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Typing text below card */}
+          <ReadingText
+            key={currentReadingIndex}
+            text={currentReadingCity.reading_text ?? ""}
+            onComplete={handleReadingComplete}
+          />
+        </div>
+      )}
+
+      {/* Complete: all cards read */}
+      {stage === "complete" && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="min-h-screen flex flex-col items-center justify-center gap-8 px-4 py-16"
+        >
+          <h2 className="font-serif text-xl font-bold text-foreground text-center">
+            세 장의 카드가 모두 열렸습니다
+          </h2>
+
+          <button
+            type="button"
+            onClick={handleCompare}
+            className="w-full max-w-xs py-3.5 text-sm font-semibold bg-primary text-primary-foreground transition-opacity"
+          >
+            도시 비교 보기 →
+          </button>
+
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-xs text-muted-foreground">
+              더 깊은 가이드가 필요하다면
+            </p>
+            <button
+              type="button"
+              onClick={handleGuideClick}
+              className="px-6 py-2.5 text-sm font-medium border border-border text-foreground hover:border-primary transition-colors"
+            >
+              전체 가이드 받기
+            </button>
+          </div>
+        </motion.div>
       )}
 
       {/* Comparing: side-by-side city comparison */}
       {stage === "comparing" && (
         <CityCompare cities={revealedCities ?? []} onRetry={handleRetry} />
       )}
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toastVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-3 bg-card border border-border text-sm text-foreground z-50"
+          >
+            곧 오픈될 예정이에요 🔜
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
