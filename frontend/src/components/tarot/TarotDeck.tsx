@@ -213,24 +213,29 @@ export default function TarotDeck({
 
       {/* CTA area — fixed height so cards don't shift */}
       <div className="h-20 flex items-center justify-center">
+        <AnimatePresence>
         {isSelecting && allSelected && (
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-8 py-3 text-sm font-semibold transition-opacity"
+            className="px-8 py-3 text-sm font-semibold"
             style={{
               background: "var(--primary)",
               color: "var(--primary-foreground)",
               opacity: isLoading ? 0.5 : 1,
+              boxShadow: "0 0 16px 2px color-mix(in srgb, var(--primary) 25%, transparent)",
+              transition: "opacity 0.3s ease",
             }}
           >
             {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
           </motion.button>
         )}
+        </AnimatePresence>
       </div>
 
       {/* Complete CTA */}

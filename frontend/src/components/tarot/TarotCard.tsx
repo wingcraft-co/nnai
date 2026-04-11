@@ -110,7 +110,10 @@ function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize })
         border: isSelected
           ? "2px solid var(--primary)"
           : "1px solid var(--border)",
-        boxShadow: isSelected ? "0 0 20px 4px var(--ring)" : "none",
+        boxShadow: isSelected
+          ? "0 0 24px 6px var(--ring), 0 0 48px 12px color-mix(in srgb, var(--primary) 15%, transparent)"
+          : "0 0 0px 0px transparent",
+        transition: "border 0.35s ease, box-shadow 0.45s ease",
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
       }}
@@ -121,7 +124,10 @@ function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize })
         style={{
           inset: 4,
           borderRadius: 8,
-          border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
+          border: isSelected
+            ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+            : "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
+          transition: "border 0.35s ease",
         }}
       />
 
@@ -134,7 +140,8 @@ function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize })
         style={{
           bottom: 16,
           letterSpacing: "0.2em",
-          color: "var(--muted-foreground)",
+          color: isSelected ? "var(--primary)" : "var(--muted-foreground)",
+          transition: "color 0.35s ease",
         }}
       >
         NNAI
