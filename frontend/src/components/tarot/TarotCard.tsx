@@ -3,7 +3,8 @@
 import { motion } from "framer-motion";
 import type { CityData } from "./types";
 
-// Flag emoji mapping by country_id (ISO-2)
+// ── Flag emoji lookup ─────────────────────────────────────────────
+
 const FLAG_EMOJI: Record<string, string> = {
   AD: "🇦🇩", AE: "🇦🇪", AF: "🇦🇫", AG: "🇦🇬", AL: "🇦🇱",
   AM: "🇦🇲", AO: "🇦🇴", AR: "🇦🇷", AT: "🇦🇹", AU: "🇦🇺",
@@ -46,109 +47,118 @@ const FLAG_EMOJI: Record<string, string> = {
   YE: "🇾🇪", ZA: "🇿🇦", ZM: "🇿🇲", ZW: "🇿🇼",
 };
 
+// ── Size variant config ───────────────────────────────────────────
+
+export type CardSize = "sm" | "md" | "lg";
+
+const SIZE_CONFIG = {
+  sm:  { w: 140, h: 245, pad: 16, flag: 24, cityKr: 14, cityEn: 9,  metricLabel: 7,  metricVal: 10, readingFs: 10, compassD: 56 },
+  md:  { w: 200, h: 350, pad: 20, flag: 28, cityKr: 18, cityEn: 11, metricLabel: 8,  metricVal: 11, readingFs: 12, compassD: 80 },
+  lg:  { w: 260, h: 455, pad: 20, flag: 28, cityKr: 18, cityEn: 11, metricLabel: 8,  metricVal: 11, readingFs: 12, compassD: 80 },
+} as const;
+
 const USD_TO_KRW = 1400;
 
 function toKRW(usd: number): string {
-  return `약 ${Math.round((usd * USD_TO_KRW) / 10000)}만원`;
+  return `${Math.round((usd * USD_TO_KRW) / 10000)}만원`;
 }
 
-interface TarotCardProps {
+// ── Props ─────────────────────────────────────────────────────────
+
+export interface TarotCardProps {
   state: "back" | "front" | "locked";
+  size?: CardSize;
   cityData?: CityData | null;
   isSelected?: boolean;
   isFlipped?: boolean;
+  readingText?: string | null;
   onClick?: () => void;
 }
 
-/* ── Corner L-shaped flourish ── */
-function CornerFlourish({
-  position,
-}: {
-  position: "tl" | "tr" | "bl" | "br";
-}) {
-  const base = "absolute bg-border";
-  const arm = 20;
-  const t = 2;
+// ── Compass Rose SVG ──────────────────────────────────────────────
 
-  const posMap: Record<string, { h: string; v: string }> = {
-    tl: {
-      h: `top-0 left-0 rounded-tl-sm`,
-      v: `top-0 left-0 rounded-tl-sm`,
-    },
-    tr: {
-      h: `top-0 right-0 rounded-tr-sm`,
-      v: `top-0 right-0 rounded-tr-sm`,
-    },
-    bl: {
-      h: `bottom-0 left-0 rounded-bl-sm`,
-      v: `bottom-0 left-0 rounded-bl-sm`,
-    },
-    br: {
-      h: `bottom-0 right-0 rounded-br-sm`,
-      v: `bottom-0 right-0 rounded-br-sm`,
-    },
-  };
-
-  const p = posMap[position];
+function CompassRose({ diameter }: { diameter: number }) {
+  const r = diameter / 2;
+  const ir = r * 0.5;
+  const dotR = r * 0.1;
 
   return (
-    <>
-      <div className={`${base} ${p.h}`} style={{ width: arm, height: t }} />
-      <div className={`${base} ${p.v}`} style={{ width: t, height: arm }} />
-    </>
+    <svg width={diameter} height={diameter} viewBox={`0 0 ${diameter} ${diameter}`} fill="none">
+      {/* Outer circle */}
+      <circle cx={r} cy={r} r={r - 1} stroke="var(--accent)" strokeWidth={1} />
+      {/* Cross */}
+      <line x1={0} y1={r} x2={diameter} y2={r} stroke="var(--accent)" strokeWidth={0.8} />
+      <line x1={r} y1={0} x2={r} y2={diameter} stroke="var(--accent)" strokeWidth={0.8} />
+      {/* Diagonals */}
+      <line x1={r - r * 0.707} y1={r - r * 0.707} x2={r + r * 0.707} y2={r + r * 0.707} stroke="var(--accent)" strokeWidth={0.5} />
+      <line x1={r + r * 0.707} y1={r - r * 0.707} x2={r - r * 0.707} y2={r + r * 0.707} stroke="var(--accent)" strokeWidth={0.5} />
+      {/* Inner circle */}
+      <circle cx={r} cy={r} r={ir} stroke="var(--accent)" strokeWidth={0.8} />
+      {/* Center dot */}
+      <circle cx={r} cy={r} r={dotR} fill="var(--accent)" />
+    </svg>
   );
 }
 
-/* ── Compass Rose (all CSS) ── */
-function CompassRose() {
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: 80, height: 80 }}>
-      <div className="absolute rounded-full border border-border" style={{ width: 80, height: 80 }} />
-      <div className="absolute bg-border" style={{ width: 80, height: 1, top: "50%", left: 0, transform: "translateY(-50%)" }} />
-      <div className="absolute bg-border" style={{ width: 1, height: 80, left: "50%", top: 0, transform: "translateX(-50%)" }} />
-      <div className="absolute bg-border" style={{ width: 80, height: 1, top: "50%", left: 0, transform: "translateY(-50%) rotate(45deg)" }} />
-      <div className="absolute bg-border" style={{ width: 80, height: 1, top: "50%", left: 0, transform: "translateY(-50%) rotate(-45deg)" }} />
-      <div className="absolute rounded-full border border-primary" style={{ width: 40, height: 40 }} />
-      <div className="absolute rounded-full bg-primary" style={{ width: 8, height: 8 }} />
-    </div>
-  );
-}
+// ── Back Face ─────────────────────────────────────────────────────
 
-/* ── Back Face ── */
-function BackFace({ isSelected }: { isSelected: boolean }) {
+function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize }) {
+  const cfg = SIZE_CONFIG[size];
+
   return (
     <div
-      className={`absolute inset-0 rounded-lg flex flex-col items-center justify-center gap-4 bg-card border-[1.5px] ${
-        isSelected ? "border-primary" : "border-border"
-      }`}
+      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{
+        borderRadius: 12,
+        background: "var(--card)",
+        border: isSelected
+          ? "2px solid var(--accent)"
+          : "1px solid var(--border)",
+        boxShadow: isSelected ? "0 0 16px var(--accent)" : "none",
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
-        ...(isSelected ? { boxShadow: "0 0 16px 4px var(--ring)" } : {}),
       }}
     >
+      {/* Inset border */}
       <div
-        className={`absolute rounded border ${
-          isSelected ? "border-primary" : "border-border"
-        } pointer-events-none`}
-        style={{ inset: 6 }}
+        className="absolute pointer-events-none"
+        style={{
+          inset: 4,
+          borderRadius: 8,
+          border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
+        }}
       />
-      <div className="absolute pointer-events-none" style={{ inset: 6 }}>
-        <CornerFlourish position="tl" />
-        <CornerFlourish position="tr" />
-        <CornerFlourish position="bl" />
-        <CornerFlourish position="br" />
-      </div>
-      <CompassRose />
-      <span className="font-mono text-[10px] tracking-[0.35em] text-border">
+
+      {/* Compass rose */}
+      <CompassRose diameter={cfg.compassD} />
+
+      {/* NNAI */}
+      <span
+        className="absolute font-mono text-[10px]"
+        style={{
+          bottom: 16,
+          letterSpacing: "0.2em",
+          color: "var(--muted-foreground)",
+        }}
+      >
         NNAI
       </span>
     </div>
   );
 }
 
-/* ── Front Face ── */
-function FrontFace({ cityData }: { cityData: CityData }) {
+// ── Front Face ────────────────────────────────────────────────────
+
+function FrontFace({
+  cityData,
+  size,
+  readingText,
+}: {
+  cityData: CityData;
+  size: CardSize;
+  readingText?: string | null;
+}) {
+  const cfg = SIZE_CONFIG[size];
   const flag = FLAG_EMOJI[cityData.country_id] ?? "🌍";
   const visaText =
     cityData.visa_free_days > 0
@@ -157,97 +167,150 @@ function FrontFace({ cityData }: { cityData: CityData }) {
 
   return (
     <div
-      className="absolute inset-0 rounded-lg flex flex-col items-center justify-center px-4 py-5 bg-card border-[1.5px] border-border"
+      className="absolute inset-0 flex flex-col overflow-hidden"
       style={{
+        borderRadius: 12,
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        padding: cfg.pad,
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
         transform: "rotateY(180deg)",
       }}
     >
-      {/* Flag */}
-      <span className="leading-none" style={{ fontSize: 32 }}>
-        {flag}
-      </span>
+      {/* Top section — flex-1 */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <span className="leading-none" style={{ fontSize: cfg.flag }}>{flag}</span>
+        <p
+          className="font-serif font-bold text-center leading-tight mt-1.5"
+          style={{ fontSize: cfg.cityKr, color: "var(--foreground)" }}
+        >
+          {cityData.city_kr}
+        </p>
+        <p
+          className="font-mono text-center leading-tight mt-0.5"
+          style={{ fontSize: cfg.cityEn, color: "var(--muted-foreground)", letterSpacing: "0.03em" }}
+        >
+          {cityData.city}, {cityData.country_id}
+        </p>
+      </div>
 
-      {/* City name KR */}
-      <p className="font-serif text-lg font-bold text-foreground text-center leading-tight mt-2">
-        {cityData.city_kr}
-      </p>
+      {/* Divider */}
+      <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
 
-      {/* City name EN + country */}
-      <p className="font-mono text-xs text-muted-foreground text-center leading-tight mt-0.5 tracking-wide">
-        {cityData.city}, {cityData.country_id}
-      </p>
-
-      {/* Gold divider */}
-      <div className="w-full h-px bg-border my-3" />
-
-      {/* Metrics — horizontal compact */}
-      <div className="w-full flex justify-around font-mono text-center">
-        <div className="flex flex-col items-center gap-0.5">
-          <span style={{ fontSize: 16 }}>💰</span>
-          <span className="text-[13px] font-medium text-foreground">
-            {toKRW(cityData.monthly_cost_usd)}
-          </span>
-        </div>
-        <div className="flex flex-col items-center gap-0.5">
-          <span style={{ fontSize: 16 }}>🛂</span>
-          <span className="text-[13px] font-medium text-foreground">
-            {visaText}
-          </span>
-        </div>
+      {/* Metrics — fixed bottom */}
+      <div className="flex justify-around items-center font-mono text-center pt-2.5 pb-1">
+        <MetricCell icon="💰" label="MONTHLY" value={toKRW(cityData.monthly_cost_usd)} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
+        <MetricCell icon="🛂" label="VISA" value={visaText} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
         {cityData.internet_mbps != null && (
-          <div className="flex flex-col items-center gap-0.5">
-            <span style={{ fontSize: 16 }}>📶</span>
-            <span className="text-[13px] font-medium text-foreground">
-              {cityData.internet_mbps}
-            </span>
-          </div>
+          <MetricCell icon="📶" label="INTERNET" value={`${cityData.internet_mbps}Mbps`} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
         )}
       </div>
+
+      {/* Reading text area — only when provided */}
+      {readingText && (
+        <>
+          <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)", marginTop: 4 }} />
+          <p
+            className="font-serif leading-snug mt-2 overflow-hidden"
+            style={{
+              fontSize: cfg.readingFs,
+              color: "var(--muted-foreground)",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical" as const,
+            }}
+          >
+            {readingText}
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
-/* ── Flip animation variants ── */
-const cardVariants = {
-  back: { rotateY: 0 },
-  front: { rotateY: 180 },
-};
+// ── Metric Cell ───────────────────────────────────────────────────
 
-/* ── Main Component ── */
+function MetricCell({
+  icon,
+  label,
+  value,
+  labelFs,
+  valueFs,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  labelFs: number;
+  valueFs: number;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span style={{ fontSize: valueFs + 2, lineHeight: 1 }}>{icon}</span>
+      <span
+        className="font-mono uppercase"
+        style={{ fontSize: labelFs, color: "var(--muted-foreground)", letterSpacing: "0.05em" }}
+      >
+        {label}
+      </span>
+      <span
+        className="font-mono font-bold"
+        style={{ fontSize: valueFs, color: "var(--foreground)" }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ── 540deg exponential flip ───────────────────────────────────────
+
+const FLIP_KEYFRAMES = [0, 180, 360, 450, 540];
+const FLIP_TIMES = [0, 0.15, 0.4, 0.7, 1.0];
+
+// ── Main Component ────────────────────────────────────────────────
+
 export default function TarotCard({
   state,
+  size = "md",
   cityData,
   isSelected = false,
   isFlipped = false,
+  readingText,
   onClick,
 }: TarotCardProps) {
+  const cfg = SIZE_CONFIG[size];
   const isLocked = state === "locked";
 
   return (
     <div
-      className={`select-none aspect-[2/3] ${isLocked ? "" : "cursor-pointer"}`}
-      style={{ perspective: 1000 }}
+      className={`select-none ${isLocked ? "" : "cursor-pointer"}`}
+      style={{ perspective: 1200, width: cfg.w, height: cfg.h }}
       onClick={isLocked ? undefined : onClick}
     >
       <motion.div
         className="relative w-full h-full"
         style={{ transformStyle: "preserve-3d" }}
-        animate={isFlipped ? "front" : "back"}
-        variants={cardVariants}
-        transition={{ duration: 0.6, ease: "easeInOut" }}
+        animate={{ rotateY: isFlipped ? FLIP_KEYFRAMES : 0 }}
+        transition={
+          isFlipped
+            ? { duration: 1.1, times: FLIP_TIMES, ease: ["easeIn", "linear", "easeOut", "easeOut"] }
+            : { duration: 0 }
+        }
       >
-        {/* Back face — rotateY 0 (visible when not flipped) */}
-        <BackFace isSelected={isSelected} />
+        {/* Back face */}
+        <BackFace isSelected={isSelected} size={size} />
 
-        {/* Front face — rotateY 180 (visible when flipped) */}
+        {/* Front face */}
         {cityData ? (
-          <FrontFace cityData={cityData} />
+          <FrontFace cityData={cityData} size={size} readingText={readingText} />
         ) : (
           <div
-            className="absolute inset-0 rounded-lg bg-card border-[1.5px] border-border"
+            className="absolute inset-0"
             style={{
+              borderRadius: 12,
+              background: "var(--card)",
+              border: "1px solid var(--border)",
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
               transform: "rotateY(180deg)",
@@ -258,8 +321,11 @@ export default function TarotCard({
 
       {/* Lock overlay */}
       {isLocked && (
-        <div className="absolute inset-0 rounded-lg flex items-center justify-center bg-card/60">
-          <span style={{ fontSize: 32 }}>🔒</span>
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ borderRadius: 12, background: "color-mix(in srgb, var(--card) 60%, transparent)" }}
+        >
+          <span style={{ fontSize: size === "sm" ? 24 : 32 }}>🔒</span>
         </div>
       )}
     </div>

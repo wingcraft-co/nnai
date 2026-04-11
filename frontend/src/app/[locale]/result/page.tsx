@@ -549,12 +549,13 @@ export default function ResultPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.3 }}
-              className="w-[180px] md:w-[200px]"
             >
               <TarotCard
                 state="front"
+                size="md"
                 cityData={currentReadingCity}
                 isFlipped={true}
+                readingText={currentReadingCity.reading_text}
               />
             </motion.div>
           </AnimatePresence>
