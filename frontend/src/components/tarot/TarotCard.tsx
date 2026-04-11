@@ -107,7 +107,7 @@ function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize })
 
   return (
     <div
-      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
+      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden pointer-events-none"
       style={{
         borderRadius: 12,
         background: "var(--card)",
@@ -167,7 +167,7 @@ function FrontFace({
 
   return (
     <div
-      className="absolute inset-0 flex flex-col overflow-hidden"
+      className="absolute inset-0 flex flex-col overflow-hidden pointer-events-none"
       style={{
         borderRadius: 12,
         background: "var(--card)",
@@ -289,7 +289,7 @@ export default function TarotCard({
       onClick={isLocked ? undefined : onClick}
     >
       <motion.div
-        className="relative w-full h-full"
+        className="relative w-full h-full pointer-events-none"
         style={{ transformStyle: "preserve-3d" }}
         animate={{ rotateY: isFlipped ? FLIP_KEYFRAMES : 0 }}
         transition={

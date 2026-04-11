@@ -35,9 +35,8 @@ export default function TarotDeck({
     return pos >= 0 ? (revealedCities[pos] ?? null) : null;
   }
 
-  // ── Selecting: 5 cards (mobile 3+2, desktop 5-col) ──
-  if (!isRevealed) {
-    const cards = Array.from({ length: count }).map((_, i) => (
+  function renderBackCard(i: number) {
+    return (
       <TarotCard
         key={i}
         state="back"
@@ -48,22 +47,27 @@ export default function TarotDeck({
           onToggleSelect(i);
         }}
       />
-    ));
+    );
+  }
 
+  // ── Selecting: 5 cards (mobile 3+2, desktop 5-col) ──
+  if (!isRevealed) {
     return (
       <div className="flex flex-col items-center gap-8">
         {/* Desktop: single row */}
         <div className="hidden md:flex justify-center gap-3">
-          {cards}
+          {Array.from({ length: count }, (_, i) => renderBackCard(i))}
         </div>
         {/* Mobile: 3 + 2 */}
         <div className="flex flex-col items-center gap-3 md:hidden">
           <div className="flex justify-center gap-3">
-            {cards.slice(0, 3)}
+            {Array.from({ length: Math.min(3, count) }, (_, i) => renderBackCard(i))}
           </div>
-          <div className="flex justify-center gap-3">
-            {cards.slice(3)}
-          </div>
+          {count > 3 && (
+            <div className="flex justify-center gap-3">
+              {Array.from({ length: count - 3 }, (_, j) => renderBackCard(j + 3))}
+            </div>
+          )}
         </div>
 
         {/* Confirm CTA */}
@@ -76,7 +80,11 @@ export default function TarotDeck({
             onClick={onConfirm}
             disabled={isLoading}
             className="px-8 py-3 text-sm font-semibold transition-opacity"
-            style={{ background: "var(--primary)", color: "var(--primary-foreground)", opacity: isLoading ? 0.5 : 1 }}
+            style={{
+              background: "var(--primary)",
+              color: "var(--primary-foreground)",
+              opacity: isLoading ? 0.5 : 1,
+            }}
           >
             {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
           </motion.button>
