@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import TarotDeck from "@/components/tarot/TarotDeck";
-import CityCompare from "@/components/tarot/CityCompare";
+import type { DeckStage } from "@/components/tarot/TarotDeck";
 import type { CityData, TarotSession } from "@/components/tarot/types";
 import { TAROT_SESSION_KEY } from "@/components/tarot/types";
 
@@ -13,10 +13,9 @@ import { TAROT_SESSION_KEY } from "@/components/tarot/types";
 const RECOMMEND_PAYLOAD_KEY = "recommend_payload";
 
 // ── Stage ──────────────────────────────────────────────────────────
-// selecting / revealing / reading / complete → 5장 고정 레이아웃 (TarotDeck)
-// comparing → 별도 뷰 (CityCompare)
 
-type Stage = "loading" | "selecting" | "revealing" | "reading" | "complete" | "comparing";
+type Stage = "loading" | DeckStage;
+// DeckStage = "selecting" | "revealing" | "reading" | "done"
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -67,17 +66,13 @@ export default function ResultPage() {
       localStorage.setItem(SESSION_V2_KEY, JSON.stringify(session));
 
       // Legacy key for OAuth redirect
-      const legacyStage: TarotSession["stage"] =
-        session.stage === "comparing" ? "comparing"
-        : session.stage === "selecting" ? "selecting"
-        : "reading"; // revealed/reading/complete → "reading"
       const legacy: TarotSession = {
         session_id: session.session_id,
         selectedIndices: session.selectedIndices,
         revealedCities: session.revealedCities,
         readingCityIndex: session.readingCityIndex,
         readingMarkdown: session.readingMarkdown,
-        stage: legacyStage,
+        stage: session.stage === "selecting" ? "selecting" : "reading",
       };
       localStorage.setItem(TAROT_SESSION_KEY, JSON.stringify(legacy));
     },
@@ -117,7 +112,6 @@ export default function ResultPage() {
         return;
       }
 
-      // Payload consumed — remove so refresh won't re-trigger
       localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
 
       setSessionId(data.session_id);
@@ -148,8 +142,6 @@ export default function ResultPage() {
   useEffect(() => {
     const hasNewPayload = !!localStorage.getItem(RECOMMEND_PAYLOAD_KEY);
 
-    // If there's a fresh recommend payload, always start fresh
-    // (user just came from the form — ignore any stale session)
     if (hasNewPayload) {
       localStorage.removeItem(SESSION_V2_KEY);
       localStorage.removeItem(TAROT_SESSION_KEY);
@@ -157,7 +149,7 @@ export default function ResultPage() {
       return;
     }
 
-    // No new payload — try to restore previous session
+    // Restore previous session
     const savedStr = localStorage.getItem(SESSION_V2_KEY);
     if (savedStr) {
       try {
@@ -169,16 +161,16 @@ export default function ResultPage() {
           setRevealedCities(saved.revealedCities);
           setParsedData(saved.parsedData ?? null);
           setFlippedIndices([0, 1, 2]);
-          setStage(saved.stage === "comparing" ? "comparing" : "complete");
+          setStage("done");
           return;
         }
       } catch {
-        // corrupted — ignore
+        // corrupted
       }
       localStorage.removeItem(SESSION_V2_KEY);
     }
 
-    // Legacy fallback (OAuth redirect return)
+    // Legacy fallback
     const legacyStr = localStorage.getItem(TAROT_SESSION_KEY);
     if (legacyStr) {
       try {
@@ -187,16 +179,15 @@ export default function ResultPage() {
           setSessionId(saved.session_id);
           setRevealedCities(saved.revealedCities);
           setFlippedIndices([0, 1, 2]);
-          setStage(saved.stage === "comparing" ? "comparing" : "complete");
+          setStage("done");
           return;
         }
       } catch {
-        // corrupted — ignore
+        // corrupted
       }
       localStorage.removeItem(TAROT_SESSION_KEY);
     }
 
-    // No payload, no session — redirect to form
     router.replace("/onboarding/form");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -210,7 +201,7 @@ export default function ResultPage() {
     });
   }
 
-  // ── Confirm → reveal → reading → complete ──────────────────────
+  // ── Confirm → reveal → reading → done ──────────────────────────
 
   async function handleConfirm() {
     if (!sessionId || selectedIndices.length !== 3) return;
@@ -234,13 +225,7 @@ export default function ResultPage() {
       setCurrentReadingIndex(0);
       setStage("revealing");
 
-      saveSession({
-        selectedIndices,
-        revealedCities: data.revealed_cities,
-        stage: "revealing",
-      });
-
-      // Reveal → reading → complete sequence
+      saveSession({ selectedIndices, revealedCities: data.revealed_cities, stage: "revealing" });
       runFullSequence(data.revealed_cities);
     } catch (err) {
       setError(err instanceof Error ? err.message : "카드 열기에 실패했어요.");
@@ -253,24 +238,21 @@ export default function ResultPage() {
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
     (async () => {
-      // Phase 1: Sequential flip (revealing)
       await delay(300);
       setFlippedIndices([0]);
-      await delay(1800); // 1.1s rotation + 700ms
+      await delay(1800);
       setFlippedIndices([0, 1]);
       await delay(1800);
       setFlippedIndices([0, 1, 2]);
-      await delay(2000); // 3장 확인 시간
+      await delay(2000);
 
-      // Phase 2: Reading — card-by-card typing
       setStage("reading");
       setCurrentReadingIndex(0);
-
       saveSession({ revealedCities: cities, stage: "reading" });
     })();
   }
 
-  // ── Reading advance (called by TarotDeck CardReadingText) ──────
+  // ── Reading advance ────────────────────────────────────────────
 
   const handleReadingCardComplete = useCallback(() => {
     if (!revealedCities) return;
@@ -278,17 +260,12 @@ export default function ResultPage() {
     if (next < revealedCities.length) {
       setCurrentReadingIndex(next);
     } else {
-      setStage("complete");
-      saveSession({ revealedCities, stage: "complete" });
+      setStage("done");
+      saveSession({ revealedCities, stage: "done" });
     }
   }, [currentReadingIndex, revealedCities, saveSession]);
 
-  // ── Compare / guide / retry ────────────────────────────────────
-
-  function handleCompare() {
-    setStage("comparing");
-    saveSession({ revealedCities: revealedCities ?? [], stage: "comparing" });
-  }
+  // ── Guide / retry ──────────────────────────────────────────────
 
   function handleGuideClick() {
     setToastVisible(true);
@@ -313,11 +290,9 @@ export default function ResultPage() {
     router.push("/onboarding/quiz");
   }
 
-  // ── Deck stages (selecting → revealing → reading → complete) ────
-
-  const isDeckStage = stage === "selecting" || stage === "revealing" || stage === "reading" || stage === "complete";
-
   // ── Render ──────────────────────────────────────────────────────
+
+  const isDeckStage = stage !== "loading";
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
@@ -342,10 +317,9 @@ export default function ResultPage() {
         </div>
       )}
 
-      {/* Deck: selecting → revealing → reading → complete (5장 고정) */}
+      {/* Deck: selecting → revealing → reading → done (5장 고정) */}
       {isDeckStage && (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 gap-6">
-          {/* Header — selecting only */}
           {stage === "selecting" && (
             <div className="text-center">
               <h1 className="font-serif text-xl font-bold text-foreground mb-1">
@@ -370,7 +344,7 @@ export default function ResultPage() {
           )}
 
           <TarotDeck
-            stage={stage === "selecting" ? "selecting" : stage === "revealing" ? "revealing" : stage === "reading" ? "reading" : "complete"}
+            stage={stage as DeckStage}
             cities={allCities}
             selectedIndices={selectedIndices}
             revealedCities={revealedCities}
@@ -379,16 +353,11 @@ export default function ResultPage() {
             onToggleSelect={toggleSelect}
             onConfirm={handleConfirm}
             onReadingCardComplete={handleReadingCardComplete}
-            onCompare={handleCompare}
+            onRetry={handleRetry}
             onGuideClick={handleGuideClick}
             isLoading={isLoading}
           />
         </div>
-      )}
-
-      {/* Comparing: separate view */}
-      {stage === "comparing" && (
-        <CityCompare cities={revealedCities ?? []} onRetry={handleRetry} />
       )}
 
       {/* Toast */}

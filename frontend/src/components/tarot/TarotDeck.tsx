@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import TarotCard from "./TarotCard";
 import type { CityData } from "./types";
 
-// ── Stage type (matches result/page.tsx) ──────────────────────────
+// ── Stage type ────────────────────────────────────────────────────
 
-type DeckStage = "selecting" | "revealing" | "reading" | "complete";
+export type DeckStage = "selecting" | "revealing" | "reading" | "done";
 
 // ── Typing hook ───────────────────────────────────────────────────
 
@@ -37,7 +37,7 @@ function useTypingEffect(text: string, speed: number = 50) {
   return { displayed, done };
 }
 
-// ── Reading text overlay inside card ──────────────────────────────
+// ── Reading text (invisible renderer, triggers onComplete) ────────
 
 function CardReadingText({
   text,
@@ -46,7 +46,7 @@ function CardReadingText({
   text: string;
   onComplete: () => void;
 }) {
-  const { displayed, done } = useTypingEffect(text, 50);
+  const { done } = useTypingEffect(text, 50);
   const calledRef = useRef(false);
 
   useEffect(() => {
@@ -57,10 +57,61 @@ function CardReadingText({
     }
   }, [done, onComplete]);
 
-  // Empty text → immediately complete (handled by useTypingEffect done=true)
-  if (!text) return null;
+  return null;
+}
 
-  return displayed;
+// ── City detail accordion ─────────────────────────────────────────
+
+const USD_TO_KRW = 1400;
+function toKRW(usd: number): string {
+  return `약 ${Math.round((usd * USD_TO_KRW) / 10000)}만원`;
+}
+
+function CityAccordion({ city }: { city: CityData }) {
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="overflow-hidden"
+      style={{ width: 140 }}
+    >
+      <div
+        className="px-3 py-3 space-y-2 text-xs"
+        style={{
+          background: "color-mix(in srgb, var(--muted) 30%, transparent)",
+          borderRadius: "0 0 12px 12px",
+          color: "var(--muted-foreground)",
+        }}
+      >
+        <p>
+          {city.visa_type}
+          {city.stay_months != null && ` · ${city.stay_months}개월`}
+          {` · ${city.renewable ? "갱신 가능" : "갱신 불가"}`}
+        </p>
+        <p>{toKRW(city.monthly_cost_usd)} / 월</p>
+        {city.safety_score != null && <p>치안 {city.safety_score}/10</p>}
+        {city.english_score != null && <p>영어 {city.english_score}/10</p>}
+        {city.city_description && (
+          <p className="leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            {city.city_description}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2 pt-1">
+          {city.visa_url && (
+            <a href={city.visa_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>비자 →</a>
+          )}
+          {city.flatio_search_url && (
+            <a href={city.flatio_search_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>숙소 →</a>
+          )}
+          {city.nomad_meetup_url && (
+            <a href={city.nomad_meetup_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>밋업 →</a>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 // ── Props ─────────────────────────────────────────────────────────
@@ -75,7 +126,7 @@ interface TarotDeckProps {
   onToggleSelect: (index: number) => void;
   onConfirm: () => void;
   onReadingCardComplete: () => void;
-  onCompare: () => void;
+  onRetry: () => void;
   onGuideClick: () => void;
   isLoading: boolean;
 }
@@ -92,7 +143,7 @@ export default function TarotDeck({
   onToggleSelect,
   onConfirm,
   onReadingCardComplete,
-  onCompare,
+  onRetry,
   onGuideClick,
   isLoading,
 }: TarotDeckProps) {
@@ -101,10 +152,14 @@ export default function TarotDeck({
   const isSelecting = stage === "selecting";
   const isRevealing = stage === "revealing";
   const isReading = stage === "reading";
-  const isComplete = stage === "complete";
-  const isPostReveal = isRevealing || isReading || isComplete;
+  const isDone = stage === "done";
+  const isPostReveal = isRevealing || isReading || isDone;
 
-  // ── Per-card state ──────────────────────────────────────────────
+  // ── Accordion state (done stage) ────────────────────────────────
+
+  const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
+
+  // ── Per-card helpers ────────────────────────────────────────────
 
   function getCardState(i: number): "back" | "front" | "locked" {
     if (!isPostReveal) return "back";
@@ -129,15 +184,12 @@ export default function TarotDeck({
     return seqIdx === currentReadingIndex;
   }
 
-  // ── Reading text for current card ───────────────────────────────
-
-  const [readingDisplayText, setReadingDisplayText] = useState<string | null>(null);
+  // ── Reading text ────────────────────────────────────────────────
 
   const currentReadingCity = isReading && revealedCities
     ? revealedCities[currentReadingIndex] ?? null
     : null;
 
-  // Stable callback ref for onReadingCardComplete
   const onReadingCompleteRef = useRef(onReadingCardComplete);
   onReadingCompleteRef.current = onReadingCardComplete;
 
@@ -153,38 +205,51 @@ export default function TarotDeck({
     const flipped = isCardFlipped(i);
     const reading = isReadingActive(i);
     const locked = state === "locked";
+    const isSelected = selectedIndices.includes(i);
 
-    // Scale up the reading card
     const scale = reading ? 1.15 : 1;
-    // Locked cards fade
     const opacity = locked && isPostReveal ? 0.15 : 1;
 
-    return (
-      <motion.div
-        key={i}
-        animate={{ scale, opacity }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative"
-      >
-        <TarotCard
-          state={state}
-          size="sm"
-          cityData={city}
-          isSelected={isSelecting && selectedIndices.includes(i)}
-          isFlipped={flipped}
-          readingText={reading ? undefined : undefined}
-          onClick={isSelecting && !isLoading ? () => onToggleSelect(i) : undefined}
-        />
+    // Done stage: tappable revealed cards
+    const handleClick = () => {
+      if (isSelecting && !isLoading) {
+        onToggleSelect(i);
+      } else if (isDone && isSelected) {
+        setExpandedCardIndex((prev) => (prev === i ? null : i));
+      }
+    };
 
-        {/* Reading text typing — rendered inside card area */}
-        {reading && currentReadingCity && (
-          <CardReadingText
-            key={`reading-${currentReadingIndex}`}
-            text={currentReadingCity.reading_text ?? ""}
-            onComplete={handleReadingDone}
+    return (
+      <div key={i} className="flex flex-col items-center">
+        <motion.div
+          animate={{ scale, opacity }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          <TarotCard
+            state={state}
+            size="sm"
+            cityData={city}
+            isSelected={isSelecting && isSelected}
+            isFlipped={flipped}
+            onClick={(isSelecting || (isDone && isSelected)) ? handleClick : undefined}
           />
-        )}
-      </motion.div>
+
+          {reading && currentReadingCity && (
+            <CardReadingText
+              key={`reading-${currentReadingIndex}`}
+              text={currentReadingCity.reading_text ?? ""}
+              onComplete={handleReadingDone}
+            />
+          )}
+        </motion.div>
+
+        {/* Accordion detail — done stage */}
+        <AnimatePresence>
+          {isDone && expandedCardIndex === i && city && (
+            <CityAccordion city={city} />
+          )}
+        </AnimatePresence>
+      </div>
     );
   }
 
@@ -192,84 +257,80 @@ export default function TarotDeck({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Cards — fixed position, never shifts */}
+      {/* Cards — fixed position */}
       <div>
         {/* Desktop: single row */}
-        <div className="hidden md:flex justify-center gap-3">
+        <div className="hidden md:flex justify-center items-start gap-3">
           {Array.from({ length: count }, (_, i) => renderCard(i))}
         </div>
         {/* Mobile: 3 + 2 */}
         <div className="flex flex-col items-center gap-3 md:hidden">
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center items-start gap-3">
             {Array.from({ length: Math.min(3, count) }, (_, i) => renderCard(i))}
           </div>
           {count > 3 && (
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center items-start gap-3">
               {Array.from({ length: count - 3 }, (_, j) => renderCard(j + 3))}
             </div>
           )}
         </div>
       </div>
 
-      {/* CTA area — fixed height so cards don't shift */}
+      {/* CTA area — fixed height */}
       <div className="h-20 flex items-center justify-center">
         <AnimatePresence>
-        {isSelecting && allSelected && (
-          <motion.button
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            type="button"
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="px-8 py-3 text-sm font-semibold"
-            style={{
-              background: "var(--primary)",
-              color: "var(--primary-foreground)",
-              opacity: isLoading ? 0.5 : 1,
-              boxShadow: "0 0 16px 2px color-mix(in srgb, var(--primary) 25%, transparent)",
-              transition: "opacity 0.3s ease",
-            }}
-          >
-            {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
-          </motion.button>
-        )}
+          {isSelecting && allSelected && (
+            <motion.button
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.97 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              type="button"
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-8 py-3 text-sm font-semibold"
+              style={{
+                background: "var(--primary)",
+                color: "var(--primary-foreground)",
+                opacity: isLoading ? 0.5 : 1,
+                boxShadow: "0 0 16px 2px color-mix(in srgb, var(--primary) 25%, transparent)",
+                transition: "opacity 0.3s ease",
+              }}
+            >
+              {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
+            </motion.button>
+          )}
         </AnimatePresence>
       </div>
 
-      {/* Complete CTA */}
-      {isComplete && (
+      {/* Done: guide + retry */}
+      {isDone && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex flex-col items-center gap-6 mt-4"
+          className="flex flex-col items-center gap-4"
         >
-          <p className="font-serif text-base font-bold" style={{ color: "var(--foreground)" }}>
-            세 장의 카드가 모두 열렸습니다
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            카드를 탭하면 상세 정보를 볼 수 있어요
           </p>
 
-          <button
-            type="button"
-            onClick={onCompare}
-            className="px-8 py-3 text-sm font-semibold"
-            style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
-          >
-            도시 비교 보기 →
-          </button>
-
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              더 깊은 가이드가 필요하다면
-            </p>
+          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={onGuideClick}
-              className="px-6 py-2 text-sm font-medium transition-colors"
+              className="px-5 py-2 text-xs font-medium transition-colors"
               style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
             >
               전체 가이드 받기
+            </button>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="text-xs transition-colors"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              처음부터 다시하기
             </button>
           </div>
         </motion.div>
