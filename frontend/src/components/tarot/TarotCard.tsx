@@ -112,9 +112,9 @@ function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize })
         borderRadius: 12,
         background: "var(--card)",
         border: isSelected
-          ? "2px solid var(--accent)"
+          ? "2px solid #c9a84c"
           : "1px solid var(--border)",
-        boxShadow: isSelected ? "0 0 16px var(--accent)" : "none",
+        boxShadow: isSelected ? "0 0 20px 4px rgba(201,168,76,0.35), 0 0 60px 8px rgba(201,168,76,0.12)" : "none",
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
       }}

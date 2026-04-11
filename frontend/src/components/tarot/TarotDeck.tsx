@@ -191,42 +191,47 @@ export default function TarotDeck({
   // ── Layout ──────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col items-center gap-8">
-      {/* Desktop: single row */}
-      <div className="hidden md:flex justify-center gap-3">
-        {Array.from({ length: count }, (_, i) => renderCard(i))}
-      </div>
-      {/* Mobile: 3 + 2 */}
-      <div className="flex flex-col items-center gap-3 md:hidden">
-        <div className="flex justify-center gap-3">
-          {Array.from({ length: Math.min(3, count) }, (_, i) => renderCard(i))}
+    <div className="flex flex-col items-center">
+      {/* Cards — fixed position, never shifts */}
+      <div>
+        {/* Desktop: single row */}
+        <div className="hidden md:flex justify-center gap-3">
+          {Array.from({ length: count }, (_, i) => renderCard(i))}
         </div>
-        {count > 3 && (
+        {/* Mobile: 3 + 2 */}
+        <div className="flex flex-col items-center gap-3 md:hidden">
           <div className="flex justify-center gap-3">
-            {Array.from({ length: count - 3 }, (_, j) => renderCard(j + 3))}
+            {Array.from({ length: Math.min(3, count) }, (_, i) => renderCard(i))}
           </div>
-        )}
+          {count > 3 && (
+            <div className="flex justify-center gap-3">
+              {Array.from({ length: count - 3 }, (_, j) => renderCard(j + 3))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Confirm CTA — selecting only */}
-      {isSelecting && allSelected && (
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          type="button"
-          onClick={onConfirm}
-          disabled={isLoading}
-          className="px-8 py-3 text-sm font-semibold transition-opacity"
-          style={{
-            background: "var(--primary)",
-            color: "var(--primary-foreground)",
-            opacity: isLoading ? 0.5 : 1,
-          }}
-        >
-          {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
-        </motion.button>
-      )}
+      {/* CTA area — fixed height so cards don't shift */}
+      <div className="h-20 flex items-center justify-center">
+        {isSelecting && allSelected && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            type="button"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="px-8 py-3 text-sm font-semibold transition-opacity"
+            style={{
+              background: "var(--primary)",
+              color: "var(--primary-foreground)",
+              opacity: isLoading ? 0.5 : 1,
+            }}
+          >
+            {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
+          </motion.button>
+        )}
+      </div>
 
       {/* Complete CTA */}
       {isComplete && (
