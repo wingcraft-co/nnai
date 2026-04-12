@@ -9,7 +9,6 @@ from api.hf_client      import query_model
 from api.parser         import parse_response, format_step1_markdown, format_step2_markdown, _inject_visa_urls
 from recommender        import recommend_from_db
 from prompts.builder    import build_detail_prompt, validate_user_profile
-from ui.layout          import create_layout
 from utils.data_paths   import resolve_data_path
 
 logger = logging.getLogger(__name__)
@@ -58,7 +57,7 @@ def nomad_advisor(
     persona_vector: dict | None = None,
 ) -> tuple[str, list, dict]:
     """
-    Step 1 파이프라인: RAG → 프롬프트 → LLM → 파싱 → 마크다운 + 도시 리스트
+    Step 1 파이프라인: 프롬프트 → LLM → 파싱 → 마크다운 + 도시 리스트
 
     Returns:
         (markdown_str, top_cities_list, parsed_dict)
@@ -231,51 +230,3 @@ def show_city_detail_with_nationality(
     markdown = format_step2_markdown(detail_parsed, visa_data=visa_data)
 
     return markdown
-
-
-from ui.layout import _APP_CSS
-from ui.theme import create_theme
-
-demo = create_layout(nomad_advisor, show_city_detail_with_nationality)
-
-_is_hf = bool(os.getenv("SPACE_ID"))
-_is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
-_is_cloud = _is_hf or _is_railway
-
-if __name__ == "__main__" or _is_hf:
-    import uvicorn
-    from fastapi import FastAPI as _FastAPI, Request as _Request
-    from fastapi.responses import PlainTextResponse as _PlainText, HTMLResponse as _HTML
-    from starlette.middleware.base import BaseHTTPMiddleware as _Middleware
-    from api.auth import router as _auth_router, extract_user_id as _extract_uid
-    from api.pins import router as _pins_router
-    from utils.db import init_db as _init_db
-
-    _init_db()
-
-    _ads_txt = "google.com, pub-8452594011595682, DIRECT, f08c47fec0942fa0"
-    _privacy_html = open(os.path.join(os.path.dirname(__file__), "docs", "privacy.html"), encoding="utf-8").read() if os.path.exists(os.path.join(os.path.dirname(__file__), "docs", "privacy.html")) else "<h1>Privacy Policy</h1><p>See nnai.app/privacy</p>"
-
-    _fapp = _FastAPI(title="NomadNavigator API")
-
-    class _AuthMiddleware(_Middleware):
-        async def dispatch(self, request: _Request, call_next):
-            if request.url.path == "/ads.txt":
-                return _PlainText(_ads_txt)
-            if request.url.path in ("/privacy", "/privacy-policy"):
-                return _HTML(_privacy_html)
-            request.state.user_id = _extract_uid(request)
-            return await call_next(request)
-
-    _fapp.add_middleware(_AuthMiddleware)
-    _fapp.include_router(_auth_router)
-    _fapp.include_router(_pins_router, prefix="/api")
-
-    import gradio as _gr
-    _gr.mount_gradio_app(_fapp, demo, path="/")
-
-    uvicorn.run(
-        _fapp,
-        host="0.0.0.0" if _is_cloud else "127.0.0.1",
-        port=int(os.getenv("PORT", 7860)),
-    )

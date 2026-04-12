@@ -35,8 +35,8 @@
 | 중기 숙소 딥링크 | ✅ | utils/accommodation.py |
 | 환율 변환 (실시간 + 폴백) | ✅ | utils/currency.py |
 | 비자 URL 자동 주입 | ✅ | api/parser.py |
-| 소득 경고 시스템 | ✅ | ui/layout.py |
-| 시스템 언어 정책 (국적 기반) | ✅ | app.py, ui/layout.py |
+| 소득 경고 시스템 | ✅ | prompts/builder.py (삭제: ui/layout.py) |
+| 시스템 언어 정책 (국적 기반) | ✅ | app.py |
 
 ### Phase 3: 인프라
 
@@ -154,7 +154,7 @@
 - **프레임워크**: pytest
 - **CI**: GitHub Actions (push/PR → Python 3.11, core regression tests)
 - **테스트 파일**: 25개 (test_outputs 디렉토리 포함)
-- **실행**: `SKIP_RAG_INIT=1 pytest tests/ -v`
+- **실행**: `SKIP_EXTERNAL_INIT=1 pytest tests/ -v`
 
 ---
 
@@ -192,5 +192,5 @@ Cloudflare (DNS) ← A @→76.76.21.21, CNAME api→Railway
 | i18n (한국어/영어) | P1 | next-intl 등 |
 | 노마드 지도 (React-Leaflet) | P1 | 커뮤니티/내 핀 |
 | 핀 삭제/수정 API (PUT/DELETE) | P2 | pins.py에 미구현 |
-| RAG 코드 정리 | P3 | rag/ 디렉토리 제거 |
+| ~~RAG 코드 정리~~ | ✅ | rag/ 디렉토리 삭제 완료 |
 | PDF 관련 코드 정리 | P3 | test_pdf_generator.py skip 상태 |

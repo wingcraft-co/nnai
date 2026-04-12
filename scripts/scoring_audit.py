@@ -4,7 +4,7 @@
 에러/빈 결과/비정상 점수/차별화 부재를 검출한다.
 
 Usage:
-    SKIP_RAG_INIT=1 python3 scripts/scoring_audit.py
+    SKIP_EXTERNAL_INIT=1 python3 scripts/scoring_audit.py
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from pathlib import Path
 
 # Project root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-os.environ.setdefault("SKIP_RAG_INIT", "1")
+os.environ.setdefault("SKIP_EXTERNAL_INIT", "1")
 
 from recommender import recommend_from_db
 

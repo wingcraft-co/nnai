@@ -53,7 +53,7 @@ SECRET_KEY               # 세션 서명 키
 FRONTEND_URL             # CORS 허용 origin (https://nnai.app)
 PORT                     # 서버 포트 (기본: 7860)
 USE_DB_RECOMMENDER       # DB 기반 추천 사용 (기본: 1)
-SKIP_RAG_INIT=1          # 테스트 시 필수
+SKIP_EXTERNAL_INIT=1          # 테스트 시 필수
 
 # Frontend (Vercel)
 NEXT_PUBLIC_API_URL      # 백엔드 URL (https://api.nnai.app)
@@ -102,20 +102,6 @@ nnai/
 │   ├── accommodation.py        # get_accommodation_links() — 중기 숙소 딥링크
 │   ├── data_paths.py           # resolve_data_path()
 │   └── link_validator.py       # URL 검증 CLI (런타임 미사용)
-│
-├── ui/                         # Gradio UI (레거시, 참고용)
-│   ├── layout.py               # create_layout(), check_income_warning()
-│   ├── theme.py                # Gradio 테마
-│   ├── loading.py              # 로딩 애니메이션 HTML
-│   ├── globe_map.py            # 글로브 지도 HTML
-│   ├── globe_map.html
-│   └── i18n.js                 # i18n JS 빌더
-│
-├── rag/                        # 레거시 (미사용, data_context.py로 대체)
-│   ├── embedder.py
-│   ├── vector_store.py
-│   ├── retriever.py
-│   └── build_index.py
 │
 ├── data/
 │   ├── visa_db.json            # 29개국 비자 데이터
@@ -360,7 +346,7 @@ CREATE TABLE pins (
 
 ## 10. 테스트 구성
 
-**실행**: `SKIP_RAG_INIT=1 .venv/bin/pytest tests/ -v`
+**실행**: `SKIP_EXTERNAL_INIT=1 .venv/bin/pytest tests/ -v`
 
 **GitHub Actions CI**: `.github/workflows/main-tests.yml` — push/PR 시 자동 실행 (Python 3.11, core regression tests)
 
@@ -408,9 +394,7 @@ bf9b86c fix: update pins.py SQL for PostgreSQL (placeholders + RETURNING id)
 
 ## 12. 알려진 이슈 (현재 미해결)
 
-1. **Gradio 경고**: `theme`, `css` 파라미터를 `Blocks()` 대신 `launch()`에 전달하면 경고 발생. 동작 영향 없음.
-2. **RAG 코드 잔존**: `rag/` 디렉토리 및 `SKIP_RAG_INIT` 환경변수. `prompts/data_context.py`가 대체. 테스트 시 `SKIP_RAG_INIT=1` 설정 필요.
-3. **`format_result_markdown()` 레거시**: `api/parser.py`에 잔존, `format_step1_markdown()`으로 대체됨. 미사용.
+1. **`format_result_markdown()` 레거시**: `api/parser.py`에 잔존, `format_step1_markdown()`으로 대체됨. 미사용.
 4. **Gemini Context Cache 조건부**: `GEMINI_API_KEY` 없으면 캐싱 없이 폴백.
 5. **Frontend 미구현**: Next.js 스캐폴드만 생성. UI 구현 예정.
 
@@ -429,5 +413,5 @@ python server.py
 cd frontend && npm install && npm run dev
 
 # 테스트
-SKIP_RAG_INIT=1 .venv/bin/pytest tests/ -v
+SKIP_EXTERNAL_INIT=1 .venv/bin/pytest tests/ -v
 ```

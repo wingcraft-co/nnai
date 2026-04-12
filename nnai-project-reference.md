@@ -325,7 +325,7 @@ nnai/
 
 - **커밋:** `feat:`, `fix:`, `chore:`, `test:` prefix
 - **언어:** 한국어 우선 (UI 텍스트, 프롬프트, 문서)
-- **테스트:** 백엔드 변경 시 `SKIP_RAG_INIT=1 pytest` 필수
+- **테스트:** 백엔드 변경 시 `SKIP_EXTERNAL_INIT=1 pytest` 필수
 - **API 스키마:** frontend 작업 시 backend API 스키마 변경 금지 (별도 협의)
 - **Next.js:** v16은 훈련 데이터와 다를 수 있음 — `node_modules/next/dist/docs/` 참조
 - **shadcn/ui:** `npx shadcn@latest add [component]`로 추가

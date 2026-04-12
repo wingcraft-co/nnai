@@ -1,4 +1,4 @@
-"""FastAPI + Gradio 통합 서버."""
+"""FastAPI 백엔드 서버."""
 from __future__ import annotations
 import os
 from dotenv import load_dotenv
@@ -8,7 +8,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-import gradio as gr
 
 from pydantic import BaseModel
 from api.auth import router as auth_router, extract_user_id
@@ -232,19 +231,6 @@ async def api_detail(req: DetailRequest):
         city_index=req.city_index,
     )
     return {"markdown": markdown}
-
-
-# ── Gradio demo ────────────────────────────────────────────────
-
-# Gradio demo 임포트 (app.py에서 demo 객체만 꺼냄)
-def _build_gradio():
-    from app import nomad_advisor, show_city_detail_with_nationality
-    from ui.layout import create_layout
-    return create_layout(nomad_advisor, show_city_detail_with_nationality)
-
-
-demo = _build_gradio()
-gr.mount_gradio_app(app, demo, path="/")
 
 
 # 직접 실행 시 uvicorn

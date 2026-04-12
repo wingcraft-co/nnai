@@ -71,9 +71,9 @@ def get_or_create_cache(
         logger.info(f"[Cache] HIT  key={cache_key}  name={state['obj'].name}")
         return state["obj"]
 
-    # 테스트 환경에서는 실 API 호출 스킵 (SKIP_RAG_INIT=1 과 동일한 역할)
-    if os.getenv("SKIP_RAG_INIT") == "1":
-        logger.debug("[Cache] SKIP_RAG_INIT=1 — 캐싱 스킵, 폴백 사용")
+    # 테스트 환경에서는 실 API 호출 스킵
+    if os.getenv("SKIP_EXTERNAL_INIT") == "1":
+        logger.debug("[Cache] SKIP_EXTERNAL_INIT=1 — 캐싱 스킵, 폴백 사용")
         return None
 
     api_key = os.getenv("GEMINI_API_KEY", "")

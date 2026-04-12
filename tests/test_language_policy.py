@@ -3,7 +3,6 @@ from unittest.mock import patch
 from prompts.builder import validate_user_profile
 from recommender import recommend_from_db
 from api.parser import format_step1_markdown, format_step2_markdown
-from ui.layout import _city_btn_label
 
 
 def _profile(**kwargs):
@@ -121,6 +120,3 @@ def test_step2_uses_selected_ui_language_not_nationality_fallback():
     assert user_profile_arg["language"] == "English"
 
 
-def test_city_button_label_uses_english_city_when_requested():
-    city_data = {"city": "Chiang Mai", "city_kr": "치앙마이", "country_id": "TH"}
-    assert _city_btn_label(city_data, prefer_english=True) == "🇹🇭 Chiang Mai"

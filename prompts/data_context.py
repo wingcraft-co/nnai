@@ -2,7 +2,7 @@
 """
 visa_db.json + city_scores.json을 압축 텍스트로 변환하여 LLM 컨텍스트로 제공합니다.
 앱 시작 시 모듈 로드 시 1회 빌드되며 이후 모든 요청에서 재사용됩니다.
-RAG(임베딩 API) 호출 없이 전체 데이터를 LLM에 직접 전달합니다.
+전체 데이터를 LLM 컨텍스트에 직접 전달합니다.
 """
 import json
 import os

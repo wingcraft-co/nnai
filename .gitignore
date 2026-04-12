@@ -1,6 +1,4 @@
 data/users.db
-rag/index.faiss
-rag/documents.pkl
 .env
 __pycache__/
 *.pyc

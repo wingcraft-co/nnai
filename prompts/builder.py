@@ -6,7 +6,7 @@ from prompts.data_context import DATA_CONTEXT
 
 
 def build_prompt(user_profile: dict) -> list[dict]:
-    """Step 1 프롬프트 생성: 사용자 프로필 + RAG 컨텍스트 → messages list"""
+    """Step 1 프롬프트 생성: 사용자 프로필 + 데이터 컨텍스트 → messages list"""
     # 사전 검증 — hard_block 시 ValueError 발생, LLM 호출 차단
     validation = validate_user_profile(user_profile)
     if validation["hard_block"]:
