@@ -20,9 +20,9 @@ _SCHENGEN_IDS: set[str] = set(SCHENGEN_COUNTRIES)
 
 _CONTINENT_TO_IDS: dict[str, set[str]] = {
     "아시아":       {"TH", "MY", "ID", "VN", "PH", "JP", "TW"},
-    "유럽":         {"DE", "PT", "EE", "ES", "GR", "HR", "CZ", "HU", "SI", "MT", "CY", "AL", "RS", "MK"},
-    "중남미":       {"CR", "MX", "CO", "AR", "BR"},
-    "중동/아프리카": {"AE", "MA"},
+    "유럽":         {"DE", "PT", "EE", "ES", "GR", "HR", "CZ", "HU", "SI", "MT", "CY", "AL", "RS", "MK", "BG", "RO", "NL", "GE"},
+    "중남미":       {"CR", "MX", "CO", "AR", "BR", "PA", "PY", "UY"},
+    "중동/아프리카": {"AE", "MA", "CV", "KE", "QA"},
     "북미":         {"CA"},
 }
 
