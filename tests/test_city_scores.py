@@ -13,7 +13,7 @@ def city_db():
         return json.load(f)
 
 def test_total_city_count(city_db):
-    assert len(city_db["cities"]) == 50
+    assert len(city_db["cities"]) == 52
 
 def test_new_fields_present_in_all_cities(city_db):
     required = {"coworking_score","community_size","mid_term_rent_usd",

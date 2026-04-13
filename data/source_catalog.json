@@ -76,6 +76,16 @@
         "safety_score"
       ],
       "last_checked": "2026-04-08"
+    },
+    {
+      "id": "travel_blog_checks_2026Q1",
+      "name": "Travel Blog Cross-checks 2026 Q1",
+      "publisher": "NNAI Data Team",
+      "url": "N/A",
+      "metric_scope": [
+        "city cost/lifestyle cross-validation"
+      ],
+      "last_checked": "2026-04-03"
     }
   ]
 }
