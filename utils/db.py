@@ -1,6 +1,7 @@
 """PostgreSQL 연결 + 스키마 초기화."""
 import os
 import threading
+from datetime import datetime, timezone
 import psycopg2
 
 _DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -27,6 +28,53 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         cur.execute("""
             ALTER TABLE users
             ADD COLUMN IF NOT EXISTS persona_type TEXT;
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS billing_entitlements (
+                user_id                TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                plan_tier              TEXT NOT NULL CHECK (plan_tier IN ('free', 'pro')),
+                status                 TEXT NOT NULL CHECK (status IN ('active', 'past_due', 'canceled', 'grace')),
+                payg_enabled           BOOLEAN NOT NULL DEFAULT FALSE,
+                payg_monthly_cap_usd   NUMERIC(10,2) NOT NULL DEFAULT 50.00,
+                current_period_start   TIMESTAMPTZ,
+                current_period_end     TIMESTAMPTZ,
+                updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS billing_usage_ledger (
+                id                   BIGSERIAL PRIMARY KEY,
+                user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                endpoint             TEXT NOT NULL CHECK (endpoint IN ('recommend', 'detail')),
+                request_key          TEXT NOT NULL,
+                usage_type           TEXT NOT NULL CHECK (usage_type IN ('subscription', 'payg')),
+                estimated_cost_usd   NUMERIC(10,4) NOT NULL DEFAULT 0,
+                billed_cost_usd      NUMERIC(10,4),
+                created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (request_key)
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS billing_provider_events (
+                id              BIGSERIAL PRIMARY KEY,
+                provider        TEXT NOT NULL,
+                event_id        TEXT NOT NULL,
+                payload_digest  TEXT NOT NULL,
+                processed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (provider, event_id)
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS rate_limit_hits (
+                id            BIGSERIAL PRIMARY KEY,
+                bucket_key    TEXT NOT NULL,
+                window_name   TEXT NOT NULL,
+                created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_bucket_window_created
+            ON rate_limit_hits(bucket_key, window_name, created_at);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS pins (
@@ -483,15 +531,174 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
     return conn
 
 
-_conn: psycopg2.extensions.connection | None = None
 _lock = threading.Lock()
+_billing_lock = threading.Lock()
+_rate_limit_lock = threading.Lock()
+_thread_local = threading.local()
 
 
 def get_conn() -> psycopg2.extensions.connection:
-    """앱 전역 싱글턴 연결 반환."""
-    global _conn
-    if _conn is None:
-        with _lock:
-            if _conn is None:
-                _conn = init_db()
-    return _conn
+    """현재 스레드에서 재사용할 DB 연결 반환."""
+    with _lock:
+        conn = getattr(_thread_local, "conn", None)
+        if conn is None or conn.closed:
+            conn = init_db()
+            _thread_local.conn = conn
+            return conn
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        except psycopg2.OperationalError:
+            conn = init_db()
+            _thread_local.conn = conn
+    return conn
+
+
+def get_billing_entitlement(user_id: str) -> dict | None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT plan_tier, status, payg_enabled, payg_monthly_cap_usd,
+                   current_period_start, current_period_end
+            FROM billing_entitlements
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "plan_tier": row[0],
+        "status": row[1],
+        "payg_enabled": row[2],
+        "payg_monthly_cap_usd": float(row[3]),
+        "current_period_start": row[4],
+        "current_period_end": row[5],
+    }
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def sum_payg_usage(user_id: str, period_start: datetime | None, period_end: datetime | None) -> float:
+    conn = get_conn()
+    start = period_start or datetime.min.replace(tzinfo=timezone.utc)
+    end = period_end or datetime.max.replace(tzinfo=timezone.utc)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT COALESCE(SUM(COALESCE(billed_cost_usd, estimated_cost_usd)), 0)
+            FROM billing_usage_ledger
+            WHERE user_id = %s
+              AND usage_type = 'payg'
+              AND created_at >= %s
+              AND created_at < %s
+            """,
+            (user_id, start, end),
+        )
+        row = cur.fetchone()
+    return float(row[0] or 0.0)
+
+
+def reserve_payg_usage(
+    user_id: str,
+    endpoint: str,
+    request_key: str,
+    estimated_cost_usd: float,
+    period_start: datetime | None,
+    period_end: datetime | None,
+    monthly_cap_usd: float,
+) -> float:
+    conn = get_conn()
+    start = period_start or _utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    end = period_end or datetime.max.replace(tzinfo=timezone.utc)
+
+    with _billing_lock:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"payg:{user_id}",))
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(COALESCE(billed_cost_usd, estimated_cost_usd)), 0)
+                FROM billing_usage_ledger
+                WHERE user_id = %s
+                  AND usage_type = 'payg'
+                  AND created_at >= %s
+                  AND created_at < %s
+                """,
+                (user_id, start, end),
+            )
+            current_usage = float(cur.fetchone()[0] or 0.0)
+            if current_usage + estimated_cost_usd > monthly_cap_usd:
+                conn.rollback()
+                return current_usage
+
+            cur.execute(
+                """
+                INSERT INTO billing_usage_ledger (
+                    user_id, endpoint, request_key, usage_type, estimated_cost_usd
+                ) VALUES (%s, %s, %s, 'payg', %s)
+                ON CONFLICT (request_key) DO NOTHING
+                """,
+                (user_id, endpoint, request_key, estimated_cost_usd),
+            )
+        conn.commit()
+    return -1.0
+
+
+def release_usage_reservation(request_key: str) -> None:
+    conn = get_conn()
+    with _billing_lock:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM billing_usage_ledger WHERE request_key = %s", (request_key,))
+        conn.commit()
+
+
+def consume_rate_limit_token(
+    bucket_key: str,
+    window_name: str,
+    window_seconds: int,
+    limit: int,
+) -> bool:
+    conn = get_conn()
+    with _rate_limit_lock:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"rl:{bucket_key}:{window_name}",))
+            cur.execute(
+                """
+                DELETE FROM rate_limit_hits
+                WHERE bucket_key = %s
+                  AND window_name = %s
+                  AND created_at < NOW() - make_interval(secs => %s)
+                """,
+                (bucket_key, window_name, window_seconds),
+            )
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM rate_limit_hits
+                WHERE bucket_key = %s
+                  AND window_name = %s
+                  AND created_at >= NOW() - make_interval(secs => %s)
+                """,
+                (bucket_key, window_name, window_seconds),
+            )
+            current_count = int(cur.fetchone()[0] or 0)
+            if current_count >= limit:
+                conn.rollback()
+                return False
+
+            cur.execute(
+                """
+                INSERT INTO rate_limit_hits (bucket_key, window_name)
+                VALUES (%s, %s)
+                """,
+                (bucket_key, window_name),
+            )
+        conn.commit()
+    return True

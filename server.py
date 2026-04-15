@@ -1,15 +1,16 @@
 """FastAPI 백엔드 서버."""
 from __future__ import annotations
 import os
+import uuid
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, HTMLResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from api.auth import router as auth_router, extract_user_id
 from api.mobile_auth import router as mobile_auth_router
 from api.mobile_discover import router as mobile_discover_router
@@ -21,8 +22,22 @@ from api.mobile_type_actions import router as mobile_type_actions_router
 from api.mobile_uploads import router as mobile_uploads_router
 from api.pins import router as pins_router
 from api.visits import router as visits_router
-from utils.db import init_db
+from utils.db import (
+    consume_rate_limit_token,
+    get_billing_entitlement,
+    init_db,
+    release_usage_reservation,
+    reserve_payg_usage,
+)
 from utils.persona import persist_user_persona_type
+from utils.rate_limit import (
+    RateLimitPolicy,
+    RequestAccessMode,
+    normalize_entitlement,
+    raise_rate_limit_exceeded,
+    resolve_request_access_mode,
+)
+from utils.security_events import log_security_event
 
 # DB 초기화 (앱 시작 시 1회)
 init_db()
@@ -132,29 +147,117 @@ app.include_router(mobile_recommend_router)
 app.include_router(mobile_type_actions_router)
 app.include_router(mobile_uploads_router)
 
+_RATE_LIMIT_POLICY = RateLimitPolicy()
+
+
+def estimate_endpoint_cost(endpoint: str) -> float:
+    return {
+        "recommend": 0.25,
+        "detail": 0.10,
+    }[endpoint]
+
+
+def enforce_endpoint_rate_limit(request: Request, endpoint: str) -> tuple[str | None, dict, RequestAccessMode]:
+    user_id = getattr(request.state, "user_id", None)
+    entitlement = normalize_entitlement(get_billing_entitlement(user_id) if user_id else None)
+    access_mode = resolve_request_access_mode(user_id, entitlement)
+    subject = user_id or _RATE_LIMIT_POLICY.client_identifier(request)
+
+    minute_limit = _RATE_LIMIT_POLICY.minute_limit(access_mode, endpoint)
+    if minute_limit is not None and not consume_rate_limit_token(
+        bucket_key=f"{access_mode}:{endpoint}:{subject}",
+        window_name="minute",
+        window_seconds=60,
+        limit=minute_limit,
+    ):
+        log_security_event(
+            "rate_limit_exceeded",
+            endpoint=endpoint,
+            mode=access_mode.value,
+            subject=subject,
+            window="minute",
+        )
+        raise_rate_limit_exceeded()
+
+    burst_limit = _RATE_LIMIT_POLICY.burst_limit(access_mode, endpoint)
+    if burst_limit is not None and not consume_rate_limit_token(
+        bucket_key=f"{access_mode}:{endpoint}:{subject}",
+        window_name="burst",
+        window_seconds=1,
+        limit=burst_limit,
+    ):
+        log_security_event(
+            "rate_limit_exceeded",
+            endpoint=endpoint,
+            mode=access_mode.value,
+            subject=subject,
+            window="burst",
+        )
+        raise_rate_limit_exceeded()
+
+    return user_id, entitlement, access_mode
+
+
+def reserve_payg_budget_if_needed(
+    user_id: str | None,
+    endpoint: str,
+    entitlement: dict,
+    access_mode: RequestAccessMode,
+) -> tuple[str | None, JSONResponse | None]:
+    if not user_id or access_mode != RequestAccessMode.PRO_PAYG:
+        return None, None
+
+    request_key = uuid.uuid4().hex
+    current_usage = reserve_payg_usage(
+        user_id=user_id,
+        endpoint=endpoint,
+        request_key=request_key,
+        estimated_cost_usd=estimate_endpoint_cost(endpoint),
+        period_start=entitlement.get("current_period_start"),
+        period_end=entitlement.get("current_period_end"),
+        monthly_cap_usd=float(entitlement["payg_monthly_cap_usd"]),
+    )
+    if current_usage >= 0:
+        log_security_event(
+            "payg_cap_reached",
+            endpoint=endpoint,
+            subject=user_id,
+            cap_usd=float(entitlement["payg_monthly_cap_usd"]),
+            current_usage_usd=round(current_usage, 4),
+        )
+        return None, JSONResponse(
+            status_code=402,
+            content={
+                "detail": "Monthly pay-as-you-go cap reached.",
+                "cap_usd": float(entitlement["payg_monthly_cap_usd"]),
+                "current_usage_usd": round(current_usage, 4),
+            },
+        )
+    return request_key, None
+
 
 # ── Frontend API Endpoints ─────────────────────────────────────
 
 
 class RecommendRequest(BaseModel):
-    nationality: str
+    nationality: str = Field(max_length=100)
     income_krw: int
-    immigration_purpose: str
-    lifestyle: list[str]
-    languages: list[str]
-    timeline: str
-    preferred_countries: list[str] = []
-    preferred_language: str = "한국어"
-    persona_type: str | None = None
-    income_type: str = ""
-    travel_type: str = "혼자 (솔로)"
-    children_ages: list[str] | None = None
+    immigration_purpose: str = Field(max_length=500)
+    lifestyle: list[str] = Field(max_length=10)
+    languages: list[str] = Field(max_length=10)
+    timeline: str = Field(max_length=100)
+    preferred_countries: list[str] = Field(default_factory=list, max_length=10)
+    preferred_language: str = Field(default="한국어", max_length=20)
+    persona_type: str | None = Field(default=None, max_length=50)
+    income_type: str = Field(default="", max_length=50)
+    travel_type: str = Field(default="혼자 (솔로)", max_length=50)
+    children_ages: list[str] | None = Field(default=None, max_length=10)
     dual_nationality: bool = False
-    readiness_stage: str = ""
-    has_spouse_income: str = "없음"
+    readiness_stage: str = Field(default="", max_length=50)
+    has_spouse_income: str = Field(default="없음", max_length=20)
     spouse_income_krw: int = 0
-    stay_style: str | None = None
-    tax_sensitivity: str | None = None
+    stay_style: str | None = Field(default=None, max_length=20)
+    tax_sensitivity: str | None = Field(default=None, max_length=20)
     total_budget_krw: int | None = None
     persona_vector: dict[str, float] | None = None
 
@@ -166,45 +269,58 @@ class DetailRequest(BaseModel):
 
 @app.post("/api/recommend")
 async def api_recommend(req: RecommendRequest, request: Request):
-    user_id = getattr(request.state, "user_id", None)
+    user_id, entitlement, access_mode = enforce_endpoint_rate_limit(request, "recommend")
+    reservation_key, cap_response = reserve_payg_budget_if_needed(
+        user_id,
+        "recommend",
+        entitlement,
+        access_mode,
+    )
+    if cap_response is not None:
+        return cap_response
     if user_id:
         persist_user_persona_type(user_id, req.persona_type)
 
-    from app import nomad_advisor
-    markdown, cities, parsed = nomad_advisor(
-        nationality=req.nationality,
-        income_krw=req.income_krw,
-        immigration_purpose=req.immigration_purpose,
-        lifestyle=req.lifestyle,
-        languages=req.languages,
-        timeline=req.timeline,
-        preferred_countries=req.preferred_countries,
-        preferred_language=req.preferred_language,
-        persona_type=req.persona_type,
-        income_type=req.income_type,
-        travel_type=req.travel_type,
-        children_ages=req.children_ages,
-        dual_nationality=req.dual_nationality,
-        readiness_stage=req.readiness_stage,
-        has_spouse_income=req.has_spouse_income,
-        spouse_income_krw=req.spouse_income_krw,
-        stay_style=req.stay_style,
-        tax_sensitivity=req.tax_sensitivity,
-        total_budget_krw=req.total_budget_krw,
-        persona_vector=req.persona_vector,
-    )
-    # 타로 세션: 5장 저장, 상세 데이터 미포함 응답
-    from api.tarot_session import create_session
-    import logging
-    _logger = logging.getLogger(__name__)
-    _logger.info("[api/recommend] cities=%d before session create", len(cities))
-    session_id = create_session(cities)
+    try:
+        from app import nomad_advisor
+        markdown, cities, parsed = nomad_advisor(
+            nationality=req.nationality,
+            income_krw=req.income_krw,
+            immigration_purpose=req.immigration_purpose,
+            lifestyle=req.lifestyle,
+            languages=req.languages,
+            timeline=req.timeline,
+            preferred_countries=req.preferred_countries,
+            preferred_language=req.preferred_language,
+            persona_type=req.persona_type,
+            income_type=req.income_type,
+            travel_type=req.travel_type,
+            children_ages=req.children_ages,
+            dual_nationality=req.dual_nationality,
+            readiness_stage=req.readiness_stage,
+            has_spouse_income=req.has_spouse_income,
+            spouse_income_krw=req.spouse_income_krw,
+            stay_style=req.stay_style,
+            tax_sensitivity=req.tax_sensitivity,
+            total_budget_krw=req.total_budget_krw,
+            persona_vector=req.persona_vector,
+        )
+        # 타로 세션: 5장 저장, 상세 데이터 미포함 응답
+        from api.tarot_session import create_session
+        import logging
+        _logger = logging.getLogger(__name__)
+        _logger.info("[api/recommend] cities=%d before session create", len(cities))
+        session_id = create_session(cities)
 
-    return {
-        "session_id": session_id,
-        "card_count": len(cities),
-        "parsed": parsed,
-    }
+        return {
+            "session_id": session_id,
+            "card_count": len(cities),
+            "parsed": parsed,
+        }
+    except Exception:
+        if reservation_key:
+            release_usage_reservation(reservation_key)
+        raise
 
 
 class RevealRequest(BaseModel):
@@ -224,13 +340,27 @@ async def api_reveal(req: RevealRequest):
 
 
 @app.post("/api/detail")
-async def api_detail(req: DetailRequest):
-    from app import show_city_detail_with_nationality
-    markdown = show_city_detail_with_nationality(
-        parsed_data=req.parsed_data,
-        city_index=req.city_index,
+async def api_detail(req: DetailRequest, request: Request):
+    user_id, entitlement, access_mode = enforce_endpoint_rate_limit(request, "detail")
+    reservation_key, cap_response = reserve_payg_budget_if_needed(
+        user_id,
+        "detail",
+        entitlement,
+        access_mode,
     )
-    return {"markdown": markdown}
+    if cap_response is not None:
+        return cap_response
+    try:
+        from app import show_city_detail_with_nationality
+        markdown = show_city_detail_with_nationality(
+            parsed_data=req.parsed_data,
+            city_index=req.city_index,
+        )
+        return {"markdown": markdown}
+    except Exception:
+        if reservation_key:
+            release_usage_reservation(reservation_key)
+        raise
 
 
 # 직접 실행 시 uvicorn

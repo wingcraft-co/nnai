@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-04-05
+> 최종 업데이트: 2026-04-15
 
 ---
 
@@ -12,6 +12,9 @@
 | 테이블 | 설명 |
 |--------|------|
 | `users` | Google OAuth 로그인 유저 |
+| `billing_entitlements` | 웹 entitlement / plan 상태 |
+| `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
+| `billing_provider_events` | billing provider webhook 멱등 처리 |
 | `pins` | 유저가 저장한 관심 도시 |
 | `visits` | 경로별 방문자 수 집계 |
 | `posts` | 모바일 피드 게시글 |
@@ -62,6 +65,92 @@ CREATE TABLE IF NOT EXISTS users (
 | `created_at` | TEXT | 최초 로그인 시각 (ISO 8601 UTC) |
 
 **참고:** `ON CONFLICT(id) DO UPDATE` — 재로그인 시 email/name/picture 갱신.
+
+---
+
+## billing_entitlements
+
+웹 rate limiting / billing entitlement의 기준 테이블입니다. row가 없어도 앱은 기본적으로 `free`로 해석합니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS billing_entitlements (
+    user_id                TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    plan_tier              TEXT NOT NULL CHECK (plan_tier IN ('free', 'pro')),
+    status                 TEXT NOT NULL CHECK (status IN ('active', 'past_due', 'canceled', 'grace')),
+    payg_enabled           BOOLEAN NOT NULL DEFAULT FALSE,
+    payg_monthly_cap_usd   NUMERIC(10,2) NOT NULL DEFAULT 50.00,
+    current_period_start   TIMESTAMPTZ,
+    current_period_end     TIMESTAMPTZ,
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `user_id` | TEXT PK/FK | `users.id` 참조 |
+| `plan_tier` | TEXT | `free` 또는 `pro` |
+| `status` | TEXT | `active`, `past_due`, `canceled`, `grace` |
+| `payg_enabled` | BOOLEAN | pay-as-you-go 사용 여부 |
+| `payg_monthly_cap_usd` | NUMERIC(10,2) | 월 상한, 기본 `50.00` |
+| `current_period_start` | TIMESTAMPTZ | 현재 과금 주기 시작 |
+| `current_period_end` | TIMESTAMPTZ | 현재 과금 주기 종료 |
+| `updated_at` | TIMESTAMPTZ | 마지막 갱신 시각 |
+
+---
+
+## billing_usage_ledger
+
+pay-as-you-go 사용량을 endpoint 단위로 기록하는 append-oriented ledger입니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS billing_usage_ledger (
+    id                   BIGSERIAL PRIMARY KEY,
+    user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint             TEXT NOT NULL CHECK (endpoint IN ('recommend', 'detail')),
+    request_key          TEXT NOT NULL,
+    usage_type           TEXT NOT NULL CHECK (usage_type IN ('subscription', 'payg')),
+    estimated_cost_usd   NUMERIC(10,4) NOT NULL DEFAULT 0,
+    billed_cost_usd      NUMERIC(10,4),
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (request_key)
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | BIGSERIAL PK | ledger row ID |
+| `user_id` | TEXT FK | `users.id` 참조 |
+| `endpoint` | TEXT | `recommend` 또는 `detail` |
+| `request_key` | TEXT | 요청 멱등성 키 |
+| `usage_type` | TEXT | 현재는 `payg` 중심 사용 |
+| `estimated_cost_usd` | NUMERIC(10,4) | 사전 추정 비용 |
+| `billed_cost_usd` | NUMERIC(10,4) | 실제 청구 비용(선택) |
+| `created_at` | TIMESTAMPTZ | ledger 생성 시각 |
+
+---
+
+## billing_provider_events
+
+checkout/webhook 공급자 이벤트의 멱등성 보장을 위한 audit 테이블입니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS billing_provider_events (
+    id              BIGSERIAL PRIMARY KEY,
+    provider        TEXT NOT NULL,
+    event_id        TEXT NOT NULL,
+    payload_digest  TEXT NOT NULL,
+    processed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (provider, event_id)
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | BIGSERIAL PK | event row ID |
+| `provider` | TEXT | billing provider 식별자 |
+| `event_id` | TEXT | provider event 고유 ID |
+| `payload_digest` | TEXT | payload hash/digest |
+| `processed_at` | TIMESTAMPTZ | 처리 시각 |
 
 ---
 
@@ -573,5 +662,5 @@ verification_logs — 독립 로그 테이블 (외래키 없음)
 |------|-----|
 | 호스트 | Railway PostgreSQL |
 | 환경변수 | `DATABASE_URL` |
-| 연결 방식 | 앱 싱글턴 (`utils/db.get_conn()`) |
+| 연결 방식 | 스레드별 재사용 연결 (`utils/db.get_conn()`) |
 | autocommit | `False` — 모든 쓰기 후 `conn.commit()` 필요 |

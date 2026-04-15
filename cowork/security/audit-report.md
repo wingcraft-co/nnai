@@ -237,3 +237,21 @@ Week 1:
   DB connection pool 도입
   보안 이벤트 로깅 (로그인 실패, rate limit 초과 등)
 ```
+
+---
+
+## Remediation Checklist
+
+코드 반영 기준으로 완료 여부를 추적한다. 문서만 수정된 경우 완료로 체크하지 않는다.
+
+- [x] H-01: `/api/recommend`, `/api/detail` entitlement-aware rate limiting 적용
+  현재 상태: endpoint별/등급별 limiter, payg burst guard, payg 50 USD cap, DB 공유 상태 기반 rate limit token 소비, advisory lock 기반 payg reservation 반영 완료.
+- [x] M-01: OAuth `state` 파라미터 생성 및 검증 추가
+- [ ] M-02: 파일 업로드 크기/확장자/MIME 검증 추가 `(모바일 scope 제외)`
+- [x] M-03: `RecommendRequest` 입력 길이/개수 제한 추가
+- [x] L-01: `SECRET_KEY` 기본값 제거
+- [x] L-02: DB 재연결 로직 추가
+- [ ] L-03: `JWT_SECRET` 빈 문자열 fallback 제거 `(모바일 scope 제외)`
+- [x] L-04: auth 쿠키 `path` 명시
+- [x] A09 follow-up: 보안 이벤트 로깅 추가
+  현재 상태: `oauth_state_mismatch`, `oauth_callback_rejected`, `session_bad_signature`, `rate_limit_exceeded`, `payg_cap_reached` 이벤트를 warning 레벨로 기록.

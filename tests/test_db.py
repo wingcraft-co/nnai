@@ -54,7 +54,7 @@ def test_insert_and_fetch_pin(conn):
     assert rows[0][1] == "최고!"
 
 
-def test_get_conn_returns_singleton():
+def test_get_conn_returns_same_thread_connection():
     import importlib
     import utils.db as db_mod
     importlib.reload(db_mod)

@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-10
+> 최종 업데이트: 2026-04-15
 
 ---
 
@@ -34,6 +34,10 @@ GET /auth/google
 → 302 Redirect → Google OAuth 화면
 ```
 
+보안 메모:
+- 서버가 OAuth CSRF 방어용 `oauth_state` 쿠키를 발급합니다.
+- 콜백의 `state`가 쿠키와 일치하지 않으면 로그인은 거부됩니다.
+
 **사용법:** 로그인 버튼 클릭 시 이 URL로 직접 이동시킵니다.
 
 ```js
@@ -49,11 +53,14 @@ Google OAuth 콜백 (프론트엔드에서 직접 호출 불필요 — Google이
 ```
 GET /auth/google/callback?code={code}
 → 302 Redirect → {FRONTEND_URL}  (예: https://nnai.app)
-  Set-Cookie: nnai_session=...; HttpOnly; SameSite=None; Secure; Max-Age=86400
+  Set-Cookie: nnai_session=...; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=86400
 ```
 
 에러 시: `/?auth_error=1` 로 리다이렉트
 → 프론트엔드에서 쿼리파라미터 `auth_error=1` 감지 후 에러 메시지 표시
+
+CSRF 검증 실패 시: `/?auth_error=csrf` 로 리다이렉트
+→ 프론트엔드에서 OAuth 재시도 안내 필요
 
 ---
 
@@ -71,9 +78,17 @@ GET /auth/me
   "logged_in": true,
   "uid": "google_user_sub_id",
   "name": "홍길동",
-  "picture": "https://lh3.googleusercontent.com/..."
+  "picture": "https://lh3.googleusercontent.com/...",
+  "entitlement": {
+    "plan_tier": "free",
+    "status": "active",
+    "payg_enabled": false,
+    "payg_monthly_cap_usd": 50.0
+  }
 }
 ```
+
+`entitlement`는 entitlement row가 없더라도 정규화된 기본값(`free`, `active`, `payg_enabled=false`)으로 반환됩니다.
 
 **응답 (미로그인):**
 ```json
@@ -98,7 +113,7 @@ if (user.logged_in) { /* 로그인 상태 처리 */ }
 ```
 GET /auth/logout
 → 302 Redirect → {FRONTEND_URL}  (예: https://nnai.app)
-  Set-Cookie: nnai_session=; SameSite=None; Secure; Max-Age=0  (쿠키 삭제)
+  Set-Cookie: nnai_session=; Path=/; SameSite=None; Secure; Max-Age=0  (쿠키 삭제)
 ```
 
 **프론트엔드 사용 예시:**
@@ -125,23 +140,28 @@ Content-Type: application/json
 |------|------|------|--------|------|
 | `nationality` | string | ✅ | — | 국적 (예: `"Korean"`) |
 | `income_krw` | integer | ✅ | — | 월 소득 (만원 단위, 예: `500` = 500만원) |
-| `immigration_purpose` | string | ✅ | — | 이민 목적 |
-| `lifestyle` | string[] | ✅ | — | 선호 라이프스타일 (예: `["해변", "영어권"]`) |
-| `languages` | string[] | ✅ | — | 사용 가능 언어 (예: `["영어 업무 수준"]`) |
-| `timeline` | string | ✅ | — | 체류 기간 (예: `"1년 장기 체류"`) |
-| `preferred_countries` | string[] | ❌ | `[]` | 선호 국가/지역 (예: `["유럽"]`) |
-| `preferred_language` | string | ❌ | `"한국어"` | 응답 언어 (`"한국어"` / `"English"`) |
-| `persona_type` | string \| null | ❌ | `null` | 페르소나 유형 (`wanderer|local|planner|free_spirit|pioneer`) |
-| `income_type` | string | ❌ | `""` | 소득 유형 (예: `"프리랜서"`) |
-| `travel_type` | string | ❌ | `"혼자 (솔로)"` | 여행 타입 |
-| `children_ages` | string[] \| null | ❌ | `null` | 자녀 나이 목록 |
+| `immigration_purpose` | string | ✅ | — | 이민 목적, 최대 500자 |
+| `lifestyle` | string[] | ✅ | — | 선호 라이프스타일, 최대 10개 |
+| `languages` | string[] | ✅ | — | 사용 가능 언어, 최대 10개 |
+| `timeline` | string | ✅ | — | 체류 기간 (예: `"1년 장기 체류"`), 최대 100자 |
+| `preferred_countries` | string[] | ❌ | `[]` | 선호 국가/지역, 최대 10개 |
+| `preferred_language` | string | ❌ | `"한국어"` | 응답 언어 (`"한국어"` / `"English"`), 최대 20자 |
+| `persona_type` | string \| null | ❌ | `null` | 페르소나 유형 (`wanderer|local|planner|free_spirit|pioneer`), 최대 50자 |
+| `income_type` | string | ❌ | `""` | 소득 유형 (예: `"프리랜서"`), 최대 50자 |
+| `travel_type` | string | ❌ | `"혼자 (솔로)"` | 여행 타입, 최대 50자 |
+| `children_ages` | string[] \| null | ❌ | `null` | 자녀 나이 목록, 최대 10개 |
 | `dual_nationality` | boolean | ❌ | `false` | 복수 국적 여부 |
-| `readiness_stage` | string | ❌ | `""` | 준비 단계 (예: `"구체적으로 준비 중"`) |
-| `has_spouse_income` | string | ❌ | `"없음"` | 배우자 소득 여부 |
+| `readiness_stage` | string | ❌ | `""` | 준비 단계 (예: `"구체적으로 준비 중"`), 최대 50자 |
+| `has_spouse_income` | string | ❌ | `"없음"` | 배우자 소득 여부, 최대 20자 |
 | `spouse_income_krw` | integer | ❌ | `0` | 배우자 월 소득 (만원) |
-| `stay_style` | string \| null | ❌ | `null` | 체류 스타일 (`정착형|순환형|이동형`) |
-| `tax_sensitivity` | string \| null | ❌ | `null` | 세금 민감도 (`optimize|simple|unknown`) |
+| `stay_style` | string \| null | ❌ | `null` | 체류 스타일 (`정착형|순환형|이동형`), 최대 20자 |
+| `tax_sensitivity` | string \| null | ❌ | `null` | 세금 민감도 (`optimize|simple|unknown`), 최대 20자 |
 | `total_budget_krw` | integer \| null | ❌ | `null` | 단기 체류 시 총 예산 (만원 단위). 중기/장기는 `null`. |
+
+검증 제약:
+- `nationality` 최대 100자
+- 리스트 필드(`lifestyle`, `languages`, `preferred_countries`, `children_ages`)는 최대 10개
+- 제약 위반 시 `422 Unprocessable Entity`
 
 **요청 예시:**
 ```json
@@ -176,6 +196,23 @@ Content-Type: application/json
 ```
 
 > 도시 상세 데이터는 응답에 포함되지 않습니다. `/api/reveal`을 호출해야 합니다.
+> rate limit은 엔드포인트별/등급별로 다릅니다. anonymous는 IP 기준, 로그인 사용자는 user_id 기준으로 제한됩니다.
+
+**rate limit 정책:**
+
+| 사용자 | `/api/recommend` | `/api/detail` |
+|---|---:|---:|
+| anonymous | 5/min | 10/min |
+| free | 10/min | 20/min |
+| pro | 30/min | 60/min |
+| pro + payg | minute cap 없음, burst guard만 적용 | minute cap 없음, burst guard만 적용 |
+
+**payg burst guard:**
+- `/api/recommend`: 3 req/sec
+- `/api/detail`: 5 req/sec
+
+구현 메모:
+- rate limit 카운터는 DB 공유 상태를 사용하므로 멀티 인스턴스 배포에서도 버킷을 공통으로 집계합니다.
 
 **Step 1 추천 로직:**
 - **스코어링 모델:** 규칙 기반 DB Recommender (LLM 개입 없음)
@@ -272,6 +309,23 @@ Content-Type: application/json
 ```
 
 > 현재 `/api/detail`은 인증 없이 호출 가능합니다.
+> `/api/recommend`와 minute bucket을 공유하지 않습니다. endpoint별/등급별 정책이 각각 적용됩니다.
+
+**에러 (402):**
+```json
+{
+  "detail": "Monthly pay-as-you-go cap reached.",
+  "cap_usd": 50.0,
+  "current_usage_usd": 49.9
+}
+```
+
+**에러 (429):**
+```json
+{
+  "detail": "Too many requests. Please retry later."
+}
+```
 
 ---
 
@@ -563,7 +617,9 @@ GET /api/visits?path=/dev
 | 상태코드 | 의미 | 대응 |
 |---------|------|------|
 | `401` | 로그인 필요 | `/auth/google` 로 이동 |
+| `402` | pay-as-you-go 월 한도 도달 | billing/payg 안내 표시 |
 | `404` | 리소스 없음 | 요청 ID 확인 |
+| `429` | 요청 횟수 초과 | 잠시 후 재시도 |
 | `422` | 요청 바디 형식 오류 | 필수 필드 / 타입 확인 |
 | `500` | 서버 내부 오류 | 재시도 또는 문의 |
 
@@ -591,9 +647,18 @@ const res = await fetch(`${API_BASE}/api/recommend`, {
 
 ### 쿠키 정책
 - 쿠키명: `nnai_session`
+- `Path=/` — 전체 경로에서 일관되게 적용
 - `HttpOnly` — JS에서 직접 접근 불가 (보안)
 - `SameSite=None; Secure` — 프론트(nnai.app)·백엔드(api.nnai.app) 크로스 도메인 전달 필수
 - `Max-Age=86400` — 24시간 유효
+
+### 보안 이벤트 로깅
+- 서버는 다음 이벤트를 warning 레벨 보안 로그로 기록합니다:
+- `oauth_state_mismatch`
+- `oauth_callback_rejected`
+- `session_bad_signature`
+- `rate_limit_exceeded`
+- `payg_cap_reached`
 
 ---
 
