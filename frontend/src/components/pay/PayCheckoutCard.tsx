@@ -1,83 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { PolarCheckoutButton } from '@/components/pay/PolarCheckoutButton';
 
 type PayCheckoutCardProps = {
   locale: string;
   directCheckoutUrl?: string;
 };
 
-function pickErrorMessage(payload: unknown, locale: string): string {
-  const fallback = locale === 'en'
-    ? 'Could not start checkout. Please try again.'
-    : '결제를 시작하지 못했습니다. 잠시 후 다시 시도해주세요.';
-
-  if (!payload || typeof payload !== 'object') return fallback;
-
-  const record = payload as Record<string, unknown>;
-  for (const key of ['detail', 'error', 'message']) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-  }
-
-  return fallback;
-}
-
 export function PayCheckoutCard({ locale, directCheckoutUrl }: PayCheckoutCardProps) {
   const isEn = locale === 'en';
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleCheckout() {
-    if (loading) return;
-    setError(null);
-
-    if (directCheckoutUrl) {
-      window.location.assign(directCheckoutUrl);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as {
-        checkout_url?: string;
-        url?: string;
-      };
-
-      if (!response.ok) {
-        setError(pickErrorMessage(payload, locale));
-        return;
-      }
-
-      const redirectUrl = payload.checkout_url || payload.url;
-      if (!redirectUrl) {
-        setError(
-          isEn
-            ? 'Checkout URL is missing from response.'
-            : '응답에 checkout URL이 없습니다.'
-        );
-        return;
-      }
-
-      window.location.assign(redirectUrl);
-    } catch {
-      setError(
-        isEn
-          ? 'Network error while starting checkout.'
-          : '결제 시작 중 네트워크 오류가 발생했습니다.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <section className="w-full max-w-xl rounded-2xl border border-[#1e2330] bg-[#08090e] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)] sm:p-8">
@@ -106,22 +37,13 @@ export function PayCheckoutCard({ locale, directCheckoutUrl }: PayCheckoutCardPr
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleCheckout}
-        disabled={loading}
+      <PolarCheckoutButton
+        locale={locale}
+        directCheckoutUrl={directCheckoutUrl}
+        idleLabel={isEn ? 'Pay With Polar' : 'Polar로 결제하기'}
+        loadingLabel={isEn ? 'Starting checkout...' : '결제 페이지 여는 중...'}
         className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-4 py-3 font-mono text-sm font-semibold text-black transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {loading
-          ? (isEn ? 'Starting checkout...' : '결제 페이지 여는 중...')
-          : (isEn ? 'Pay With Polar' : 'Polar로 결제하기')}
-      </button>
-
-      {error && (
-        <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          {error}
-        </p>
-      )}
+      />
 
       {!directCheckoutUrl && (
         <p className="mt-4 text-[11px] leading-relaxed text-[#64748b]">
