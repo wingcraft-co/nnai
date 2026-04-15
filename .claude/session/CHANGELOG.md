@@ -1,5 +1,90 @@
 # CHANGELOG
 
+## [2026-04-16 KST] — origin/develop fast-forward + CLAUDE.md 동기화
+
+### 변경 파일
+- `CLAUDE.md` : 14개 신규 commit 반영 (모바일 API, 타로 세션, rate limit, billing, i18n, Polar 결제)
+- `.claude/session/CHANGELOG.md` : 본 항목 추가
+
+### 작업 요약
+- 무엇을: 아내팀이 push한 14 commits를 fast-forward로 받아오고, 우리 CLAUDE.md를 최신 아키텍처에 맞춰 업데이트
+- 왜: `SKIP_RAG_INIT → SKIP_EXTERNAL_INIT` 리네임, Gradio/RAG 레거시 제거, 모바일 API 8종 신설, `/api/recommend` 응답 형식 변경, `/api/reveal` 신규, rate limit + billing entitlement + PAYG 도입, Polar 결제 시스템, i18n 라우팅 등 큰 변경이 들어왔는데 CLAUDE.md(원본 develop 버전 포함)에 미반영
+- 영향 범위: 문서 전용 — 코드 영향 없음. fast-forward 전 우리 frontend 작업물(타로 컴포넌트, `[locale]/result/`, BFF API routes)이 origin과 트리 해시 동일함을 확인하여 충돌 없음 검증
+
+### CLAUDE.md 변경 요지
+- **Architecture 트리**: `api/{tarot_session,visits,mobile_*}`, `utils/{rate_limit,security_events}` 추가
+- **Environment Variables**: `POLAR_CHECKOUT_URL` / `NEXT_PUBLIC_POLAR_CHECKOUT_URL` 추가
+- **Backend API Endpoints**: `/api/reveal`, `/api/visits/ping`, mobile_* 라우터 8종 추가
+- **POST /api/recommend**: 새 필드 (`stay_style`, `tax_sensitivity`, `total_budget_krw`, `persona_vector`) + 응답 형식 변경 명시 (`markdown/cities` → `session_id/card_count`)
+- **POST /api/reveal**: 신규 섹션
+- **새 섹션 — Rate Limit & Billing**: rate limit 정책 표, billing entitlement, PAYG, Polar 결제
+- **Frontend Development Guide**: i18n `[locale]` 라우트 구조, tweakcn Amber Mono 2.0 디자인 시스템 명시, BFF API 4종 (recommend/detail/reveal/billing-checkout) 정리
+- **프론트엔드 현재 상태**: 2026-03-29 → 2026-04-16 갱신 (타로 UX/결제/광고 모듈 진행 상황 반영)
+
+### 사전 점검 결과
+- `frontend/[locale]/result/` 트리 해시 HEAD == origin/develop (`c9f3028`) — 우리 작업물 무손실
+- `frontend/src/app/api/{recommend,detail,reveal}/` 양쪽 동일 — 우리 BFF route는 이미 새 백엔드 응답 형식과 호환
+- `.claude/session/CHANGELOG.md`, `.claude/settings.json` origin 미변경 — unstaged 변경 그대로 보존
+- backend `/api/recommend` BREAKING CHANGE (응답에서 `markdown`, `cities` 제거)는 우리 frontend `reveal` route가 이미 처리 중
+
+### 다음 세션 참고사항
+- `.claude/session/CONTEXT.md` 갱신 미완료 — 마이너 업데이트 필요 (현재 상태 라인만 갱신)
+- `.claude/settings.json` 권한 추가 (Read, Bash) unstaged — commit 여부 사용자 결정 대기
+- `.claude/commands/`, `.claude/session/scp.sh` untracked — gstack 슬래시 커맨드 심링크 / scp 헬퍼, .gitignore 정책 결정 대기
+- push는 사용자 확인 후 진행 (이번 세션은 로컬 commit까지만)
+- 백엔드 새 모바일 API 8종은 향후 모바일 앱 작업 시 별도 점검 필요
+
+---
+
+## [2026-04-11 KST] — 타로카드 UX 재설계 + 추천 로직 고도화 설계 확정
+
+### 변경 파일
+- `frontend/src/app/[locale]/result/page.tsx` : 타로카드 4-Stage 전면 재구현
+- `frontend/src/components/tarot/TarotCard.tsx` : 정적 프리미엄 디자인 (Compass Rose 뒷면, Label+Value 앞면)
+- `frontend/src/components/tarot/TarotDeck.tsx` : 셔플 제거, 정적 배치
+- `frontend/src/components/tarot/TarotReading.tsx` : 3장 순차 리딩 + 타이핑 효과
+- `frontend/src/components/tarot/CityCompare.tsx` : 리딩 하단 자연 연결
+- `docs/designs/tarot-card-design.md` : 타로카드 디자인 시스템 문서
+- `backend/prompts/system.py` : 짧은 리딩 전용 프롬프트 추가
+- `backend/prompts/system_en.py` : 동일
+- `.claude/commands/` : gstack 슬래시 커맨드 심링크 연결
+
+### 작업 요약
+- 무엇을: 타로카드 UX 전면 재설계 + 추천 로직 고도화 3개 이슈 설계 확정
+- 왜: 기존 3D 플립/파티클 애니메이션이 웹 기반 한계로 조악하게 느껴짐 → 정적 프리미엄 디자인으로 전환. 리딩 경험 중심으로 재설계.
+- 영향 범위: 결과 페이지 전체 UX, 백엔드 API 응답 구조, LLM 프롬프트
+
+### 주요 결정사항
+- 3D 플립/파티클/셔플 → 완전 제거. opacity fade + scale whileTap만 허용
+- 리딩: 1장 깊게 → 3장 짧게 순차 리딩으로 전환
+- OAuth 게이트: "리딩 받기" → "전체 가이드 받기"로 후퇴 (리딩 완료 후)
+- 테마: tweakcn Amber Mono 2.0 CSS 변수 전용. HEX 하드코딩 금지
+- gstack 심링크: `ln -sf ~/.claude/skills/gstack/* .claude/commands/` 로 슬래시 커맨드 활성화
+- GPT Image API(gpt-image-1-mini) 발급 완료 — /design-shotgun 탐색용. 서비스 런타임 미사용이므로 유지비 없음
+
+### 추천 로직 고도화 설계 확정 (구현은 이전 세션 완료)
+- Block 가중치 동적 분기: 단기(A40/B10/C40/D10) / 중기(A30/B25/C30/D15) / 장기(현행)
+- 단기 체류 시 총 예산(total_budget_krw) 인풋 전환 + visa_score 0 처리
+- Block C 페르소나 가중치 재설계 (서사 정렬):
+  - wanderer: nomad(3.5) + visa_freedom(2.5) + cowork(1.5)
+  - local: community(3.5) + safety(2.5) + long_stay(1.5)
+  - planner: cost(3.0) + tax_days(2.5) + renewable(2.0)
+  - free_spirit: safety(3.0) + climate(2.5) + cost(2.0)
+  - pioneer: renewable(3.5) + english(2.5) + community(1.5)
+- 신규 가상 속성 3개: visa_freedom / climate_score / long_stay_score
+- 페르소나 미선택 시 Block C → Block A 합산
+- visa_db.json visa_free_days 필드 추가 (39개국, 한국 여권 기준)
+- TOP3 결과 카드 비자 배지 (무비자 N일 / 셴겐 / 비자 필요)
+
+### 다음 세션 참고사항
+- gstack /design-consultation → /design-shotgun 실행 (새 세션, 터미널에서 슬래시 커맨드 직접 입력)
+- 타로카드 비주얼 확정 후 지시문 #6 구현 진행
+- Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영) 미완
+- visa_free_days 아내팀 검수 필요 (docs/review/REVIEW_visa_free_days.md)
+- 타로 세션 인메모리 → DB/Redis 마이그레이션 추후
+
+---
+
 ## [2026-04-11 KST 세션 4] — 타로카드 UI 전면 재설계 (Amber Mono 2.0 디자인 시스템)
 
 ### 변경 파일
