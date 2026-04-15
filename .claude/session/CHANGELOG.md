@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## [2026-04-16 KST 세션 2] — 카드 호버/잠금 인터랙션 + 메트릭 영역 i18n·환율 정합화
+
+### 변경 파일
+- `frontend/src/components/tarot/TarotCard.tsx` : 공개 카드 호버 인터랙션 + 메트릭 헬퍼 적용
+- `frontend/src/components/tarot/TarotDeck.tsx` : LockedUpgradeLightbox 신규(Polar 결제 유도) + CityLightbox 메트릭 헬퍼 적용
+- `frontend/src/components/tarot/format.ts` : 신규 — 메트릭 포맷 헬퍼 + `useKrwRate` hook
+- `frontend/src/app/api/currency/route.ts` : 신규 — frankfurter.app BFF (1시간 revalidate, fallback 1400)
+- `docs/designs/tarot-card-design.md` : States 표 갱신(Hover/Locked 행) + Decisions Log 항목 2개 추가
+
+### 작업 요약
+- 무엇을:
+  1. 공개 카드(`state==="front"`) 호버 인터랙션 — scale 1.025 + depth shadow + 미세 border lift
+  2. 잠금 카드 클릭 → `LockedUpgradeLightbox` (Polar 결제 유도, `PolarCheckoutButton` 재사용)
+  3. 메트릭 영역 5가지 문제 일괄 정리 — VISA 라벨 모호성, `toKRW` 두 곳 불일치, 메트릭 비대칭, i18n 부재, 환율 하드코딩
+- 왜: 사용자 점검에서 카드 UX 정합성 부족 확인. 백엔드 Polar 결제 도입에 맞춰 잠금 카드를 결제 entry point로 전환
+- 영향 범위: result 페이지 카드 인터랙션·라이트박스·메트릭 표시. 백엔드 변경 없음
+
+### 주요 결정사항
+- **Hover 정책**: amber glow는 selected 전용. hover는 depth shadow + scale + 미세 border lift만. CSS 변수만 사용 (HEX 금지).
+- **Locked 패턴 추가**: 잠금 카드 클릭 가능. 라이트박스 패턴 재사용. 디자인 문서 States 표에 Locked 행 신설.
+- **카피 톤**: 타로/서정형 — "선택하지 않은 운명도 들여다보세요" / "Look into the lives you didn't choose"
+- **VISA 라벨 분기**: `VISA-FREE` + days(60일/days) | `VISA` + 필요(Required). 디자인 문서 line 66과 일치.
+- **toKRW 일관화**: `formatMonthly`로 단일화. 두 곳 모두 `약 196만원` (또는 en 모드 `$1,400`).
+- **메트릭 비대칭 해결**: `formatInternet`이 null일 때 `"—"` 반환. 카드/라이트박스 모두 항상 3 cell.
+- **환율 BFF**: frankfurter.app(키 불필요/무료), 1시간 `revalidate`, 실패 시 `1400` fallback.
+- **`useKrwRate` hook**: module-level 캐시 + pending promise dedup으로 다중 컴포넌트 호출 시에도 fetch 1회.
+
+### 다음 세션 참고사항
+- UI 동작은 dev 서버에서 직접 확인 (사용자 진행)
+- 영어 카피 가안 — 카피라이팅 검토 시 별도 작업
+- `formatInternet`의 placeholder `"—"`는 metric 비대칭 임시 해결안. 데이터 보강 후 재검토 가능
+- 환율 BFF는 frankfurter.app 의존. 백엔드 `currency.py`와 통합 검토는 추후
+- `.claude/settings.json` 권한 추가, `.claude/commands/`, `.claude/session/scp.sh` 여전히 unstaged — 사용자 결정 대기
+
+---
+
 ## [2026-04-16 KST] — origin/develop fast-forward + CLAUDE.md 동기화
 
 ### 변경 파일
