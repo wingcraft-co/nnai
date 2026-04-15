@@ -72,11 +72,24 @@
 - **No animation** — static cards only. Visual quality carries the mystical feel.
 
 ## States
-| State | Border | Glow | Inner Border |
-|-------|--------|------|-------------|
-| Default | `--border` | none | `--border` |
-| Hover | `--border` | none (cursor: pointer) | `--border` |
-| Selected | `--primary` | `--ring` 20px + 60px outer | `--primary` |
+| State | Border | Glow / Shadow | Scale |
+|-------|--------|---------------|-------|
+| Default | `--border` | none | 1.0 |
+| Hover (front 카드 한정) | `color-mix(--primary 22%, --border)` (미세 lift) | depth shadow `0 6px 18px color-mix(--background 70%, transparent)` — amber glow 없음 | 1.025 |
+| Selected | `--primary` | `--ring` 20px + 60px outer (amber glow) | 1.0 |
+| Locked | `--border` (opacity 0.15) | dim overlay `color-mix(--card 60%, transparent)` + 🔒 | 1.0 |
+
+**Hover 정책:**
+- `state === "front"`인 카드에만 hover scale + depth shadow + 미세 border lift 적용
+- back/locked 상태에서는 hover 효과 없음 (cursor: pointer만 표시)
+- amber glow는 selected 전용으로 분리 — hover와 selected는 시각적으로 명확히 구분
+- transition: `duration 0.2s ease` (scale, box-shadow, border)
+
+**Locked 인터랙션:**
+- 잠금 카드 클릭 시 LockedUpgradeLightbox 모달이 열림 (Polar 결제 유도)
+- 모달 패턴은 CityLightbox와 동일 — backdrop blur, scale 0.9→1, fade
+- CTA: `PolarCheckoutButton` 재사용 (`NEXT_PUBLIC_POLAR_CHECKOUT_URL` 또는 `/api/billing/checkout` BFF)
+- 닫기: 바깥 클릭, X 버튼, "다음에 보기" 버튼 모두 가능
 
 ## Decisions Log
 | Date | Decision | Rationale |
@@ -86,3 +99,5 @@
 | 2026-04-10 | No animation | Current flip animation quality is low. Static design with strong visual carries mystical feel better than mediocre motion. |
 | 2026-04-10 | CSS-only geometric patterns | Zero asset dependencies, scales perfectly, matches minimalist Amber Mono aesthetic. |
 | 2026-04-10 | Card surface darker than background | Cards sit INTO the background rather than floating on top. Creates depth without shadows. |
+| 2026-04-16 | Hover scale 1.025 + depth shadow + 미세 border lift on front cards | 정적 디자인 컨셉을 유지하면서도 인터랙션 단서 제공. amber glow는 selected 전용으로 분리하여 두 상태가 시각적으로 충돌하지 않도록 함. CSS 변수만 사용. |
+| 2026-04-16 | Locked 카드 클릭 → LockedUpgradeLightbox (Polar 결제 유도) | Pro 전환 entry point 신설. CityLightbox 패턴을 그대로 재사용하여 시각/인터랙션 일관성 유지. 카피는 서정형(타로 톤)으로 작성. |

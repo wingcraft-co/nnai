@@ -1,7 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { useLocale } from "next-intl";
 import type { CityData } from "./types";
+import {
+  useKrwRate,
+  formatMonthly,
+  formatVisa,
+  formatInternet,
+} from "./format";
 
 // ── Flag emoji lookup ─────────────────────────────────────────────
 
@@ -56,12 +64,6 @@ const SIZE_CONFIG = {
   md:  { w: 200, h: 350, pad: 20, flag: 28, cityKr: 18, cityEn: 11, metricLabel: 8,  metricVal: 11, readingFs: 12, compassD: 80 },
   lg:  { w: 260, h: 455, pad: 20, flag: 28, cityKr: 18, cityEn: 11, metricLabel: 8,  metricVal: 11, readingFs: 12, compassD: 80 },
 } as const;
-
-const USD_TO_KRW = 1400;
-
-function toKRW(usd: number): string {
-  return `${Math.round((usd * USD_TO_KRW) / 10000)}만원`;
-}
 
 // ── Props ─────────────────────────────────────────────────────────
 
@@ -156,17 +158,22 @@ function FrontFace({
   cityData,
   size,
   readingText,
+  isHovered = false,
+  locale,
+  krwRate,
 }: {
   cityData: CityData;
   size: CardSize;
   readingText?: string | null;
+  isHovered?: boolean;
+  locale: string;
+  krwRate: number;
 }) {
   const cfg = SIZE_CONFIG[size];
   const flag = FLAG_EMOJI[cityData.country_id] ?? "🌍";
-  const visaText =
-    cityData.visa_free_days > 0
-      ? `${cityData.visa_free_days}일`
-      : "비자 필요";
+  const monthly = formatMonthly(cityData.monthly_cost_usd, locale, krwRate);
+  const visa = formatVisa(cityData.visa_free_days, locale);
+  const internet = formatInternet(cityData.internet_mbps);
 
   return (
     <div
@@ -174,11 +181,14 @@ function FrontFace({
       style={{
         borderRadius: 12,
         background: "var(--card)",
-        border: "1px solid var(--border)",
+        border: isHovered
+          ? "1px solid color-mix(in srgb, var(--primary) 22%, var(--border))"
+          : "1px solid var(--border)",
         padding: cfg.pad,
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
         transform: "rotateY(180deg)",
+        transition: "border 0.2s ease",
       }}
     >
       {/* Top section — flex-1 */}
@@ -201,13 +211,11 @@ function FrontFace({
       {/* Divider */}
       <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
 
-      {/* Metrics — fixed bottom */}
+      {/* Metrics — fixed bottom (always 3 cells for layout consistency) */}
       <div className="flex justify-around items-center font-mono text-center pt-2.5 pb-1">
-        <MetricCell icon="💰" label="MONTHLY" value={toKRW(cityData.monthly_cost_usd)} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
-        <MetricCell icon="🛂" label="VISA" value={visaText} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
-        {cityData.internet_mbps != null && (
-          <MetricCell icon="📶" label="INTERNET" value={`${cityData.internet_mbps}Mbps`} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
-        )}
+        <MetricCell icon="💰" label="MONTHLY" value={monthly} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
+        <MetricCell icon="🛂" label={visa.label} value={visa.value} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
+        <MetricCell icon="📶" label="INTERNET" value={internet} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
       </div>
 
       {/* Reading text area — only when provided */}
@@ -284,12 +292,29 @@ export default function TarotCard({
 }: TarotCardProps) {
   const cfg = SIZE_CONFIG[size];
   const isLocked = state === "locked";
+  const isFront = state === "front";
+  const [isHovered, setIsHovered] = useState(false);
+  const clickable = !!onClick;
+  const locale = useLocale();
+  const krwRate = useKrwRate();
 
   return (
-    <div
-      className={`select-none ${isLocked ? "" : "cursor-pointer"}`}
-      style={{ perspective: 1200, width: cfg.w, height: cfg.h }}
-      onClick={isLocked ? undefined : onClick}
+    <motion.div
+      className={`relative select-none ${clickable ? "cursor-pointer" : ""}`}
+      style={{ perspective: 1200, width: cfg.w, height: cfg.h, borderRadius: 12 }}
+      whileHover={
+        isFront
+          ? {
+              scale: 1.025,
+              boxShadow:
+                "0 6px 18px color-mix(in srgb, var(--background) 70%, transparent)",
+            }
+          : undefined
+      }
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onClick={onClick}
     >
       <motion.div
         className="relative w-full h-full pointer-events-none"
@@ -306,7 +331,14 @@ export default function TarotCard({
 
         {/* Front face */}
         {cityData ? (
-          <FrontFace cityData={cityData} size={size} readingText={readingText} />
+          <FrontFace
+            cityData={cityData}
+            size={size}
+            readingText={readingText}
+            isHovered={isFront && isHovered}
+            locale={locale}
+            krwRate={krwRate}
+          />
         ) : (
           <div
             className="absolute inset-0"
@@ -325,12 +357,12 @@ export default function TarotCard({
       {/* Lock overlay */}
       {isLocked && (
         <div
-          className="absolute inset-0 flex items-center justify-center"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
           style={{ borderRadius: 12, background: "color-mix(in srgb, var(--card) 60%, transparent)" }}
         >
           <span style={{ fontSize: size === "sm" ? 24 : 32 }}>🔒</span>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

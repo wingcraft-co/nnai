@@ -2,19 +2,22 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "next-intl";
 import TarotCard from "./TarotCard";
+import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "./types";
+import {
+  useKrwRate,
+  formatMonthly,
+  formatVisa,
+  formatInternet,
+} from "./format";
 
 // ── Stage type ────────────────────────────────────────────────────
 
 export type DeckStage = "selecting" | "revealing" | "done";
 
 // ── Helpers ───────────────────────────────────────────────────────
-
-const USD_TO_KRW = 1400;
-function toKRW(usd: number): string {
-  return `약 ${Math.round((usd * USD_TO_KRW) / 10000)}만원`;
-}
 
 const FLAG_EMOJI: Record<string, string> = {
   AD:"🇦🇩",AE:"🇦🇪",AL:"🇦🇱",AR:"🇦🇷",AT:"🇦🇹",AU:"🇦🇺",
@@ -39,11 +42,12 @@ function CityLightbox({
   city: CityData;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const krwRate = useKrwRate();
   const flag = FLAG_EMOJI[city.country_id] ?? "🌍";
-  const visaText =
-    city.visa_free_days > 0
-      ? `무비자 ${city.visa_free_days}일`
-      : "비자 필요";
+  const monthly = formatMonthly(city.monthly_cost_usd, locale, krwRate);
+  const visa = formatVisa(city.visa_free_days, locale);
+  const internet = formatInternet(city.internet_mbps);
 
   return (
     <motion.div
@@ -79,27 +83,25 @@ function CityLightbox({
           </p>
         </div>
 
-        {/* Metrics */}
+        {/* Metrics — always 3 cells for layout consistency */}
         <div className="flex justify-around font-mono text-center px-6 py-4"
           style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
         >
           <div className="flex flex-col items-center gap-1">
             <span className="text-lg">💰</span>
-            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Monthly</span>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{toKRW(city.monthly_cost_usd)}</span>
+            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>MONTHLY</span>
+            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{monthly}</span>
           </div>
           <div className="flex flex-col items-center gap-1">
             <span className="text-lg">🛂</span>
-            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Visa</span>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{visaText}</span>
+            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>{visa.label}</span>
+            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{visa.value}</span>
           </div>
-          {city.internet_mbps != null && (
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-lg">📶</span>
-              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Internet</span>
-              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{city.internet_mbps}Mbps</span>
-            </div>
-          )}
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-lg">📶</span>
+            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>INTERNET</span>
+            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{internet}</span>
+          </div>
         </div>
 
         {/* Detail info */}
@@ -170,6 +172,102 @@ function CityLightbox({
   );
 }
 
+// ── Locked Upgrade Lightbox ───────────────────────────────────────
+
+function LockedUpgradeLightbox({
+  lockedCount,
+  onClose,
+}: {
+  lockedCount: number;
+  onClose: () => void;
+}) {
+  const locale = useLocale();
+  const directCheckoutUrl = process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL;
+  const isEn = locale === "en";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="relative w-full max-w-sm"
+        style={{
+          background: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: 16,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* X close */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={isEn ? "Close" : "닫기"}
+          className="absolute right-3 top-3 px-2 py-1 text-sm leading-none"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          ✕
+        </button>
+
+        {/* Header */}
+        <div className="flex flex-col items-center pt-10 pb-6 px-6">
+          <span style={{ fontSize: 40 }}>🔒</span>
+          <h2
+            className="font-serif text-xl font-bold mt-3 text-center leading-snug"
+            style={{ color: "var(--foreground)" }}
+          >
+            {isEn
+              ? "Look into the lives you didn't choose"
+              : "선택하지 않은 운명도 들여다보세요"}
+          </h2>
+          <p
+            className="text-sm mt-3 text-center leading-relaxed"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            {isEn
+              ? `Detailed guides for the remaining ${lockedCount} cities are available with Pro.`
+              : `남은 도시 ${lockedCount}곳의 상세 가이드는 Pro에서 확인할 수 있어요.`}
+          </p>
+        </div>
+
+        {/* CTA */}
+        <div className="px-6 pb-6">
+          <PolarCheckoutButton
+            locale={locale}
+            directCheckoutUrl={directCheckoutUrl}
+            idleLabel={isEn ? "Unlock with Pro" : "Pro로 잠금 해제"}
+            loadingLabel={
+              isEn ? "Opening Polar checkout..." : "Polar 결제 페이지 여는 중..."
+            }
+            className="block w-full bg-primary py-3 text-center text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-3 w-full py-2.5 text-sm font-medium"
+            style={{
+              border: "1px solid var(--border)",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            {isEn ? "Maybe later" : "다음에 보기"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ── Props ─────────────────────────────────────────────────────────
 
 interface TarotDeckProps {
@@ -209,6 +307,7 @@ export default function TarotDeck({
   // ── Lightbox state ──────────────────────────────────────────────
 
   const [lightboxCity, setLightboxCity] = useState<CityData | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // ── Per-card helpers ────────────────────────────────────────────
 
@@ -245,6 +344,8 @@ export default function TarotDeck({
         onToggleSelect(i);
       } else if (isDone && isSelected && city) {
         setLightboxCity(city);
+      } else if (isDone && !isSelected) {
+        setUpgradeOpen(true);
       }
     };
 
@@ -260,7 +361,7 @@ export default function TarotDeck({
           cityData={city}
           isSelected={isSelecting && isSelected}
           isFlipped={flipped}
-          onClick={(isSelecting || (isDone && isSelected)) ? handleClick : undefined}
+          onClick={(isSelecting || isDone) ? handleClick : undefined}
         />
       </motion.div>
     );
@@ -353,6 +454,12 @@ export default function TarotDeck({
           <CityLightbox
             city={lightboxCity}
             onClose={() => setLightboxCity(null)}
+          />
+        )}
+        {upgradeOpen && (
+          <LockedUpgradeLightbox
+            lockedCount={cities.length - selectedIndices.length}
+            onClose={() => setUpgradeOpen(false)}
           />
         )}
       </AnimatePresence>
