@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useLocale } from "next-intl";
+import { Banknote, Stamp, Wifi } from "lucide-react";
 import type { CityData } from "./types";
 import {
   useKrwRate,
@@ -75,6 +76,12 @@ export interface TarotCardProps {
   isFlipped?: boolean;
   readingText?: string | null;
   onClick?: () => void;
+  /** Locked overlay visible (card-size inline) */
+  showLockedOverlay?: boolean;
+  onCloseLockedOverlay?: () => void;
+  /** Polar checkout URL for locked CTA */
+  checkoutUrl?: string | null;
+  locale?: string;
 }
 
 // ── Compass Rose SVG ──────────────────────────────────────────────
@@ -213,9 +220,9 @@ function FrontFace({
 
       {/* Metrics — fixed bottom (always 3 cells for layout consistency) */}
       <div className="flex justify-around items-center font-mono text-center pt-2.5 pb-1">
-        <MetricCell icon="💰" label="MONTHLY" value={monthly} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
-        <MetricCell icon="🛂" label={visa.label} value={visa.value} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
-        <MetricCell icon="📶" label="INTERNET" value={internet} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
+        <MetricCell icon={<Banknote className="w-4 h-4" />} label="MONTHLY" value={monthly} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
+        <MetricCell icon={<Stamp className="w-4 h-4" />} label={visa.label} value={visa.value} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
+        <MetricCell icon={<Wifi className="w-4 h-4" />} label="INTERNET" value={internet} labelFs={cfg.metricLabel} valueFs={cfg.metricVal} />
       </div>
 
       {/* Reading text area — only when provided */}
@@ -249,7 +256,7 @@ function MetricCell({
   labelFs,
   valueFs,
 }: {
-  icon: string;
+  icon: ReactNode;
   label: string;
   value: string;
   labelFs: number;
@@ -257,7 +264,9 @@ function MetricCell({
 }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span style={{ fontSize: valueFs + 2, lineHeight: 1 }}>{icon}</span>
+      <div className="flex items-center justify-center" style={{ width: 16, height: 16, color: "var(--muted-foreground)" }}>
+        {icon}
+      </div>
       <span
         className="font-mono uppercase"
         style={{ fontSize: labelFs, color: "var(--muted-foreground)", letterSpacing: "0.05em" }}
@@ -289,21 +298,27 @@ export default function TarotCard({
   isFlipped = false,
   readingText,
   onClick,
+  showLockedOverlay = false,
+  onCloseLockedOverlay,
+  checkoutUrl,
+  locale: localeProp,
 }: TarotCardProps) {
   const cfg = SIZE_CONFIG[size];
   const isLocked = state === "locked";
   const isFront = state === "front";
   const [isHovered, setIsHovered] = useState(false);
   const clickable = !!onClick;
-  const locale = useLocale();
+  const localeHook = useLocale();
+  const locale = localeProp ?? localeHook;
   const krwRate = useKrwRate();
+  const isEn = locale === "en";
 
   return (
     <motion.div
       className={`relative select-none ${clickable ? "cursor-pointer" : ""}`}
       style={{ perspective: 1200, width: cfg.w, height: cfg.h, borderRadius: 12 }}
       whileHover={
-        isFront
+        clickable
           ? {
               scale: 1.025,
               boxShadow:
@@ -354,13 +369,64 @@ export default function TarotCard({
         )}
       </motion.div>
 
-      {/* Lock overlay */}
-      {isLocked && (
+      {/* Lock dim (default locked state) */}
+      {isLocked && !showLockedOverlay && (
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           style={{ borderRadius: 12, background: "color-mix(in srgb, var(--card) 60%, transparent)" }}
         >
           <span style={{ fontSize: size === "sm" ? 24 : 32 }}>🔒</span>
+        </div>
+      )}
+
+      {/* Lock upgrade inline overlay (card-sized) */}
+      {isLocked && showLockedOverlay && (
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2"
+          style={{
+            borderRadius: 12,
+            background: "color-mix(in srgb, var(--card) 85%, transparent)",
+            border: "1px solid var(--border)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* X close */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onCloseLockedOverlay?.(); }}
+            aria-label={isEn ? "Close" : "닫기"}
+            className="absolute right-2 top-2 px-1.5 py-0.5 text-xs leading-none"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            ✕
+          </button>
+
+          <span style={{ fontSize: size === "sm" ? 28 : 36 }}>🔒</span>
+          <p
+            className="font-serif text-center leading-snug px-3"
+            style={{ fontSize: size === "sm" ? 11 : 13, color: "var(--foreground)" }}
+          >
+            {isEn ? "See more cities" : "추가 도시 보기"}
+          </p>
+          {checkoutUrl && (
+            <a
+              href={checkoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 px-3 py-1.5 text-center font-mono font-medium"
+              style={{
+                fontSize: size === "sm" ? 9 : 11,
+                background: "var(--primary)",
+                color: "var(--primary-foreground)",
+                borderRadius: 4,
+                letterSpacing: "0.03em",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {isEn ? "Unlock with Pro" : "Pro 잠금 해제"}
+            </a>
+          )}
         </div>
       )}
     </motion.div>
