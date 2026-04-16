@@ -5,6 +5,8 @@ import { useState } from 'react';
 type PolarCheckoutButtonProps = {
   locale: string;
   directCheckoutUrl?: string;
+  planCode?: string;
+  returnPath?: string;
   idleLabel: string;
   loadingLabel: string;
   className?: string;
@@ -31,6 +33,8 @@ function pickErrorMessage(payload: unknown, locale: string): string {
 export function PolarCheckoutButton({
   locale,
   directCheckoutUrl,
+  planCode = 'pro_monthly',
+  returnPath,
   idleLabel,
   loadingLabel,
   className,
@@ -49,10 +53,15 @@ export function PolarCheckoutButton({
 
     setLoading(true);
     try {
+      const resolvedReturnPath = returnPath || `/${locale}/pricing?checkout=return`;
       const response = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          plan_code: planCode,
+          locale,
+          return_path: resolvedReturnPath,
+        }),
       });
 
       const payload = (await response.json().catch(() => ({}))) as {
@@ -106,4 +115,3 @@ export function PolarCheckoutButton({
     </div>
   );
 }
-

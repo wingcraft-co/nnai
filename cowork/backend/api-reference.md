@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-16
+> 최종 업데이트: 2026-04-17
 
 운영 메모:
 - FastAPI 앱은 startup lifecycle에서 `utils.db.init_db()`를 호출해 DB 스키마를 보장합니다.
@@ -16,17 +16,19 @@
 1. [인증 (Auth)](#인증)
 2. [추천 API](#추천-api)
 3. [핀 API](#핀-api)
-4. [방문자 카운터 API](#방문자-카운터-api)
-5. [모바일 API (JWT)](#모바일-api-jwt)
-6. [공통 에러](#공통-에러)
-7. [CORS & 쿠키 정책](#cors--쿠키-정책)
+4. [결제 API](#결제-api)
+5. [방문자 카운터 API](#방문자-카운터-api)
+6. [모바일 API (JWT)](#모바일-api-jwt)
+7. [공통 에러](#공통-에러)
+8. [CORS & 쿠키 정책](#cors--쿠키-정책)
 
 ---
 
 ## 인증
 
-NNAI는 **Google OAuth 2.0 + 서버 서명 쿠키** 방식을 사용합니다.
-로그인 후 `nnai_session` 쿠키가 브라우저에 자동 저장되며, 이후 모든 인증 요청에 자동 첨부됩니다.
+ NNAI는 **Google OAuth 2.0 + 서버 서명 opaque session 쿠키** 방식을 사용합니다.
+로그인 후 `nnai_session` 쿠키가 브라우저에 자동 저장되며, 쿠키 안에는 서명된 `session_id`만 들어갑니다.
+실제 사용자 정보는 서버가 `auth_sessions` + `users` 테이블에서 조회합니다.
 프론트엔드는 별도로 토큰을 관리할 필요 없이 **credentials: 'include'** 옵션만 설정하면 됩니다.
 
 ### GET /auth/google
@@ -38,14 +40,23 @@ GET /auth/google
 → 302 Redirect → Google OAuth 화면
 ```
 
+선택 쿼리:
+
+- `return_to` — 로그인 완료 후 되돌아갈 프론트엔드 URL.
+  허용 origin만 받아들이며, 허용되지 않은 값은 서버 기본 `FRONTEND_URL`로 폴백됩니다.
+  예: `https://dev.nnai.app/ko/login`
+
 보안 메모:
 - 서버가 OAuth CSRF 방어용 `oauth_state` 쿠키를 발급합니다.
+- 서버가 서명된 `oauth_return_to` 쿠키를 발급해 callback 시 안전하게 post-login redirect를 복원합니다.
 - 콜백의 `state`가 쿠키와 일치하지 않으면 로그인은 거부됩니다.
+- `return_to`는 allowlist 기반으로 검증되며, 임의 외부 도메인으로의 open redirect는 허용되지 않습니다.
 
 **사용법:** 로그인 버튼 클릭 시 이 URL로 직접 이동시킵니다.
 
 ```js
-window.location.href = `${API_BASE}/auth/google`;
+window.location.href =
+  `${API_BASE}/auth/google?return_to=${encodeURIComponent(window.location.href)}`;
 ```
 
 ---
@@ -56,15 +67,22 @@ Google OAuth 콜백 (프론트엔드에서 직접 호출 불필요 — Google이
 
 ```
 GET /auth/google/callback?code={code}
-→ 302 Redirect → {FRONTEND_URL}  (예: https://nnai.app)
+→ 302 Redirect → `return_to` 또는 {FRONTEND_URL}
   Set-Cookie: nnai_session=...; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=86400
 ```
 
-에러 시: `/?auth_error=1` 로 리다이렉트
-→ 프론트엔드에서 쿼리파라미터 `auth_error=1` 감지 후 에러 메시지 표시
+성공 시:
+- `/auth/google` 시작 시 전달한 `return_to`가 허용된 origin이면 해당 URL로 복귀
+- `return_to`가 없거나 허용되지 않으면 서버 기본 `{FRONTEND_URL}`로 복귀
 
-CSRF 검증 실패 시: `/?auth_error=csrf` 로 리다이렉트
-→ 프론트엔드에서 OAuth 재시도 안내 필요
+에러 시:
+- `return_to`가 있으면 해당 URL에 `auth_error=1` 또는 `auth_error=csrf` 쿼리를 붙여 복귀
+- `return_to`가 없으면 기존처럼 `/?auth_error=...` 로 리다이렉트
+
+프론트엔드 구현 메모:
+- `dev.nnai.app/[locale]/login` 같은 preview/dev 도메인에서도 같은 origin으로 복귀 가능
+- callback 처리 후 `oauth_state`, `oauth_return_to` 쿠키는 삭제됩니다.
+- `nnai_session`에는 프로필 데이터가 아닌 opaque session만 저장됩니다.
 
 ---
 
@@ -101,6 +119,8 @@ GET /auth/me
 }
 ```
 
+유효하지 않은 session cookie, 만료된 session, revoke된 session은 모두 `logged_in: false`로 정규화됩니다.
+
 **프론트엔드 사용 예시:**
 ```js
 const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
@@ -116,13 +136,19 @@ if (user.logged_in) { /* 로그인 상태 처리 */ }
 
 ```
 GET /auth/logout
-→ 302 Redirect → {FRONTEND_URL}  (예: https://nnai.app)
+→ 302 Redirect → `return_to` 또는 {FRONTEND_URL}
   Set-Cookie: nnai_session=; Path=/; SameSite=None; Secure; Max-Age=0  (쿠키 삭제)
 ```
 
+선택 쿼리:
+
+- `return_to` — 로그아웃 후 되돌아갈 프론트엔드 URL.
+  `/auth/google`과 동일한 allowlist 검증이 적용됩니다.
+
 **프론트엔드 사용 예시:**
 ```js
-window.location.href = `${API_BASE}/auth/logout`;
+window.location.href =
+  `${API_BASE}/auth/logout?return_to=${encodeURIComponent(window.location.href)}`;
 ```
 
 ---
@@ -330,6 +356,106 @@ Content-Type: application/json
   "detail": "Too many requests. Please retry later."
 }
 ```
+
+---
+
+## 결제 API
+
+Polar 결제는 앱 권한의 단일 진실 공급원으로 `billing_entitlements`를 사용합니다. 카드번호/CVC/청구주소 원문은 앱 DB에 저장하지 않습니다.
+
+### POST /api/billing/checkout
+
+로그인된 사용자를 Polar checkout으로 보냅니다.
+
+```http
+POST /api/billing/checkout
+Content-Type: application/json
+```
+
+요청 예시:
+
+```json
+{
+  "plan_code": "pro_monthly",
+  "locale": "ko",
+  "return_path": "/ko/pricing?checkout=return"
+}
+```
+
+응답:
+
+```json
+{
+  "checkout_url": "https://polar.sh/checkout/..."
+}
+```
+
+메모:
+- 로그인되지 않으면 `401`
+- 서버는 `external_customer_id=user_id`로 checkout을 생성합니다
+- 생성된 checkout은 `billing_checkout_sessions`에 기록됩니다
+
+### GET /api/billing/status
+
+현재 로그인된 사용자의 entitlement 요약을 반환합니다.
+
+```http
+GET /api/billing/status
+```
+
+응답:
+
+```json
+{
+  "entitlement": {
+    "plan_tier": "free",
+    "status": "active",
+    "payg_enabled": false,
+    "payg_monthly_cap_usd": 50.0
+  }
+}
+```
+
+### POST /api/billing/webhook
+
+Polar webhook 수신 엔드포인트입니다.
+
+```http
+POST /api/billing/webhook
+```
+
+보안 메모:
+- Polar 문서 기준 Standard Webhooks 헤더(`webhook-id`, `webhook-timestamp`, `webhook-signature`)를 검증합니다.
+- 서명 실패 시 `403`
+- `(provider, event_id)` 기준 멱등 처리로 중복 delivery는 무해합니다.
+- `subscription.active`, `subscription.updated`, `subscription.past_due`, `subscription.canceled`, `subscription.revoked`, `order.paid`를 entitlement 반영에 사용합니다.
+
+### POST /api/billing/restore
+
+로그인된 사용자의 `external_customer_id=user_id`를 기준으로 Polar customer state를 다시 조회해 entitlement를 복구합니다.
+
+```http
+POST /api/billing/restore
+```
+
+응답 예시:
+
+```json
+{
+  "ok": true,
+  "restored": true,
+  "entitlement": {
+    "plan_tier": "pro",
+    "status": "active",
+    "payg_enabled": false,
+    "payg_monthly_cap_usd": 50.0
+  }
+}
+```
+
+운영 메모:
+- webhook 지연/유실 시 유료 고객 복구용 엔드포인트입니다.
+- provider 상태에 active subscription이 없다고 해서 이 경로에서 자동 강등하지는 않습니다.
 
 ---
 

@@ -26,6 +26,11 @@
 - **nnai.app** — 프론트엔드 (Vercel)
 - **api.nnai.app** — 백엔드 API (Railway)
 
+## 정책 문서
+- [SECURITY.md](./SECURITY.md) — 현재 적용 중인 보안 통제와 프로덕션 오픈 전 하드닝 계획
+- [TERMS.md](./TERMS.md) — 서비스 이용 조건, 구독/환불 기준 초안
+- [docs/privacy.html](./docs/privacy.html) — 개인정보처리방침
+
 ---
 
 This service is for reference only and does not constitute legal immigration advice.

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from utils.db import get_conn
+from utils.db import get_conn, get_user_identity
 from utils.mobile_auth import require_mobile_auth
 from utils.persona import resolve_character
 
@@ -12,13 +12,12 @@ router = APIRouter(prefix="/api/mobile", tags=["mobile-profile"])
 
 @router.get("/profile")
 def get_profile(user_id: str = Depends(require_mobile_auth)):
+    identity = get_user_identity(user_id)
+    if not identity:
+        raise HTTPException(status_code=404, detail="User not found")
+
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT id, name, picture, email, persona_type FROM users WHERE id = %s", (user_id,))
-        user = cur.fetchone()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
         cur.execute("SELECT badge FROM user_badges WHERE user_id = %s", (user_id,))
         badges = [r[0] for r in cur.fetchall()]
 
@@ -32,12 +31,12 @@ def get_profile(user_id: str = Depends(require_mobile_auth)):
         circle_count = int(cur.fetchone()[0])
 
     return {
-        "uid": user[0],
-        "name": user[1],
-        "picture": user[2],
-        "email": user[3],
-        "persona_type": user[4],
-        "character": resolve_character(user[4]),
+        "uid": identity["id"],
+        "name": identity["name"],
+        "picture": identity["picture"],
+        "email": identity["email"],
+        "persona_type": identity["persona_type"],
+        "character": resolve_character(identity["persona_type"]),
         "badges": badges,
         "stats": {
             "pins": pin_count,

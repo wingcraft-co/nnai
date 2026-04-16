@@ -41,7 +41,10 @@ jobs:
         run: |
           pytest -q \
             tests/test_accommodation.py \
+            tests/test_auth_sessions.py \
             tests/test_auth_routes.py \
+            tests/test_billing_checkout.py \
+            tests/test_billing_webhook.py \
             tests/test_builder.py \
             tests/test_city_scores.py \
             tests/test_currency.py \
@@ -73,6 +76,6 @@ jobs:
             tests/test_mobile_contract_api.py \
             tests/test_mobile_uploads_route.py
 
-      - name: Frontend pricing regression test
+      - name: Frontend regression tests
         run: |
-          node --test frontend/src/lib/pricing-content.test.mjs
+          node --test frontend/src/lib/pricing-content.test.mjs frontend/src/lib/legal-content.test.mjs

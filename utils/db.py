@@ -1,8 +1,11 @@
 """PostgreSQL 연결 + 스키마 초기화."""
 import os
+import secrets
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import psycopg2
+
+from utils.crypto import decrypt_text, encrypt_text, pii_hash
 
 _DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -30,6 +33,35 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             ADD COLUMN IF NOT EXISTS persona_type TEXT;
         """)
         cur.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS email_enc BYTEA;
+        """)
+        cur.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS email_sha256 TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS name_enc BYTEA;
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_email_sha256
+            ON users(email_sha256);
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS auth_sessions (
+                session_id      TEXT PRIMARY KEY,
+                user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                expires_at      TIMESTAMPTZ NOT NULL,
+                revoked_at      TIMESTAMPTZ
+            );
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id
+            ON auth_sessions(user_id);
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS billing_entitlements (
                 user_id                TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
                 plan_tier              TEXT NOT NULL CHECK (plan_tier IN ('free', 'pro')),
@@ -40,6 +72,34 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 current_period_end     TIMESTAMPTZ,
                 updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS provider TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS provider_customer_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS provider_subscription_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS plan_code TEXT NOT NULL DEFAULT 'free';
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE;
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS grace_until TIMESTAMPTZ;
+        """)
+        cur.execute("""
+            ALTER TABLE billing_entitlements
+            ADD COLUMN IF NOT EXISTS last_webhook_at TIMESTAMPTZ;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS billing_usage_ledger (
@@ -63,6 +123,23 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 processed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE (provider, event_id)
             );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS billing_checkout_sessions (
+                id                   BIGSERIAL PRIMARY KEY,
+                user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                provider             TEXT NOT NULL,
+                provider_checkout_id TEXT UNIQUE,
+                plan_code            TEXT NOT NULL,
+                status               TEXT NOT NULL CHECK (status IN ('created', 'completed', 'expired', 'failed')),
+                return_path          TEXT,
+                created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                completed_at         TIMESTAMPTZ
+            );
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_billing_checkout_sessions_user_id
+            ON billing_checkout_sessions(user_id);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS rate_limit_hits (
@@ -527,6 +604,7 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_cities_country_id ON verified_cities(country_id);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_verification_logs_entity ON verification_logs(entity_type, entity_id);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_city_external_metrics_city_id ON verified_city_external_metrics(city_id);")
+    backfill_legacy_user_identity(conn)
     conn.commit()
     return conn
 
@@ -555,13 +633,56 @@ def get_conn() -> psycopg2.extensions.connection:
     return conn
 
 
+def backfill_legacy_user_identity(
+    conn: psycopg2.extensions.connection | None = None,
+) -> int:
+    resolved_conn = conn or get_conn()
+    migrated = 0
+    with resolved_conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, email, name
+            FROM users
+            WHERE email IS NOT NULL
+              AND email <> ''
+            """
+        )
+        rows = cur.fetchall()
+        for user_id, email, name in rows:
+            cur.execute(
+                """
+                UPDATE users
+                SET email = NULL,
+                    name = NULL,
+                    email_enc = COALESCE(email_enc, %s),
+                    email_sha256 = COALESCE(email_sha256, %s),
+                    name_enc = COALESCE(name_enc, %s)
+                WHERE id = %s
+                """,
+                (
+                    encrypt_text(email),
+                    pii_hash(email),
+                    encrypt_text(name),
+                    user_id,
+                ),
+            )
+            migrated += 1
+
+    if conn is None:
+        resolved_conn.commit()
+
+    return migrated
+
+
 def get_billing_entitlement(user_id: str) -> dict | None:
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT plan_tier, status, payg_enabled, payg_monthly_cap_usd,
-                   current_period_start, current_period_end
+                   current_period_start, current_period_end,
+                   provider, provider_customer_id, provider_subscription_id,
+                   plan_code, cancel_at_period_end, grace_until, last_webhook_at
             FROM billing_entitlements
             WHERE user_id = %s
             """,
@@ -579,7 +700,279 @@ def get_billing_entitlement(user_id: str) -> dict | None:
         "payg_monthly_cap_usd": float(row[3]),
         "current_period_start": row[4],
         "current_period_end": row[5],
+        "provider": row[6],
+        "provider_customer_id": row[7],
+        "provider_subscription_id": row[8],
+        "plan_code": row[9],
+        "cancel_at_period_end": row[10],
+        "grace_until": row[11],
+        "last_webhook_at": row[12],
     }
+
+
+def upsert_billing_entitlement(
+    user_id: str,
+    *,
+    provider: str,
+    plan_tier: str,
+    plan_code: str,
+    status: str,
+    provider_customer_id: str | None,
+    provider_subscription_id: str | None,
+    current_period_start,
+    current_period_end,
+    cancel_at_period_end: bool = False,
+    grace_until=None,
+) -> None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO billing_entitlements (
+                user_id, provider, plan_tier, plan_code, status,
+                provider_customer_id, provider_subscription_id,
+                current_period_start, current_period_end,
+                cancel_at_period_end, grace_until, updated_at, last_webhook_at
+            ) VALUES (
+                %s, %s, %s, %s, %s,
+                %s, %s,
+                %s, %s,
+                %s, %s, NOW(), NOW()
+            )
+            ON CONFLICT (user_id) DO UPDATE SET
+                provider = EXCLUDED.provider,
+                plan_tier = EXCLUDED.plan_tier,
+                plan_code = EXCLUDED.plan_code,
+                status = EXCLUDED.status,
+                provider_customer_id = COALESCE(EXCLUDED.provider_customer_id, billing_entitlements.provider_customer_id),
+                provider_subscription_id = COALESCE(EXCLUDED.provider_subscription_id, billing_entitlements.provider_subscription_id),
+                current_period_start = COALESCE(EXCLUDED.current_period_start, billing_entitlements.current_period_start),
+                current_period_end = COALESCE(EXCLUDED.current_period_end, billing_entitlements.current_period_end),
+                cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+                grace_until = EXCLUDED.grace_until,
+                updated_at = NOW(),
+                last_webhook_at = NOW()
+            """,
+            (
+                user_id,
+                provider,
+                plan_tier,
+                plan_code,
+                status,
+                provider_customer_id,
+                provider_subscription_id,
+                current_period_start,
+                current_period_end,
+                cancel_at_period_end,
+                grace_until,
+            ),
+        )
+    conn.commit()
+
+
+def persist_billing_checkout_session(
+    *,
+    user_id: str,
+    provider_checkout_id: str | None,
+    plan_code: str,
+    return_path: str | None,
+    status: str,
+    provider: str = "polar",
+) -> None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO billing_checkout_sessions (
+                user_id, provider, provider_checkout_id, plan_code, status, return_path
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (provider_checkout_id) DO UPDATE SET
+                status = EXCLUDED.status,
+                return_path = EXCLUDED.return_path
+            """,
+            (user_id, provider, provider_checkout_id, plan_code, status, return_path),
+        )
+    conn.commit()
+
+
+def mark_checkout_session_status(
+    provider_checkout_id: str | None,
+    status: str,
+) -> None:
+    if not provider_checkout_id:
+        return
+
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE billing_checkout_sessions
+            SET status = %s,
+                completed_at = CASE
+                    WHEN %s = 'completed' THEN NOW()
+                    ELSE completed_at
+                END
+            WHERE provider_checkout_id = %s
+            """,
+            (status, status, provider_checkout_id),
+        )
+    conn.commit()
+
+
+def record_billing_provider_event(
+    *,
+    provider: str,
+    event_id: str,
+    payload_digest: str,
+) -> bool:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO billing_provider_events (provider, event_id, payload_digest)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (provider, event_id) DO NOTHING
+            """,
+            (provider, event_id, payload_digest),
+        )
+        inserted = cur.rowcount > 0
+    conn.commit()
+    return inserted
+
+
+def upsert_user_identity(
+    user_id: str,
+    *,
+    email: str | None,
+    name: str | None,
+    picture: str | None,
+    created_at: str | None = None,
+) -> None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO users (
+                id, email, name, picture, email_enc, email_sha256, name_enc, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT(id) DO UPDATE SET
+                email = EXCLUDED.email,
+                name = EXCLUDED.name,
+                picture = EXCLUDED.picture,
+                email_enc = EXCLUDED.email_enc,
+                email_sha256 = EXCLUDED.email_sha256,
+                name_enc = EXCLUDED.name_enc
+            """,
+            (
+                user_id,
+                None,
+                None,
+                picture,
+                encrypt_text(email),
+                pii_hash(email),
+                encrypt_text(name),
+                created_at or datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+    conn.commit()
+
+
+def get_user_identity(user_id: str) -> dict | None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, email, email_enc, name, name_enc, picture, persona_type
+            FROM users
+            WHERE id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+
+    if row is None:
+        return None
+
+    email = decrypt_text(row[2]) or row[1]
+    name = decrypt_text(row[4]) or row[3]
+    return {
+        "id": row[0],
+        "email": email,
+        "name": name,
+        "picture": row[5],
+        "persona_type": row[6],
+    }
+
+
+def create_auth_session(
+    user_id: str,
+    *,
+    session_id: str | None = None,
+    ttl_seconds: int = 86400,
+) -> str:
+    conn = get_conn()
+    resolved_session_id = session_id or secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO auth_sessions (session_id, user_id, expires_at)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (session_id) DO UPDATE SET
+                user_id = EXCLUDED.user_id,
+                expires_at = EXCLUDED.expires_at,
+                revoked_at = NULL
+            """,
+            (resolved_session_id, user_id, expires_at),
+        )
+    conn.commit()
+    return resolved_session_id
+
+
+def get_auth_session_identity(session_id: str) -> dict | None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT user_id
+            FROM auth_sessions
+            WHERE session_id = %s
+              AND revoked_at IS NULL
+              AND expires_at > NOW()
+            """,
+            (session_id,),
+        )
+        row = cur.fetchone()
+
+    if row is None:
+        return None
+
+    identity = get_user_identity(row[0])
+    if identity is None:
+        return None
+
+    return {
+        "uid": identity["id"],
+        "name": identity["name"],
+        "picture": identity["picture"],
+        "email": identity["email"],
+        "persona_type": identity["persona_type"],
+    }
+
+
+def revoke_auth_session(session_id: str) -> None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE auth_sessions
+            SET revoked_at = NOW()
+            WHERE session_id = %s
+              AND revoked_at IS NULL
+            """,
+            (session_id,),
+        )
+    conn.commit()
 
 
 def _utcnow() -> datetime:

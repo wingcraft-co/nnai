@@ -16,7 +16,9 @@
 | 테이블 | 설명 |
 |--------|------|
 | `users` | Google OAuth 로그인 유저 |
+| `auth_sessions` | 웹 로그인 opaque session 저장소 |
 | `billing_entitlements` | 웹 entitlement / plan 상태 |
+| `billing_checkout_sessions` | Polar checkout 생성/완료 추적 |
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
 | `pins` | 유저가 저장한 관심 도시 |
@@ -55,20 +57,54 @@ CREATE TABLE IF NOT EXISTS users (
     name       TEXT,               -- 구글 이름
     picture    TEXT,               -- 프로필 이미지 URL
     persona_type TEXT,             -- nnai 표준 페르소나 타입
-    created_at TEXT                -- ISO 8601 타임스탬프 (UTC)
+    created_at TEXT,               -- ISO 8601 타임스탬프 (UTC)
+    email_enc  BYTEA,              -- 이메일 암호화본 (application-level encryption)
+    email_sha256 TEXT,             -- 이메일 검색/중복확인용 hash
+    name_enc   BYTEA               -- 이름 암호화본 (application-level encryption)
 );
 ```
 
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | `id` | TEXT PK | Google OAuth `sub` 값 |
-| `email` | TEXT | 구글 계정 이메일 |
-| `name` | TEXT | 구글 계정 이름 |
+| `email` | TEXT | 레거시 평문 이메일 컬럼. 신규 OAuth upsert는 `NULL`로 유지하고 과거 레코드 호환에만 사용 |
+| `name` | TEXT | 레거시 평문 이름 컬럼. 신규 OAuth upsert는 `NULL`로 유지하고 과거 레코드 호환에만 사용 |
 | `picture` | TEXT | 구글 프로필 이미지 URL |
 | `persona_type` | TEXT | `wanderer|local|planner|free_spirit|pioneer` |
 | `created_at` | TEXT | 최초 로그인 시각 (ISO 8601 UTC) |
+| `email_enc` | BYTEA | 이메일 암호화본 |
+| `email_sha256` | TEXT | 이메일 hash |
+| `name_enc` | BYTEA | 이름 암호화본 |
 
-**참고:** `ON CONFLICT(id) DO UPDATE` — 재로그인 시 email/name/picture 갱신.
+**참고:** 재로그인 시 picture 및 encrypted copy는 갱신됩니다. 신규 OAuth upsert는 raw `email`, `name` 평문을 더 이상 저장하지 않습니다. 앱 시작 시 기존 레거시 plain `email`/`name` 레코드도 encrypted copy로 백필한 뒤 `NULL` 처리합니다.
+
+---
+
+## auth_sessions
+
+웹 로그인용 opaque session 저장소입니다. `nnai_session` 쿠키에는 사용자 프로필 대신 서명된 `session_id`만 저장됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    session_id      TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ NOT NULL,
+    revoked_at      TIMESTAMPTZ
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `session_id` | TEXT PK | opaque session 식별자 |
+| `user_id` | TEXT FK | `users.id` 참조 |
+| `created_at` | TIMESTAMPTZ | 세션 생성 시각 |
+| `expires_at` | TIMESTAMPTZ | 세션 만료 시각 |
+| `revoked_at` | TIMESTAMPTZ | 로그아웃/무효화 시각 |
+
+운영 메모:
+- `revoked_at IS NULL` 이고 `expires_at > NOW()` 인 세션만 유효합니다.
+- 로그아웃 시 쿠키 삭제와 함께 DB 세션도 revoke 됩니다.
 
 ---
 
@@ -85,6 +121,13 @@ CREATE TABLE IF NOT EXISTS billing_entitlements (
     payg_monthly_cap_usd   NUMERIC(10,2) NOT NULL DEFAULT 50.00,
     current_period_start   TIMESTAMPTZ,
     current_period_end     TIMESTAMPTZ,
+    provider               TEXT,
+    provider_customer_id   TEXT,
+    provider_subscription_id TEXT,
+    plan_code              TEXT NOT NULL DEFAULT 'free',
+    cancel_at_period_end   BOOLEAN NOT NULL DEFAULT FALSE,
+    grace_until            TIMESTAMPTZ,
+    last_webhook_at        TIMESTAMPTZ,
     updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
@@ -98,7 +141,46 @@ CREATE TABLE IF NOT EXISTS billing_entitlements (
 | `payg_monthly_cap_usd` | NUMERIC(10,2) | 월 상한, 기본 `50.00` |
 | `current_period_start` | TIMESTAMPTZ | 현재 과금 주기 시작 |
 | `current_period_end` | TIMESTAMPTZ | 현재 과금 주기 종료 |
+| `provider` | TEXT | 현재 entitlement의 provider, 현재는 `polar` |
+| `provider_customer_id` | TEXT | Polar customer ID |
+| `provider_subscription_id` | TEXT | Polar subscription ID |
+| `plan_code` | TEXT | 내부 결제 플랜 코드. 현재 `pro_monthly` 중심 |
+| `cancel_at_period_end` | BOOLEAN | 기간 종료 시 취소 예약 여부 |
+| `grace_until` | TIMESTAMPTZ | past_due 시 유예 만료 시각 |
+| `last_webhook_at` | TIMESTAMPTZ | 마지막 webhook 반영 시각 |
 | `updated_at` | TIMESTAMPTZ | 마지막 갱신 시각 |
+
+---
+
+## billing_checkout_sessions
+
+checkout 생성 이후 webhook 도착 전까지 복구/추적에 사용하는 테이블입니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS billing_checkout_sessions (
+    id                   BIGSERIAL PRIMARY KEY,
+    user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider             TEXT NOT NULL,
+    provider_checkout_id TEXT UNIQUE,
+    plan_code            TEXT NOT NULL,
+    status               TEXT NOT NULL CHECK (status IN ('created', 'completed', 'expired', 'failed')),
+    return_path          TEXT,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at         TIMESTAMPTZ
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | BIGSERIAL PK | 내부 checkout row ID |
+| `user_id` | TEXT FK | `users.id` 참조 |
+| `provider` | TEXT | 현재는 `polar` |
+| `provider_checkout_id` | TEXT | Polar checkout ID |
+| `plan_code` | TEXT | 내부 플랜 코드 |
+| `status` | TEXT | `created`, `completed`, `expired`, `failed` |
+| `return_path` | TEXT | 프론트 복귀 경로 |
+| `created_at` | TIMESTAMPTZ | checkout 생성 시각 |
+| `completed_at` | TIMESTAMPTZ | 완료 처리 시각 |
 
 ---
 
