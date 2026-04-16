@@ -300,3 +300,32 @@ def test_short_stay_block_d_visa_zero():
     """단기 체류 시 Block D의 visa_score는 0이어야 한다."""
     result = recommend_from_db(_profile(timeline="90일 단기 체험", income_usd=3000))
     assert len(result["top_cities"]) > 0
+
+
+def test_block_a_handles_none_internet_metric():
+    from recommender import _block_a
+    import recommender as recommender_mod
+
+    recommender_mod._score_ranges = {
+        "nomad_score": (5, 9),
+        "safety_score": (4, 9),
+        "coworking_score": (4, 9),
+        "internet_mbps": (50, 300),
+    }
+
+    score = _block_a(
+        city={
+            "nomad_score": 8.0,
+            "safety_score": 7.0,
+            "coworking_score": 8.0,
+            "internet_mbps": None,
+            "monthly_cost_usd": 1500,
+            "korean_community_size": "medium",
+        },
+        country={},
+        lifestyle=[],
+        income_usd=3000,
+        purpose="원격 근무",
+    )
+
+    assert 0.0 <= score <= 10.0

@@ -37,30 +37,41 @@ jobs:
         run: |
           python -m py_compile app.py server.py recommender.py api/parser.py prompts/builder.py api/visits.py
 
-      - name: Core regression tests
+      - name: Backend regression tests
         run: |
           pytest -q \
-            tests/test_language_policy.py \
-            tests/test_recommender.py \
-            tests/test_builder.py \
-            tests/test_prompts.py \
-            tests/test_hf_client.py \
-            tests/test_schengen_calculator.py \
-            tests/test_currency.py \
-            tests/test_persona.py \
-            tests/test_planb.py \
-            tests/test_tax_warning.py \
-            tests/test_data_schema.py \
-            tests/test_link_validator.py \
+            tests/test_accommodation.py \
             tests/test_auth_routes.py \
+            tests/test_builder.py \
+            tests/test_city_scores.py \
+            tests/test_currency.py \
+            tests/test_data_schema.py \
+            tests/test_db.py \
             tests/test_db_connection_recovery.py \
             tests/test_db_thread_local.py \
+            tests/test_language_policy.py \
+            tests/test_hf_client.py \
+            tests/test_link_validator.py \
+            tests/test_mobile_auth_oauth_payload.py \
             tests/test_rate_limit_storage.py \
+            tests/test_rate_limit_entitlements.py \
+            tests/test_parser.py \
+            tests/test_persona.py \
+            tests/test_pins_api.py \
+            tests/test_planb.py \
+            tests/test_prompts.py \
+            tests/test_recommender.py \
+            tests/test_schengen_calculator.py \
             tests/test_security_events.py \
             tests/test_server_endpoints.py \
-            tests/test_pins_api.py \
+            tests/test_server_startup.py \
+            tests/test_sync_nomaddb_csv_to_json.py \
+            tests/test_tax_warning.py \
+            tests/test_verification_metadata.py \
+            tests/test_visa_db.py \
             tests/test_visits_api.py \
-            tests/test_mobile_contract_api.py
+            tests/test_mobile_contract_api.py \
+            tests/test_mobile_uploads_route.py
 
       - name: Frontend pricing regression test
         run: |

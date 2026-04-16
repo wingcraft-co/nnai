@@ -3,7 +3,11 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-15
+> 최종 업데이트: 2026-04-16
+
+운영 메모:
+- FastAPI 앱은 startup lifecycle에서 `utils.db.init_db()`를 호출해 DB 스키마를 보장합니다.
+- 모듈 import 시점에는 DB 초기화를 수행하지 않으므로, 테스트/스크립트에서 `server` import 부작용이 없습니다.
 
 ---
 

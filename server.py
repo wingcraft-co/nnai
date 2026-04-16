@@ -1,5 +1,6 @@
 """FastAPI 백엔드 서버."""
 from __future__ import annotations
+from contextlib import asynccontextmanager
 import os
 import uuid
 from dotenv import load_dotenv
@@ -39,11 +40,15 @@ from utils.rate_limit import (
 )
 from utils.security_events import log_security_event
 
-# DB 초기화 (앱 시작 시 1회)
-init_db()
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """앱 시작 시 DB 스키마를 보장한다."""
+    init_db()
+    yield
+
 
 # FastAPI 앱
-app = FastAPI(title="NomadNavigator API")
+app = FastAPI(title="NomadNavigator API", lifespan=lifespan)
 
 # CORS — Vercel 프론트엔드에서 백엔드 API 호출 허용
 _ALLOWED_ORIGINS = [

@@ -3,7 +3,11 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-04-15
+> 최종 업데이트: 2026-04-16
+
+운영 메모:
+- 스키마 보장 시점은 FastAPI startup (`server.py`) 입니다.
+- `server` 모듈 import만으로는 DB 연결/DDL이 실행되지 않습니다.
 
 ---
 

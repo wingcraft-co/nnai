@@ -1,7 +1,6 @@
 """POST /api/recommend 및 /api/detail FastAPI 엔드포인트 테스트.
 
-server.py는 import 시 init_db()를 호출하므로,
-엔드포인트 로직만 격리한 최소 FastAPI 앱을 구성해 테스트합니다.
+DB 초기화 부작용 없이 엔드포인트 로직만 격리한 최소 FastAPI 앱을 구성해 테스트합니다.
 """
 from __future__ import annotations
 from typing import Optional

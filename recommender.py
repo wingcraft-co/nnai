@@ -325,6 +325,12 @@ def _normalize(val: float, min_val: float, max_val: float) -> float:
     return (val - min_val) / (max_val - min_val) * 10.0
 
 
+def _metric_value(record: dict[str, Any], key: str, default: float) -> float:
+    """Return numeric-like metric, falling back when the field is present but null."""
+    value = record.get(key)
+    return default if value is None else value
+
+
 def _normalize_lifestyle(lifestyle: list[str]) -> list[str]:
     """Frontend lifestyle labels → internal keys (pass-through if already internal)."""
     return [_LIFESTYLE_ALIASES.get(pref, pref) for pref in lifestyle]
@@ -442,10 +448,10 @@ def _block_a(city: dict, country: dict, lifestyle: list[str], income_usd: float 
              purpose: str = "") -> float:
     """Base city fitness — nomad, safety, coworking, internet + lifestyle bonuses."""
     ranges = _score_ranges or {}
-    nomad    = _normalize(city.get("nomad_score", 5),      *ranges.get("nomad_score",     (5, 9)))
-    safety   = _normalize(city.get("safety_score", 5),     *ranges.get("safety_score",    (4, 9)))
-    cowork   = _normalize(city.get("coworking_score", 5),  *ranges.get("coworking_score", (4, 9)))
-    internet = _normalize(city.get("internet_mbps", 100),  *ranges.get("internet_mbps",  (50, 300)))
+    nomad = _normalize(_metric_value(city, "nomad_score", 5), *ranges.get("nomad_score", (5, 9)))
+    safety = _normalize(_metric_value(city, "safety_score", 5), *ranges.get("safety_score", (4, 9)))
+    cowork = _normalize(_metric_value(city, "coworking_score", 5), *ranges.get("coworking_score", (4, 9)))
+    internet = _normalize(_metric_value(city, "internet_mbps", 100), *ranges.get("internet_mbps", (50, 300)))
 
     # Purpose-based base weights
     w_nomad, w_safety, w_cowork, w_internet = _PURPOSE_WEIGHTS.get(purpose, _DEFAULT_PURPOSE_WEIGHTS)
@@ -519,13 +525,13 @@ def _score_persona_attrs(
     score = 0.0
     for attr, w in weights.items():
         if attr == "nomad_score":
-            score += _normalize(city.get("nomad_score", 5), *ranges.get("nomad_score", (5, 9))) * w
+            score += _normalize(_metric_value(city, "nomad_score", 5), *ranges.get("nomad_score", (5, 9))) * w
         elif attr == "safety_score":
-            score += _normalize(city.get("safety_score", 5), *ranges.get("safety_score", (4, 9))) * w
+            score += _normalize(_metric_value(city, "safety_score", 5), *ranges.get("safety_score", (4, 9))) * w
         elif attr == "coworking_score":
-            score += _normalize(city.get("coworking_score", 5), *ranges.get("coworking_score", (4, 9))) * w
+            score += _normalize(_metric_value(city, "coworking_score", 5), *ranges.get("coworking_score", (4, 9))) * w
         elif attr == "english_score":
-            score += _normalize(city.get("english_score", 5), *ranges.get("english_score", (4, 10))) * w
+            score += _normalize(_metric_value(city, "english_score", 5), *ranges.get("english_score", (4, 10))) * w
         elif attr == "korean_community_size":
             ks = _COMMUNITY_SCORE.get(city.get("korean_community_size", ""), 0)
             score += ks * w
@@ -648,7 +654,7 @@ def _block_d(
             visa_score = min(10.0, visa_score * 1.5)
 
     # Language environment (0–10)
-    english = _normalize(city.get("english_score", 5), *ranges.get("english_score", (4, 10)))
+    english = _normalize(_metric_value(city, "english_score", 5), *ranges.get("english_score", (4, 10)))
     english_mul = 1.5 if "영어권 선호" in lifestyle else 1.0
     lang_score = min(10.0, english * english_mul)
 
@@ -660,9 +666,9 @@ def _block_d(
     has_teen = any(a == "13~18" for a in ages)                # 중고등
 
     if "자녀" in travel_type or ("가족" in travel_type and ages):
-        safety = city.get("safety_score", 5)
+        safety = _metric_value(city, "safety_score", 5)
         cost_eff = max(0.0, (1.0 - _cost_ratio(city, income_usd)) * 10)
-        english = _normalize(city.get("english_score", 5), *ranges.get("english_score", (4, 10)))
+        english = _normalize(_metric_value(city, "english_score", 5), *ranges.get("english_score", (4, 10)))
         community = _COMMUNITY_SCORE.get(city.get("korean_community_size", ""), 0)
 
         # 연령대별 가중치 합산
@@ -693,7 +699,7 @@ def _block_d(
             + community * (w_community / total_w)
         )
     elif "배우자" in travel_type or "가족" in travel_type or "파트너" in travel_type:
-        safety = city.get("safety_score", 5)
+        safety = _metric_value(city, "safety_score", 5)
         if is_short_stay:
             # 90일 단기: 갱신 불필요 — 안전 중심
             companion_score = safety
@@ -744,11 +750,11 @@ def _wellbeing_proxy_breakdown(
     """0–10 wellbeing proxy with component breakdown."""
     ranges = _score_ranges or {}
 
-    safety = _normalize(city.get("safety_score", 5), *ranges.get("safety_score", (4, 9)))
+    safety = _normalize(_metric_value(city, "safety_score", 5), *ranges.get("safety_score", (4, 9)))
     affordability = _cost_score(city, income_usd)
     community = _COMMUNITY_SCORE.get(city.get("korean_community_size", ""), 0)
-    nomad = _normalize(city.get("nomad_score", 5), *ranges.get("nomad_score", (5, 9)))
-    english = _normalize(city.get("english_score", 5), *ranges.get("english_score", (4, 10)))
+    nomad = _normalize(_metric_value(city, "nomad_score", 5), *ranges.get("nomad_score", (5, 9)))
+    english = _normalize(_metric_value(city, "english_score", 5), *ranges.get("english_score", (4, 10)))
 
     # Baseline (solo / general)
     w_safety = 0.30
