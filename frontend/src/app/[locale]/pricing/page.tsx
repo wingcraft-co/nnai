@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { BillingReturnNotice } from '@/components/pay/BillingReturnNotice';
 import { PolarCheckoutButton } from '@/components/pay/PolarCheckoutButton';
 import { getPricingContent, resolvePricingLocale } from '@/lib/pricing-content.mjs';
 
@@ -20,6 +21,8 @@ export default async function LocalizedPricingPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-4 py-10">
+      <BillingReturnNotice locale={content.locale} />
+
       <div className="mb-6">
         <img src="/earth_web.gif" alt="" width={96} height={96} className="mx-auto" />
       </div>

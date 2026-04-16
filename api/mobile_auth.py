@@ -8,7 +8,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from utils.db import get_conn
+from utils.db import get_user_identity, upsert_user_identity
 from utils.mobile_auth import create_jwt, require_mobile_auth
 from utils.persona import resolve_character
 
@@ -28,19 +28,7 @@ class TokenRequest(BaseModel):
 
 
 def _get_user(user_id: str) -> dict | None:
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute("SELECT id, name, picture, email, persona_type FROM users WHERE id = %s", (user_id,))
-        row = cur.fetchone()
-    if not row:
-        return None
-    return {
-        "id": row[0],
-        "name": row[1],
-        "picture": row[2],
-        "email": row[3],
-        "persona_type": row[4],
-    }
+    return get_user_identity(user_id)
 
 
 def _build_google_token_payload(body: TokenRequest) -> dict[str, str]:
@@ -116,20 +104,12 @@ async def mobile_token(body: TokenRequest):
     if not user_id:
         raise HTTPException(status_code=400, detail="Failed to fetch user info")
 
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO users (id, email, name, picture, created_at)
-            VALUES (%s, %s, %s, %s, NOW()::text)
-            ON CONFLICT (id) DO UPDATE
-                SET email = EXCLUDED.email,
-                    name = EXCLUDED.name,
-                    picture = EXCLUDED.picture
-            """,
-            (user_id, info.get("email"), info.get("name"), info.get("picture")),
-        )
-    conn.commit()
+    upsert_user_identity(
+        user_id,
+        email=info.get("email"),
+        name=info.get("name"),
+        picture=info.get("picture"),
+    )
 
     return {
         "token": create_jwt(user_id),

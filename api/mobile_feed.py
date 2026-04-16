@@ -6,7 +6,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from utils.db import get_conn
+from utils.db import get_conn, get_user_identity
 from utils.mobile_auth import require_mobile_auth
 
 router = APIRouter(prefix="/api/mobile", tags=["mobile-feed"])
@@ -25,6 +25,14 @@ class CommentCreate(BaseModel):
     body: str
 
 
+def _identity_names(user_ids: list[str]) -> dict[str, str | None]:
+    names: dict[str, str | None] = {}
+    for user_id in dict.fromkeys(user_ids):
+        identity = get_user_identity(user_id)
+        names[user_id] = identity["name"] if identity else None
+    return names
+
+
 @router.get("/posts")
 def get_posts(
     limit: int = 20,
@@ -35,7 +43,7 @@ def get_posts(
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT p.id, p.user_id, u.name, COALESCE(p.image_url, u.picture) AS picture, u.persona_type,
+            SELECT p.id, p.user_id, COALESCE(p.image_url, u.picture) AS picture, u.persona_type,
                    p.title, p.body, p.tags, p.city, p.likes_count, p.created_at,
                    EXISTS(
                        SELECT 1 FROM post_likes
@@ -49,21 +57,22 @@ def get_posts(
             (user_id, limit, offset),
         )
         rows = cur.fetchall()
+    author_names = _identity_names([r[1] for r in rows])
 
     return [
         {
             "id": r[0],
             "user_id": r[1],
-            "author": r[2],
-            "picture": r[3],
-            "author_persona_type": r[4],
-            "title": r[5],
-            "body": r[6],
-            "tags": r[7],
-            "city": r[8],
-            "likes_count": r[9],
-            "created_at": str(r[10]),
-            "liked": r[11],
+            "author": author_names.get(r[1]),
+            "picture": r[2],
+            "author_persona_type": r[3],
+            "title": r[4],
+            "body": r[5],
+            "tags": r[6],
+            "city": r[7],
+            "likes_count": r[8],
+            "created_at": str(r[9]),
+            "liked": r[10],
         }
         for r in rows
     ]
@@ -86,7 +95,7 @@ def create_post(body: PostCreate, user_id: str = Depends(require_mobile_auth)):
 
         cur.execute(
             """
-            SELECT p.id, p.user_id, u.name, COALESCE(p.image_url, u.picture) AS picture, u.persona_type,
+            SELECT p.id, p.user_id, COALESCE(p.image_url, u.picture) AS picture, u.persona_type,
                    p.title, p.body, p.tags, p.city, p.likes_count, p.created_at
             FROM posts p
             JOIN users u ON u.id = p.user_id
@@ -96,19 +105,20 @@ def create_post(body: PostCreate, user_id: str = Depends(require_mobile_auth)):
         )
         row = cur.fetchone()
     conn.commit()
+    identity = get_user_identity(row[1])
 
     return {
         "id": row[0],
         "user_id": row[1],
-        "author": row[2],
-        "picture": row[3],
-        "author_persona_type": row[4],
-        "title": row[5],
-        "body": row[6],
-        "tags": row[7],
-        "city": row[8],
-        "likes_count": row[9],
-        "created_at": str(row[10]),
+        "author": identity["name"] if identity else None,
+        "picture": row[2],
+        "author_persona_type": row[3],
+        "title": row[4],
+        "body": row[5],
+        "tags": row[6],
+        "city": row[7],
+        "likes_count": row[8],
+        "created_at": str(row[9]),
         "liked": False,
     }
 
@@ -161,7 +171,7 @@ def get_comments(post_id: int, user_id: str = Depends(require_mobile_auth)):
 
         cur.execute(
             """
-            SELECT c.id, c.user_id, u.name, u.picture, c.body, c.created_at
+            SELECT c.id, c.user_id, u.picture, c.body, c.created_at
             FROM post_comments c
             JOIN users u ON u.id = c.user_id
             WHERE c.post_id = %s
@@ -170,15 +180,16 @@ def get_comments(post_id: int, user_id: str = Depends(require_mobile_auth)):
             (post_id,),
         )
         rows = cur.fetchall()
+    author_names = _identity_names([r[1] for r in rows])
 
     return [
         {
             "id": r[0],
             "user_id": r[1],
-            "author": r[2],
-            "picture": r[3],
-            "body": r[4],
-            "created_at": str(r[5]),
+            "author": author_names.get(r[1]),
+            "picture": r[2],
+            "body": r[3],
+            "created_at": str(r[4]),
         }
         for r in rows
     ]
@@ -204,7 +215,7 @@ def create_comment(post_id: int, body: CommentCreate, user_id: str = Depends(req
 
         cur.execute(
             """
-            SELECT c.id, c.user_id, u.name, u.picture, c.body, c.created_at
+            SELECT c.id, c.user_id, u.picture, c.body, c.created_at
             FROM post_comments c
             JOIN users u ON u.id = c.user_id
             WHERE c.id = %s
@@ -213,12 +224,13 @@ def create_comment(post_id: int, body: CommentCreate, user_id: str = Depends(req
         )
         row = cur.fetchone()
     conn.commit()
+    identity = get_user_identity(row[1])
 
     return {
         "id": row[0],
         "user_id": row[1],
-        "author": row[2],
-        "picture": row[3],
-        "body": row[4],
-        "created_at": str(row[5]),
+        "author": identity["name"] if identity else None,
+        "picture": row[2],
+        "body": row[3],
+        "created_at": str(row[4]),
     }
