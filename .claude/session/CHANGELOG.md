@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## [2026-04-17 KST 세션 5] — CityLightbox 개인화 강화 + 가이드 데모 페이지
+
+### 변경 파일
+- `frontend/src/components/tarot/TarotDeck.tsx` :
+  - `getPersonalizedInsight(persona, travelType, timeline, city)` 인라인 헬퍼 (6조건 분기)
+  - CityLightbox에 Personalized Insight (비자 정보 위, ko 전용)
+  - CityLightbox에 Login CTA (외부 링크 위) — `/auth/me` 쿠키 세션 체크, Google 브랜드 SVG, `buildGoogleLoginUrl` 헬퍼 재사용
+- `frontend/src/app/[locale]/guide/[city_id]/page.tsx` (신규) :
+  - 방콕 MOCK 데이터 기반 LLM 풀 가이드 데모 페이지 (회의용, 실제 API 연동 없음)
+  - 페르소나·travel_type 한국어 라벨 매핑, localStorage fallback, `/result` 복귀 fallback, `className="dark"` 강제
+- `docs/designs/tarot-card-design.md` : Personalized Insight 섹션 + Login CTA 섹션 + Decisions Log 2건
+
+### 작업 요약
+- 무엇을:
+  1. **Personalized Insight 한 줄**: localStorage(`persona_type`, `_user_profile.{travel_type,timeline}`) + city 데이터 기반 6가지 조건 분기 (동반자+치안≥8 → 동반자+한인 large → free_spirit+tropical → free_spirit+무비자90 → free_spirit+renewable → 단기+무비자60). 미매치 시 null → 미렌더. 기존 `space-y-4` separator 공유
+  2. **Login CTA 블록**: CityLightbox 외부 링크 위에 divider + 타이틀 + 서브카피 + Google 로고 버튼. 쿠키 세션 `/auth/me` logged_in=false일 때만 노출. `buildGoogleLoginUrl` 헬퍼로 `/auth/google?return_to=현재URL` 실제 리다이렉트
+  3. **/guide/[city_id] 데모**: LLM 풀 가이드 페이지 prototype. 비자 타임라인 / 예산 시뮬레이션 / 세금 체크리스트 / 동반자 개인화 4섹션. city_id params는 현재 무시 (항상 방콕 MOCK)
+- 왜: 타로 결과 → 개인화 insight → 로그인 유도 → 풀 가이드 end-to-end 시각화가 회의 자료로 필요. Google OAuth 프론트엔드 진입점 확보
+- 영향 범위: result 페이지 CityLightbox UI, 신규 /guide/[city_id] 라우트. 백엔드 변경 없음
+
+### 주요 결정사항
+- **`var(--primary)` 일관 사용 (amber)**: 스펙이 반복적으로 `var(--accent)`를 amber로 지칭했지만, dark 모드에서 `--accent`는 `oklch(0.374 …)` muted brown이라 contrast 붕괴. 세 곳 모두 `--primary`로 교체 (insight text, CTA hover, guide 섹션 타이틀/배너)
+- **auth 체크 메커니즘 교정**: 스펙의 localStorage `auth_token`/`user_email`은 프로젝트에 존재하지 않는 키. 실제 메커니즘(`/auth/me` 쿠키 세션, `GoogleLoginPanel.tsx`와 동일) 사용하여 스펙 의도 보존
+- **동반자 copy 중립화**: `"파트너와 함께라면"` → `"동반자와 함께라면"` (가족/자녀 동반 유저도 동일 문구)
+- **동반자 매칭 확장**: `travel_type.includes("배우자" | "파트너" | "가족")` (원 스펙은 가족 누락, 사용자 승인 후 확장)
+- **tropical 매칭 완화**: `city.climate === "tropical"` → `city.climate?.includes("tropical")` (subtropical 7개 도시 포함)
+- **Google 브랜드 로고 HEX 예외**: `#EA4335` 등 상표권 브랜드 컬러는 HEX 금지 규칙의 예외
+- **`✦` prefix 중복 회피**: Personalized Insight에만 사용. Login CTA 타이틀은 생략
+- **페르소나/travel_type 배지는 한국어 라벨**: 가이드 데모에 `"free_spirit"` 코드 노출 방지 → `PERSONAS["free_spirit"].label` = "자유로운 영혼"
+
+### 다음 세션 참고사항
+- Login CTA 버튼은 **실제 OAuth 리다이렉트** 연결됨 (TODO 아님). 회의 시연에서 버튼 클릭 시 실제로 `/auth/google`로 넘어감 — 의도 확인 필요
+- /guide/[city_id] 페이지는 layout 전역 적용으로 LegalFooter + LocaleSwitcher가 함께 렌더됨. 데모에서 거슬리면 별도 플래그 처리 필요
+- `"자녀 동반 (배우자 없이)"` 케이스는 NNAI 타겟이 아니라고 사용자 언급 — 근본 페르소나 타겟팅 논의 대기
+- `.claude/settings.json`, `.claude/commands/`, `.claude/session/scp.sh` 여전히 unstaged (세션 1부터 보류)
+
+---
+
 ## [2026-04-17 KST 세션 4] — 타로 카드 UX 수정 (정렬/잠금 hover/Lightbox) + develop sync
 
 ### 변경 파일

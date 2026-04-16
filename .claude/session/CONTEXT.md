@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-17 KST (세션 4)_
+_Last updated: 2026-04-17 KST (세션 5)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -30,6 +30,9 @@ _Last updated: 2026-04-17 KST (세션 4)_
 - **잠금 카드**: 카드 크기 인라인 dim 오버레이 (🔒 + CTA → Polar 결제). hover 시 opacity 0.15→0.65 + 🔒 scale 1.08 ("커튼 걷히는" 메타포, amber glow 없이).
 - **CityLightbox**: X 닫기 아이콘(44×44 터치 영역, WCAG 2.5.5) + ESC 키 + 바깥 클릭 닫기. X는 스크롤 바깥 우상단 고정. 하단 닫기 버튼 없음.
 - **메트릭 아이콘**: lucide-react (`Banknote`/`Stamp`/`Wifi`) w-4 h-4, CSS 변수 색상. 3셀 `flex-1 min-w-0` 균등 너비로 아이콘 1/3 지점 고정. 카드+라이트박스 통일.
+- **Personalized Insight (ko 전용)**: CityLightbox 상단에 localStorage(`persona_type`, `_user_profile.{travel_type,timeline}`) 기반 한 줄 문장. 6조건 분기(동반자+치안/한인 → free_spirit+기후/무비자/갱신 → 단기+무비자). `✦` prefix, `--primary` amber.
+- **Login CTA (ko 전용)**: CityLightbox 외부 링크 위에 Google OAuth 진입점. `/auth/me` 쿠키 세션 체크, logged_out일 때만 노출. `buildGoogleLoginUrl` 헬퍼로 실제 리다이렉트.
+- **/guide/[city_id] 데모 페이지**: LLM 풀 가이드 prototype (방콕 MOCK). 회의용 시연. 실제 API 연동은 추후.
 - **폼 자동 넘김**: 단일 선택 + 조건부 필드 없음 → 자동 다음 스텝
 - **단기 체류**: 소득 대신 월 예산 버튼 선택, 배우자 소득 숨김
 - **캐릭터**: 폼에서 스텝 간 슬라이드 이동 (퀴즈 경유=페르소나, 직접 진입=grace+rocky)
