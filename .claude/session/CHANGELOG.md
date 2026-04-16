@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## [2026-04-17 KST 세션 4] — 타로 카드 UX 수정 (정렬/잠금 hover/Lightbox) + develop sync
+
+### 변경 파일
+- `frontend/src/components/tarot/TarotCard.tsx` : MetricCell `flex-1 min-w-0` 균등 너비, 잠금 카드 hover opacity pop (0.15→0.65), 🔒 아이콘 scale hover 1.08, 루트 motion.div로 opacity 로직 이관
+- `frontend/src/components/tarot/TarotDeck.tsx` : CityLightbox 하단 닫기 버튼 제거, X 버튼 44×44 터치 영역 + 스크롤 바깥 고정, 메트릭 3셀 `flex-1 min-w-0`, 래퍼 opacity 애니메이션 제거(TarotCard로 이관)
+- `docs/designs/tarot-card-design.md` : States 표 Locked (default/hover) 분리, Hover 정책 보강, CityLightbox 섹션 업데이트, Decisions Log 3건 추가
+
+### 작업 요약
+- 무엇을:
+  1. **Stats 정렬 수정**: `justify-around` + content 가변 너비 → 3셀 `flex-1 min-w-0` 균등 너비. 아이콘이 1/3 지점에 고정 (카드/라이트박스 양쪽)
+  2. **잠금 카드 hover 강화**: 기존 scale+shadow는 래퍼 `opacity: 0.15`에 가려져 무반응. 루트 motion.div에 `animate opacity` 주입 (locked+hover: 0.65, overlay 표시: 1, default locked: 0.15, 비-locked: 1). 🔒 아이콘 scale 1 → 1.08. "커튼 걷히는" 메타포
+  3. **CityLightbox 정리**: 하단 '닫기' 버튼 제거(중복 CTA). X 버튼 44×44 (WCAG 2.5.5 Target Size). 스크롤 바깥 absolute 배치로 스크롤 중에도 우상단 고정
+  4. **origin/develop sync**: `0f4f255 → 392d980` fast-forward pull (billing/pricing fix, `utils/crypto.py` PII, legal 페이지 login/privacy/terms). `frontend` npm install 후 `found 0 vulnerabilities` — Dependabot 8건 모두 해결됨
+- 왜: 사용자 점검에서 3가지 이슈 발견 — 아이콘/값 시각 정렬 어긋남, 잠금 hover 체감 부족, 닫기 경로 중복 + X가 스크롤 시 가려짐. 별도로 아내팀 backend email 암호화 이슈 해소로 freeze 해제
+- 영향 범위: 결과 페이지 카드 UI/라이트박스. 백엔드 영향 없음. `layout.tsx`에 LegalFooter 추가됨(전 페이지 하단 공통)
+
+### 주요 결정사항
+- **Stats 정렬 원인 분석**: `justify-around`는 content 너비 기반 간격 배분 → "약 196만원" vs "60일" vs "—Mbps" 너비 편차로 각 셀 중심점이 1/3 지점에서 어긋남. `flex-1 min-w-0`로 균등 컬럼 확보
+- **잠금 hover A안 채택**: amber glow pulse(B안) 대신 opacity 0.15→0.65 + 🔒 scale 1.08. `amber glow는 selected 전용` 정책(feedback_theme_colors.md, tarot-card-design.md) 유지
+- **CityLightbox 구조 분리**: `max-h-[85vh] overflow-hidden flex-col` 외곽 + `flex-1 min-h-0 overflow-y-auto` 내부 → X 버튼(absolute)은 스크롤 밖에 고정
+- **Push freeze 해제**: 아내팀 이슈 해결로 pull 재개, 본 세션에서 push도 허용. `project_push_pull_freeze.md` 메모리는 push 허용 반영 후 정리
+
+### 다음 세션 참고사항
+- `frontend/src/app/[locale]/layout.tsx`에 LegalFooter 추가됨 → result 페이지 하단 푸터 렌더 영향 dev 서버에서 sanity 체크 권장
+- `.claude/settings.json`, `.claude/commands/`, `.claude/session/scp.sh` 여전히 unstaged — 사용자 결정 대기 중
+- 잠금 hover A안 체감 재검증 후 필요 시 B안(🔒 주변 국소 amber glow pulse) 추가 검토
+
+---
+
 ## [2026-04-16 KST 세션 3] — result 카드 UX 개선 — 호버/잠금 오버레이/아이콘/라이트박스
 
 ### 변경 파일

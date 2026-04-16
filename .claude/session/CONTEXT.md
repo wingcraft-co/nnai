@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-16 KST (세션 3)_
+_Last updated: 2026-04-17 KST (세션 4)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -27,9 +27,9 @@ _Last updated: 2026-04-16 KST (세션 3)_
 - **결과 페이지**: 타로카드 UI — dark 모드, 3-Stage (selecting → revealing → done), 5장 고정 레이아웃
 - **타로카드 디자인**: Amber Mono 2.0 기반 정적 프리미엄 디자인. Compass Rose 뒷면, Label+Value 앞면. CSS 변수만 사용, HEX 하드코딩 금지.
 - **호버**: 모든 clickable 카드에 scale 1.025 + depth shadow 동일 적용. amber glow는 selected 전용.
-- **잠금 카드**: 카드 크기 인라인 dim 오버레이 (🔒 + CTA → Polar 결제). fullscreen 모달은 제거됨.
-- **CityLightbox**: X 닫기 아이콘 + ESC 키 + 바깥 클릭 닫기 지원.
-- **메트릭 아이콘**: lucide-react (`Banknote`/`Stamp`/`Wifi`) w-4 h-4, CSS 변수 색상. 카드+라이트박스 통일.
+- **잠금 카드**: 카드 크기 인라인 dim 오버레이 (🔒 + CTA → Polar 결제). hover 시 opacity 0.15→0.65 + 🔒 scale 1.08 ("커튼 걷히는" 메타포, amber glow 없이).
+- **CityLightbox**: X 닫기 아이콘(44×44 터치 영역, WCAG 2.5.5) + ESC 키 + 바깥 클릭 닫기. X는 스크롤 바깥 우상단 고정. 하단 닫기 버튼 없음.
+- **메트릭 아이콘**: lucide-react (`Banknote`/`Stamp`/`Wifi`) w-4 h-4, CSS 변수 색상. 3셀 `flex-1 min-w-0` 균등 너비로 아이콘 1/3 지점 고정. 카드+라이트박스 통일.
 - **폼 자동 넘김**: 단일 선택 + 조건부 필드 없음 → 자동 다음 스텝
 - **단기 체류**: 소득 대신 월 예산 버튼 선택, 배우자 소득 숨김
 - **캐릭터**: 폼에서 스텝 간 슬라이드 이동 (퀴즈 경유=페르소나, 직접 진입=grace+rocky)
