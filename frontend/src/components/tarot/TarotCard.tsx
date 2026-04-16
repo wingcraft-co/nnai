@@ -263,7 +263,7 @@ function MetricCell({
   valueFs: number;
 }) {
   return (
-    <div className="flex flex-col items-center gap-0.5">
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-0.5">
       <div className="flex items-center justify-center" style={{ width: 16, height: 16, color: "var(--muted-foreground)" }}>
         {icon}
       </div>
@@ -317,6 +317,15 @@ export default function TarotCard({
     <motion.div
       className={`relative select-none ${clickable ? "cursor-pointer" : ""}`}
       style={{ perspective: 1200, width: cfg.w, height: cfg.h, borderRadius: 12 }}
+      animate={{
+        opacity: !isLocked
+          ? 1
+          : showLockedOverlay
+          ? 1
+          : isHovered
+          ? 0.65
+          : 0.15,
+      }}
       whileHover={
         clickable
           ? {
@@ -326,7 +335,11 @@ export default function TarotCard({
             }
           : undefined
       }
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{
+        opacity: { duration: 0.4, ease: "easeOut" },
+        scale: { duration: 0.2, ease: "easeOut" },
+        boxShadow: { duration: 0.2, ease: "easeOut" },
+      }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       onClick={onClick}
@@ -375,7 +388,16 @@ export default function TarotCard({
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           style={{ borderRadius: 12, background: "color-mix(in srgb, var(--card) 60%, transparent)" }}
         >
-          <span style={{ fontSize: size === "sm" ? 24 : 32 }}>🔒</span>
+          <span
+            style={{
+              fontSize: size === "sm" ? 24 : 32,
+              transform: `scale(${isHovered ? 1.08 : 1})`,
+              transition: "transform 0.25s ease-out",
+              display: "inline-block",
+            }}
+          >
+            🔒
+          </span>
         </div>
       )}
 

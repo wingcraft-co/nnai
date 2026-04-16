@@ -78,13 +78,15 @@
 | Default | `--border` | none | 1.0 |
 | Hover (모든 clickable 카드) | front: `color-mix(--primary 22%, --border)` (미세 lift) / back·locked: 변화 없음 | depth shadow `0 6px 18px color-mix(--background 70%, transparent)` — amber glow 없음 | 1.025 |
 | Selected | `--primary` | `--ring` 20px + 60px outer (amber glow) | 1.0 |
-| Locked | `--border` (opacity 0.15) | dim overlay `color-mix(--card 60%, transparent)` + 🔒 | 1.0 |
+| Locked (default) | `--border` (opacity 0.15) | dim overlay `color-mix(--card 60%, transparent)` + 🔒 | 1.0 |
+| Locked (hover) | 동일 | 카드 전체 opacity 0.15 → 0.65 + 🔒 아이콘 scale 1.08 + depth shadow | 1.025 |
 
 **Hover 정책:**
 - 모든 clickable 카드(back/front/locked)에 hover scale 1.025 + depth shadow 동일 적용
 - front 카드는 추가로 미세 border lift (`color-mix(--primary 22%, --border)`)
+- **Locked 카드 hover**: 카드 전체 opacity `0.15 → 0.65` (duration 0.4s) + 🔒 아이콘 `scale 1.08` (duration 0.25s). "결제하면 볼 수 있다" 메타포 — 커튼이 살짝 걷히는 느낌. amber glow 추가하지 않음.
 - amber glow는 selected 전용으로 분리 — hover와 selected는 시각적으로 명확히 구분
-- transition: `duration 0.2s ease` (scale, box-shadow, border)
+- transition: scale/box-shadow/border `duration 0.2s ease`, opacity `duration 0.4s ease-out`
 
 **Locked 인터랙션:**
 - 잠금 카드 클릭 시 카드 크기 인라인 dim 오버레이 노출 (카드 위에 직접 렌더)
@@ -94,9 +96,12 @@
 - 스타일: `color-mix(--card 85%, transparent)` + `backdrop-filter: blur(4px)` + `--border`
 
 **CityLightbox (공개 카드 상세):**
-- 상단 X 닫기 아이콘 (lucide-react `X`)
+- 우상단 X 닫기 아이콘 (lucide-react `X`, `w-5 h-5`)
+- X 버튼은 스크롤 컨테이너 **바깥**에 absolute 배치 → 내용 스크롤 시에도 위치 고정
+- X 버튼 터치 영역 **44×44px** (WCAG 2.5.5 Target Size 준수)
 - ESC 키로 닫기 지원
 - 바깥 클릭으로 닫기
+- 하단 닫기 버튼 없음 — X/ESC/바깥 클릭만으로 닫기
 
 ## Decisions Log
 | Date | Decision | Rationale |
@@ -110,3 +115,6 @@
 | 2026-04-16 | Locked 카드 → 인라인 dim 오버레이 (fullscreen modal 제거) | 카드 크기 오버레이가 맥락 유지에 더 적합. Polar CTA 직접 링크로 단순화. |
 | 2026-04-16 | Metric 아이콘 emoji → lucide-react | Banknote/Stamp/Wifi로 통일. 크기·정렬·색상 일관성 확보 (w-4 h-4, CSS 변수). |
 | 2026-04-16 | CityLightbox X 닫기 + ESC 키 지원 | 접근성 및 사용성 개선. |
+| 2026-04-17 | Metric 3셀 `flex-1 min-w-0` 균등 너비 | `justify-around` + 가변 content 너비는 아이콘을 1/3 지점에서 벗어나게 함. 균등 너비 컬럼으로 아이콘 정렬 고정. |
+| 2026-04-17 | Locked 카드 hover: opacity 0.15 → 0.65 + 🔒 scale 1.08 | 기존 hover(scale+shadow)는 opacity 0.15에 가려져 거의 인지 불가. opacity pop으로 "커튼이 걷히는" 피드백 제공. amber 정책 유지. |
+| 2026-04-17 | CityLightbox 하단 닫기 버튼 제거, X 버튼 44×44 터치 영역 + 스크롤 밖 고정 | 중복 CTA 제거. WCAG 2.5.5 Target Size 준수. 스크롤 시 X가 사라지는 문제 해결 위해 scroll 컨테이너 구조 분리. |

@@ -73,119 +73,111 @@ function CityLightbox({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="relative w-full max-w-sm overflow-y-auto max-h-[85vh]"
+        className="relative w-full max-w-sm max-h-[85vh] flex flex-col"
         style={{
           background: "var(--card)",
           border: "1px solid var(--border)",
           borderRadius: 16,
+          overflow: "hidden",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* X close button */}
+        {/* X close button — fixed to panel top-right, outside scroll, 44px touch target */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 p-1 transition-colors"
-          style={{ color: "var(--muted-foreground)" }}
+          className="absolute right-1 top-1 z-10 flex items-center justify-center transition-colors"
+          style={{ width: 44, height: 44, color: "var(--muted-foreground)" }}
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
-        <div className="flex flex-col items-center pt-8 pb-4 px-6">
-          <span style={{ fontSize: 40 }}>{flag}</span>
-          <h2 className="font-serif text-xl font-bold mt-2" style={{ color: "var(--foreground)" }}>
-            {city.city_kr}
-          </h2>
-          <p className="font-mono text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-            {city.city}, {city.country}
-          </p>
-        </div>
-
-        {/* Metrics — always 3 cells for layout consistency */}
-        <div className="flex justify-around font-mono text-center px-6 py-4"
-          style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <Banknote className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
-            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>MONTHLY</span>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{monthly}</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <Stamp className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
-            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>{visa.label}</span>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{visa.value}</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <Wifi className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
-            <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>INTERNET</span>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{internet}</span>
-          </div>
-        </div>
-
-        {/* Detail info */}
-        <div className="px-6 py-5 space-y-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
-          {/* Visa detail */}
-          <div className="space-y-1.5">
-            <p className="font-mono text-xs uppercase" style={{ letterSpacing: "0.05em", color: "var(--foreground)" }}>비자 정보</p>
-            <p>{city.visa_type}{city.stay_months != null && ` · ${city.stay_months}개월`}{` · ${city.renewable ? "갱신 가능" : "갱신 불가"}`}</p>
-          </div>
-
-          {/* Stats */}
-          {(city.safety_score != null || city.english_score != null) && (
-            <div className="flex gap-6">
-              {city.safety_score != null && <p>치안 {city.safety_score}/10</p>}
-              {city.english_score != null && <p>영어 {city.english_score}/10</p>}
-            </div>
-          )}
-
-          {/* Insight */}
-          {city.city_insight && (
-            <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 12 }}>
-              <p className="text-sm italic" style={{ color: "var(--primary)" }}>{city.city_insight}</p>
-            </div>
-          )}
-
-          {/* Description */}
-          {city.city_description && (
-            <p className="leading-relaxed">{city.city_description}</p>
-          )}
-
-          {/* Links */}
-          <div className="flex flex-wrap gap-4 pt-2">
-            {city.visa_url && (
-              <a href={city.visa_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>비자 정보 →</a>
-            )}
-            {city.flatio_search_url && (
-              <a href={city.flatio_search_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>숙소 찾기 →</a>
-            )}
-            {city.anyplace_search_url && (
-              <a href={city.anyplace_search_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>Anyplace →</a>
-            )}
-            {city.nomad_meetup_url && (
-              <a href={city.nomad_meetup_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>밋업 →</a>
-            )}
-          </div>
-
-          {/* Data source */}
-          {city.data_verified_date && (
-            <p className="text-xs pt-2" style={{ color: "color-mix(in srgb, var(--muted-foreground) 50%, transparent)" }}>
-              데이터 기준: {city.data_verified_date} · Numbeo, NomadList
+        {/* Scrollable content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Header */}
+          <div className="flex flex-col items-center pt-8 pb-4 px-6">
+            <span style={{ fontSize: 40 }}>{flag}</span>
+            <h2 className="font-serif text-xl font-bold mt-2" style={{ color: "var(--foreground)" }}>
+              {city.city_kr}
+            </h2>
+            <p className="font-mono text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              {city.city}, {city.country}
             </p>
-          )}
-        </div>
+          </div>
 
-        {/* Close */}
-        <div className="px-6 pb-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2.5 text-sm font-medium"
-            style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+          {/* Metrics — always 3 cells for layout consistency */}
+          <div className="flex font-mono text-center px-6 py-4"
+            style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
           >
-            닫기
-          </button>
+            <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
+              <Banknote className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>MONTHLY</span>
+              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{monthly}</span>
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
+              <Stamp className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>{visa.label}</span>
+              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{visa.value}</span>
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
+              <Wifi className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>INTERNET</span>
+              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{internet}</span>
+            </div>
+          </div>
+
+          {/* Detail info */}
+          <div className="px-6 pt-5 pb-8 space-y-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
+            {/* Visa detail */}
+            <div className="space-y-1.5">
+              <p className="font-mono text-xs uppercase" style={{ letterSpacing: "0.05em", color: "var(--foreground)" }}>비자 정보</p>
+              <p>{city.visa_type}{city.stay_months != null && ` · ${city.stay_months}개월`}{` · ${city.renewable ? "갱신 가능" : "갱신 불가"}`}</p>
+            </div>
+
+            {/* Stats */}
+            {(city.safety_score != null || city.english_score != null) && (
+              <div className="flex gap-6">
+                {city.safety_score != null && <p>치안 {city.safety_score}/10</p>}
+                {city.english_score != null && <p>영어 {city.english_score}/10</p>}
+              </div>
+            )}
+
+            {/* Insight */}
+            {city.city_insight && (
+              <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 12 }}>
+                <p className="text-sm italic" style={{ color: "var(--primary)" }}>{city.city_insight}</p>
+              </div>
+            )}
+
+            {/* Description */}
+            {city.city_description && (
+              <p className="leading-relaxed">{city.city_description}</p>
+            )}
+
+            {/* Links */}
+            <div className="flex flex-wrap gap-4 pt-2">
+              {city.visa_url && (
+                <a href={city.visa_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>비자 정보 →</a>
+              )}
+              {city.flatio_search_url && (
+                <a href={city.flatio_search_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>숙소 찾기 →</a>
+              )}
+              {city.anyplace_search_url && (
+                <a href={city.anyplace_search_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>Anyplace →</a>
+              )}
+              {city.nomad_meetup_url && (
+                <a href={city.nomad_meetup_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>밋업 →</a>
+              )}
+            </div>
+
+            {/* Data source */}
+            {city.data_verified_date && (
+              <p className="text-xs pt-2" style={{ color: "color-mix(in srgb, var(--muted-foreground) 50%, transparent)" }}>
+                데이터 기준: {city.data_verified_date} · Numbeo, NomadList
+              </p>
+            )}
+          </div>
         </div>
       </motion.div>
     </motion.div>
@@ -261,10 +253,7 @@ export default function TarotDeck({
     const state = getCardState(i);
     const city = getCityForCard(i);
     const flipped = isCardFlipped(i);
-    const locked = state === "locked";
     const isSelected = selectedIndices.includes(i);
-
-    const opacity = locked && isPostReveal ? 0.15 : 1;
 
     const handleClick = () => {
       if (isSelecting && !isLoading) {
@@ -277,24 +266,19 @@ export default function TarotDeck({
     };
 
     return (
-      <motion.div
+      <TarotCard
         key={i}
-        animate={{ opacity }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <TarotCard
-          state={state}
-          size="sm"
-          cityData={city}
-          isSelected={isSelecting && isSelected}
-          isFlipped={flipped}
-          onClick={(isSelecting || isDone) ? handleClick : undefined}
-          showLockedOverlay={lockedOverlayIndex === i}
-          onCloseLockedOverlay={() => setLockedOverlayIndex(null)}
-          checkoutUrl={directCheckoutUrl}
-          locale={locale}
-        />
-      </motion.div>
+        state={state}
+        size="sm"
+        cityData={city}
+        isSelected={isSelecting && isSelected}
+        isFlipped={flipped}
+        onClick={(isSelecting || isDone) ? handleClick : undefined}
+        showLockedOverlay={lockedOverlayIndex === i}
+        onCloseLockedOverlay={() => setLockedOverlayIndex(null)}
+        checkoutUrl={directCheckoutUrl}
+        locale={locale}
+      />
     );
   }
 
