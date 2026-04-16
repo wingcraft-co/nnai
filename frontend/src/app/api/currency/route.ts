@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 
 const FALLBACK_KRW_RATE = 1400;
-const REVALIDATE_SECONDS = 3600;
-
-export const revalidate = REVALIDATE_SECONDS;
 
 export async function GET() {
   try {
     const res = await fetch(
       "https://api.frankfurter.app/latest?from=USD&to=KRW",
-      { next: { revalidate: REVALIDATE_SECONDS } }
+      { cache: "no-store" }
     );
     if (!res.ok) throw new Error(`frankfurter ${res.status}`);
     const data = (await res.json()) as { rates?: { KRW?: number } };
