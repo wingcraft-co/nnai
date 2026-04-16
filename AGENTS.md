@@ -137,6 +137,7 @@ cd frontend && npm run build                       # 프로덕션 빌드
 # Backend (Railway)
 GEMINI_API_KEY          # LLM + Context Caching
 DATABASE_URL            # PostgreSQL
+APP_PII_ENCRYPTION_KEY  # 사용자 email/name 암복호화용 Fernet 키 (같은 DB를 쓰는 모든 서버에서 동일해야 함)
 GOOGLE_CLIENT_ID        # OAuth
 GOOGLE_CLIENT_SECRET    # OAuth
 OAUTH_REDIRECT_URI      # OAuth callback
@@ -322,4 +323,3 @@ git push "https://flexxiblethinking:{HUGGINGFACE_TOKEN}@huggingface.co/spaces/fl
 - `IMPLEMENTATION_STATUS.md` — Phase별 구현 현황
 - `nnai-project-reference.md` — Agent Team 공통 참조
 - `docs/frontguide.docx` (iCloud) — 프론트엔드 워크플로우 가이드
-

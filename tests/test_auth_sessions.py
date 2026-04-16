@@ -52,6 +52,18 @@ def test_encrypt_text_round_trips_plaintext():
     assert decrypt_text(encrypted) == "user@example.com"
 
 
+def test_encrypt_text_returns_none_when_key_missing(monkeypatch):
+    monkeypatch.delenv("APP_PII_ENCRYPTION_KEY", raising=False)
+
+    assert encrypt_text("user@example.com") is None
+
+
+def test_decrypt_text_returns_none_when_key_missing(monkeypatch):
+    monkeypatch.delenv("APP_PII_ENCRYPTION_KEY", raising=False)
+
+    assert decrypt_text(b"gAAAAABpZmFrZV9jaXBoZXJ0ZXh0") is None
+
+
 def test_pii_hash_normalizes_case_and_whitespace():
     first = pii_hash("  USER@example.com ")
     second = pii_hash("user@example.com")
@@ -99,6 +111,47 @@ def test_upsert_user_identity_does_not_store_plain_email_or_name(monkeypatch):
     assert params[6] != b"User Example"
 
 
+def test_upsert_user_identity_falls_back_to_plaintext_without_key(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, query, params=None):
+            captured["query"] = query
+            captured["params"] = params
+
+    class _Conn:
+        def cursor(self):
+            return _Cursor()
+
+        def commit(self):
+            captured["committed"] = True
+
+    monkeypatch.delenv("APP_PII_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setattr(db_mod, "get_conn", lambda: _Conn())
+
+    db_mod.upsert_user_identity(
+        "user-1",
+        email="user@example.com",
+        name="User Example",
+        picture="https://example.com/avatar.png",
+        created_at="2026-04-16T00:00:00+00:00",
+    )
+
+    params = captured["params"]
+    assert params is not None
+    assert params[1] == "user@example.com"
+    assert params[2] == "User Example"
+    assert params[4] is None
+    assert params[5] == pii_hash("user@example.com")
+    assert params[6] is None
+
+
 def test_backfill_legacy_user_identity_encrypts_existing_plain_email():
     executed: list[tuple[str, object]] = []
 
@@ -141,3 +194,81 @@ def test_backfill_legacy_user_identity_encrypts_existing_plain_email():
     assert update_params[0] != b"legacy@example.com"
     assert update_params[1] == pii_hash("legacy@example.com")
     assert update_params[3] == "user-1"
+
+
+def test_backfill_legacy_user_identity_skips_without_key(monkeypatch):
+    executed: list[tuple[str, object]] = []
+
+    class _Cursor:
+        def __init__(self):
+            self._rows = [("user-1", "legacy@example.com", "Legacy User")]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, query, params=None):
+            executed.append((query, params))
+
+        def fetchall(self):
+            return self._rows
+
+    class _Conn:
+        def __init__(self):
+            self.cursor_obj = _Cursor()
+
+        def cursor(self):
+            return self.cursor_obj
+
+        def commit(self):
+            return None
+
+    monkeypatch.delenv("APP_PII_ENCRYPTION_KEY", raising=False)
+    conn = _Conn()
+
+    migrated = db_mod.backfill_legacy_user_identity(conn)
+
+    assert migrated == 0
+    assert executed == []
+
+
+def test_get_user_identity_uses_plaintext_when_key_missing(monkeypatch):
+    class _Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, query, params=None):
+            return None
+
+        def fetchone(self):
+            return (
+                "user-1",
+                "legacy@example.com",
+                b"encrypted-email",
+                "Legacy User",
+                b"encrypted-name",
+                "https://example.com/avatar.png",
+                "planner",
+            )
+
+    class _Conn:
+        def cursor(self):
+            return _Cursor()
+
+    monkeypatch.delenv("APP_PII_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setattr(db_mod, "get_conn", lambda: _Conn())
+
+    identity = db_mod.get_user_identity("user-1")
+
+    assert identity == {
+        "id": "user-1",
+        "email": "legacy@example.com",
+        "name": "Legacy User",
+        "picture": "https://example.com/avatar.png",
+        "persona_type": "planner",
+    }

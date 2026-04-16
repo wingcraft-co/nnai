@@ -5,7 +5,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 import psycopg2
 
-from utils.crypto import decrypt_text, encrypt_text, pii_hash
+from utils.crypto import decrypt_text, encrypt_text, has_pii_encryption_key, pii_hash
 
 _DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -637,6 +637,8 @@ def backfill_legacy_user_identity(
     conn: psycopg2.extensions.connection | None = None,
 ) -> int:
     resolved_conn = conn or get_conn()
+    if not has_pii_encryption_key():
+        return 0
     migrated = 0
     with resolved_conn.cursor() as cur:
         cur.execute(
@@ -849,6 +851,9 @@ def upsert_user_identity(
     created_at: str | None = None,
 ) -> None:
     conn = get_conn()
+    use_encrypted_pii = has_pii_encryption_key()
+    email_enc = encrypt_text(email)
+    name_enc = encrypt_text(name)
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -865,12 +870,12 @@ def upsert_user_identity(
             """,
             (
                 user_id,
-                None,
-                None,
+                None if use_encrypted_pii else email,
+                None if use_encrypted_pii else name,
                 picture,
-                encrypt_text(email),
+                email_enc,
                 pii_hash(email),
-                encrypt_text(name),
+                name_enc,
                 created_at or datetime.now(timezone.utc).isoformat(),
             ),
         )
