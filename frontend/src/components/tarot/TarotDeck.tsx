@@ -12,6 +12,22 @@ import {
   formatVisa,
   formatInternet,
 } from "./format";
+import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
+
+// ── Google logo (official brand SVG — HEX 하드코딩은 브랜드 에셋 예외) ─────
+
+function GoogleLogo() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16" height="16" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+  );
+}
 
 // ── Stage type ────────────────────────────────────────────────────
 
@@ -32,6 +48,45 @@ const FLAG_EMOJI: Record<string, string> = {
   SG:"🇸🇬",SI:"🇸🇮",TH:"🇹🇭",TR:"🇹🇷",TW:"🇹🇼",UA:"🇺🇦",
   US:"🇺🇸",UY:"🇺🇾",VN:"🇻🇳",ZA:"🇿🇦",
 };
+
+// ── Personalized insight (ko only) ────────────────────────────────
+
+function getPersonalizedInsight(
+  persona: string | null,
+  travelType: string | null,
+  timeline: string | null,
+  city: CityData,
+): string | null {
+  const tt = travelType ?? "";
+  const hasCompanion =
+    tt.includes("배우자") || tt.includes("파트너") || tt.includes("가족");
+
+  // 1) 동반자 + 치안 >=8
+  if (hasCompanion && city.safety_score != null && city.safety_score >= 8) {
+    return `동반자와 함께라면 치안 ${city.safety_score}/10은 든든한 조건이에요.`;
+  }
+  // 2) 동반자 + 한인 커뮤니티 large
+  if (hasCompanion && city.korean_community_size === "large") {
+    return "한인 커뮤니티가 크게 형성되어 있어, 동반자와 함께 정착 초기에 도움이 돼요.";
+  }
+  // 3) free_spirit + tropical 계열 기후
+  if (persona === "free_spirit" && city.climate?.includes("tropical")) {
+    return "열대 기후는 자유로운 성향과 자연스럽게 맞아요.";
+  }
+  // 4) free_spirit + 무비자 90일+
+  if (persona === "free_spirit" && city.visa_free_days >= 90) {
+    return "비자 걱정 없이 90일, 자유롭게 머물 수 있는 조건이에요.";
+  }
+  // 5) free_spirit + 갱신 가능
+  if (persona === "free_spirit" && city.renewable === true) {
+    return "갱신 가능한 비자라 눌러앉고 싶어지면 그냥 있어도 돼요.";
+  }
+  // 6) 단기 체류 + 무비자 60일+
+  if (timeline?.includes("단기") && city.visa_free_days >= 60) {
+    return `단기 체류라면 비자 없이 바로 들어갈 수 있어요. (${city.visa_free_days}일)`;
+  }
+  return null;
+}
 
 // ── City Lightbox ─────────────────────────────────────────────────
 
@@ -57,6 +112,48 @@ function CityLightbox({
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
+
+  // Personalized insight — read localStorage, compose one-liner (ko only)
+  const [personalInsight, setPersonalInsight] = useState<string | null>(null);
+  useEffect(() => {
+    if (locale !== "ko") {
+      setPersonalInsight(null);
+      return;
+    }
+    try {
+      const persona = localStorage.getItem("persona_type");
+      const sessionRaw = localStorage.getItem("result_session_v2");
+      let travelType: string | null = null;
+      let timeline: string | null = null;
+      if (sessionRaw) {
+        const session = JSON.parse(sessionRaw);
+        const profile = session?.parsedData?._user_profile ?? {};
+        travelType = typeof profile.travel_type === "string" ? profile.travel_type : null;
+        timeline = typeof profile.timeline === "string" ? profile.timeline : null;
+      }
+      setPersonalInsight(getPersonalizedInsight(persona, travelType, timeline, city));
+    } catch {
+      setPersonalInsight(null);
+    }
+  }, [city, locale]);
+
+  // Auth check — /auth/me (쿠키 세션). 로그인된 유저에겐 CTA 숨김
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/auth/me`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (!cancelled) setIsLoggedIn(Boolean(data?.logged_in)); })
+      .catch(() => { if (!cancelled) setIsLoggedIn(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  function handleGoogleLogin() {
+    const returnTo = typeof window !== "undefined" ? window.location.href : "";
+    window.location.assign(buildGoogleLoginUrl(API_BASE, returnTo));
+  }
+
+  const showLoginCta = locale === "ko" && isLoggedIn === false;
 
   return (
     <motion.div
@@ -129,6 +226,13 @@ function CityLightbox({
 
           {/* Detail info */}
           <div className="px-6 pt-5 pb-8 space-y-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
+            {/* Personalized insight — one-liner above visa info */}
+            {personalInsight && (
+              <p className="font-serif text-sm" style={{ color: "var(--primary)" }}>
+                ✦ {personalInsight}
+              </p>
+            )}
+
             {/* Visa detail */}
             <div className="space-y-1.5">
               <p className="font-mono text-xs uppercase" style={{ letterSpacing: "0.05em", color: "var(--foreground)" }}>비자 정보</p>
@@ -153,6 +257,34 @@ function CityLightbox({
             {/* Description */}
             {city.city_description && (
               <p className="leading-relaxed">{city.city_description}</p>
+            )}
+
+            {/* Login CTA (ko only, logged-out only) */}
+            {showLoginCta && (
+              <div className="space-y-3">
+                <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
+                <div className="space-y-2 pt-1">
+                  <h3 className="font-serif text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                    {city.city_kr} 맞춤 이민 가이드 받기
+                  </h3>
+                  <p className="font-sans text-xs" style={{ color: "var(--muted-foreground)" }}>
+                    비자 타임라인 · 세금 시뮬레이션 · 예산 로드맵을 AI가 생성해드려요.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-primary/10"
+                    style={{
+                      border: "1px solid var(--border)",
+                      background: "transparent",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    <GoogleLogo />
+                    <span>Google로 계속하기 →</span>
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Links */}

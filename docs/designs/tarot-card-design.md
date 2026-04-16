@@ -103,6 +103,25 @@
 - 바깥 클릭으로 닫기
 - 하단 닫기 버튼 없음 — X/ESC/바깥 클릭만으로 닫기
 
+**Personalized Insight (CityLightbox 상단, 비자 정보 위):**
+- `getPersonalizedInsight(persona, travelType, timeline, city)` 헬퍼가 null 반환 시 미렌더
+- 한국어 로케일 전용 (`locale !== "ko"` → null)
+- 데이터 소스: `localStorage.persona_type` + `localStorage.result_session_v2 → parsedData._user_profile.{travel_type, timeline}` + city 객체
+- 6가지 우선순위 분기 (동반자+치안 → 동반자+한인 → free_spirit+tropical → free_spirit+무비자90 → free_spirit+renewable → 단기+무비자60)
+- 동반자 조건: `travel_type`에 `"배우자"`/`"파트너"`/`"가족"` 포함. copy는 중립 "동반자와 함께라면" 사용
+- tropical 매칭: `city.climate?.includes("tropical")` → subtropical 포함
+- UI: `font-serif text-sm`, `color: var(--primary)` (amber), `✦` prefix, border/배경 없음, 기존 `space-y-4` separator 공유 (추가 divider 금지)
+- localStorage 읽기 실패/JSON.parse 실패 시 silent null
+
+**Login CTA (CityLightbox 외부 링크 위):**
+- 렌더 조건: `locale === "ko"` AND `fetch("/auth/me")` 결과 `logged_in === false`
+- auth 체크는 쿠키 세션 기반 (프로젝트 실제 메커니즘). 네트워크 실패 시 기본 "로그아웃"으로 처리 (CTA 표시)
+- 구성: divider (`--border 40%` alpha) → 타이틀 "{city_kr} 맞춤 이민 가이드 받기" (`font-serif text-sm font-medium`, `--foreground`) → 서브카피 `font-sans text-xs`, `--muted-foreground` → 전체 너비 버튼 (border `--border`, transparent bg, `--foreground` text, `hover:bg-primary/10`) + Google 브랜드 SVG 인라인(16×16)
+- 클릭 액션: `buildGoogleLoginUrl(API_BASE, window.location.href)` 헬퍼로 `/auth/google?return_to=...` 리다이렉트 (기존 `GoogleLoginPanel.tsx`와 동일 메커니즘 재사용)
+- Google 로고 브랜드 컬러(#EA4335/#4285F4/#FBBC05/#34A853)는 HEX 금지 규칙의 예외 — 상표권 준수
+- `✦` prefix는 Personalized Insight와 겹쳐서 CTA 타이틀엔 미사용
+- divider는 **CTA 블록 위에만** 1개. 블록 내부 타이틀/서브카피/버튼은 `space-y-2`로 묶음
+
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
@@ -118,3 +137,5 @@
 | 2026-04-17 | Metric 3셀 `flex-1 min-w-0` 균등 너비 | `justify-around` + 가변 content 너비는 아이콘을 1/3 지점에서 벗어나게 함. 균등 너비 컬럼으로 아이콘 정렬 고정. |
 | 2026-04-17 | Locked 카드 hover: opacity 0.15 → 0.65 + 🔒 scale 1.08 | 기존 hover(scale+shadow)는 opacity 0.15에 가려져 거의 인지 불가. opacity pop으로 "커튼이 걷히는" 피드백 제공. amber 정책 유지. |
 | 2026-04-17 | CityLightbox 하단 닫기 버튼 제거, X 버튼 44×44 터치 영역 + 스크롤 밖 고정 | 중복 CTA 제거. WCAG 2.5.5 Target Size 준수. 스크롤 시 X가 사라지는 문제 해결 위해 scroll 컨테이너 구조 분리. |
+| 2026-04-17 | Personalized Insight 한 줄 도입 (CityLightbox 비자 정보 위) | "자기 발견 경험 입구" 포지셔닝 강화. 동반자 조건 copy는 `"파트너"` → `"동반자"` 중립화 (가족/자녀 동반 유저 포함). `--primary` amber 유지 (`--accent`는 dark 모드에서 muted brown이라 부적합). ko 전용. |
+| 2026-04-17 | Login CTA (CityLightbox 외부 링크 위) | 로그인 전환 entry point 추가. auth 체크는 localStorage 키 대신 `/auth/me` 쿠키 세션(프로젝트 실제 메커니즘). `buildGoogleLoginUrl` 기존 헬퍼 재사용. ko 전용. |
