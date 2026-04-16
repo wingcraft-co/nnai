@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## [2026-04-16 KST 세션 3] — result 카드 UX 개선 — 호버/잠금 오버레이/아이콘/라이트박스
+
+### 변경 파일
+- `frontend/src/components/tarot/TarotCard.tsx` : 호버 전체 카드 적용, 잠금 인라인 오버레이 추가, emoji→lucide-react 아이콘 교체
+- `frontend/src/components/tarot/TarotDeck.tsx` : LockedUpgradeLightbox fullscreen 모달 제거, CityLightbox에 X 아이콘+ESC 키 추가, emoji→lucide-react 아이콘 교체, 버튼 간격 확보
+- `docs/designs/tarot-card-design.md` : States 표/Hover·Locked 정책/메트릭 아이콘/Decisions Log 갱신
+
+### 작업 요약
+- 무엇을:
+  1. [카드 열기] 버튼 margin-top 확보 (`mt-8`)
+  2. 호버 애니메이션(scale 1.025 + depth shadow) 모든 clickable 카드에 동일 적용 (기존 front 한정 → back/locked 포함)
+  3. 잠금 카드: fullscreen `LockedUpgradeLightbox` 모달 → 카드 크기 인라인 dim 오버레이 (🔒 + 텍스트 + Polar CTA `<a>` 링크)
+  4. stats 아이콘: emoji(💰🛂📶) → lucide-react(`Banknote`/`Stamp`/`Wifi`) w-4 h-4, CSS 변수 색상. 카드 + CityLightbox 모두 교체
+  5. CityLightbox: X 닫기 아이콘(lucide-react `X`) + ESC 키 핸들러 추가
+- 왜: 사용자 점검에서 버튼 간격 부족, 잠금 카드 호버 미반응, 이모지 정렬 불균일, 라이트박스 닫기 불편 확인
+- 영향 범위: result 페이지 카드/라이트박스 UI. 백엔드 변경 없음
+
+### 주요 결정사항
+- **호버 정책 변경**: `isFront` 조건 → `clickable` 조건. 모든 clickable 카드에 동일한 scale+shadow 호버. amber glow는 selected 전용 유지.
+- **잠금 오버레이 전환**: fullscreen modal(LockedUpgradeLightbox) → 카드 크기 인라인 오버레이. PolarCheckoutButton 컴포넌트 → `<a>` 직접 링크로 단순화.
+- **아이콘 통일**: emoji는 OS/브라우저별 렌더 차이 → lucide-react로 크기·정렬·색상 일관성 확보.
+
+### 다음 세션 참고사항
+- 인라인 오버레이 모바일 터치 동작 검증 필요 (sm 카드 크기에서 CTA 탭 가능성)
+- CityLightbox 아이콘 교체 완료 — 다른 페이지에서 같은 이모지를 쓰는 곳이 있다면 별도 확인 필요
+- `.claude/settings.json` 권한 추가, `.claude/commands/`, `.claude/session/scp.sh` 여전히 unstaged
+
+---
+
 ## [2026-04-16 KST 세션 2] — 카드 호버/잠금 인터랙션 + 메트릭 영역 i18n·환율 정합화
 
 ### 변경 파일

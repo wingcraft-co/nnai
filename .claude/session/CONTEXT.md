@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-11 KST (세션 4)_
+_Last updated: 2026-04-16 KST (세션 3)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -24,14 +24,16 @@ _Last updated: 2026-04-11 KST (세션 4)_
 - **Block C 가상 속성**: visa_freedom, climate_score, long_stay_score
 
 ### 프론트엔드
-- **결과 페이지**: 타로카드 UI 전면 재설계 — dark 모드 강제, 4-Stage (selecting → revealed → reading → comparing)
+- **결과 페이지**: 타로카드 UI — dark 모드, 3-Stage (selecting → revealing → done), 5장 고정 레이아웃
 - **타로카드 디자인**: Amber Mono 2.0 기반 정적 프리미엄 디자인. Compass Rose 뒷면, Label+Value 앞면. CSS 변수만 사용, HEX 하드코딩 금지.
-- **리딩 UX**: 3장 순차 리딩 (타이핑 효과 30ms/글자 → 지표 페이드인 → 다음 카드) → 완료 후 전체 가이드 CTA
-- **금지된 애니메이션**: 3D 변환(rotateY/X), 파티클, 물리 기반, 복잡한 stagger. 허용: opacity fade, scale whileTap, 타이핑.
+- **호버**: 모든 clickable 카드에 scale 1.025 + depth shadow 동일 적용. amber glow는 selected 전용.
+- **잠금 카드**: 카드 크기 인라인 dim 오버레이 (🔒 + CTA → Polar 결제). fullscreen 모달은 제거됨.
+- **CityLightbox**: X 닫기 아이콘 + ESC 키 + 바깥 클릭 닫기 지원.
+- **메트릭 아이콘**: lucide-react (`Banknote`/`Stamp`/`Wifi`) w-4 h-4, CSS 변수 색상. 카드+라이트박스 통일.
 - **폼 자동 넘김**: 단일 선택 + 조건부 필드 없음 → 자동 다음 스텝
 - **단기 체류**: 소득 대신 월 예산 버튼 선택, 배우자 소득 숨김
 - **캐릭터**: 폼에서 스텝 간 슬라이드 이동 (퀴즈 경유=페르소나, 직접 진입=grace+rocky)
-- **디자인 시스템**: `docs/designs/tarot-card-design.md` — 카드 색상, 타이포, 레이아웃, 상태 정의
+- **디자인 시스템**: `docs/designs/tarot-card-design.md` — 카드 색상, 타이포, 레이아웃, 상태, 인터랙션 정의
 
 ### 데이터
 - visa_db.json에 `visa_free_days` 필드 추가 (39개국, 한국 여권 기준)
@@ -92,6 +94,7 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [x] 폼 자동 넘김 (단일 선택 완료 시)
 - [x] LLM 타로 리더 톤 프롬프트 추가 + reading_text 필드
 - [x] 타로카드 UI 전면 재설계 (Amber Mono 2.0, 정적 프리미엄 디자인)
+- [x] 카드 UX 개선 — 호버 전체 적용, 잠금 인라인 오버레이, lucide-react 아이콘, 라이트박스 X/ESC
 - [x] 전수조사 604,800건 통과 (에러 0, 점수 이상 0, 차별화 9/9)
 - [x] 소득 필터 fallback (빈 결과 방지)
 - [x] income=0(비공개) 소득 필터 바이패스
