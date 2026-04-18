@@ -8,6 +8,7 @@ import type { PersonaType } from "@/data/personas";
 import { House } from "lucide-react";
 import { QuizCard } from "@/components/onboarding/quiz-card";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
+import { trackQuizComplete } from "@/lib/analytics/events";
 
 export default function QuizPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function QuizPage() {
     } else {
       const persona = calculatePersona(newAnswers);
       const personaVector = calculatePersonaVector(newAnswers);
+      trackQuizComplete(persona);
       localStorage.setItem("persona_type", persona);
       localStorage.setItem("persona_vector", JSON.stringify(personaVector));
       router.push("/onboarding/quiz/result");

@@ -8,6 +8,10 @@ import { PERSONAS } from "@/data/personas";
 import { House } from "lucide-react";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { SelectCard } from "@/components/onboarding/select-card";
+import {
+  trackFormStepComplete,
+  trackFormStepView,
+} from "@/lib/analytics/events";
 import dynamic from "next/dynamic";
 
 const IS_DEBUG = process.env.NEXT_PUBLIC_DEBUG_MODE === "1";
@@ -170,6 +174,7 @@ export default function FormPage() {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem("persona_type") as PersonaType | null;
@@ -179,6 +184,10 @@ export default function FormPage() {
       try { setPersonaVector(JSON.parse(vectorStr)); } catch {}
     }
   }, []);
+
+  useEffect(() => {
+    trackFormStepView(currentStep);
+  }, [currentStep]);
 
   const isShortStay = form.timeline === "1~3개월 단기 체류";
 
@@ -213,6 +222,11 @@ export default function FormPage() {
     setError(null);
 
     try {
+      if (!completedSteps.includes(currentStep)) {
+        trackFormStepComplete(currentStep);
+        setCompletedSteps((prev) => [...prev, currentStep]);
+      }
+
       const payload = {
         nationality: "한국",
         languages: [],
@@ -251,6 +265,10 @@ export default function FormPage() {
 
   function handleNext() {
     if (currentStep < TOTAL_STEPS) {
+      if (!completedSteps.includes(currentStep)) {
+        trackFormStepComplete(currentStep);
+        setCompletedSteps((prev) => [...prev, currentStep]);
+      }
       setCurrentStep(currentStep + 1);
     } else {
       handleSubmit();

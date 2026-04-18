@@ -13,6 +13,7 @@ import {
   formatInternet,
 } from "./format";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
+import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -150,6 +151,8 @@ function CityLightbox({
 
   function handleGoogleLogin() {
     const returnTo = typeof window !== "undefined" ? window.location.href : "";
+    markLoginPending();
+    trackLoginClick("google");
     window.location.assign(buildGoogleLoginUrl(API_BASE, returnTo));
   }
 

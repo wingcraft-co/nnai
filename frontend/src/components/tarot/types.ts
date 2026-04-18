@@ -1,6 +1,7 @@
 // Shared types for all tarot components
 
 export interface CityData {
+  id?: string | null;
   city: string;
   city_kr: string;
   country: string;

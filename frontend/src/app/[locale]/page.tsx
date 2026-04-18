@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 
 const fadeUp = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -31,6 +32,10 @@ export default function Home() {
         <motion.div {...fadeUp(0.6)}>
           <Link
             href="/onboarding/quiz"
+            onClick={() => {
+              trackLandingCtaClick("quiz");
+              trackQuizStart("home");
+            }}
             className="block w-full bg-primary py-3.5 text-center text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             내 유형 찾아보기
@@ -40,6 +45,9 @@ export default function Home() {
         <motion.div {...fadeUp(0.8)}>
           <Link
             href="/onboarding/form"
+            onClick={() => {
+              trackLandingCtaClick("form");
+            }}
             className="block w-full border border-border py-3.5 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             도시 추천 바로 받기
@@ -54,6 +62,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => {
+              trackLandingCtaClick("preview");
               localStorage.setItem("recommend_payload", JSON.stringify({
                 nationality: "한국",
                 income_krw: 400,

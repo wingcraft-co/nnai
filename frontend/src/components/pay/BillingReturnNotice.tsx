@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { trackCheckoutSuccess } from '@/lib/analytics/events';
 
 import {
   resolveBillingReturnNotice,
@@ -65,6 +66,10 @@ export function BillingReturnNotice({ locale }: BillingReturnNoticeProps) {
             error: !response.ok,
           }) as Notice
         );
+
+        if (response.ok) {
+          trackCheckoutSuccess('polar');
+        }
       } catch {
         if (cancelled) return;
         setNotice(

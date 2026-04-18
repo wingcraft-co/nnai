@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { TrackEventOnMount } from '@/components/analytics/TrackEventOnMount';
 import { BillingReturnNotice } from '@/components/pay/BillingReturnNotice';
 import { PolarCheckoutButton } from '@/components/pay/PolarCheckoutButton';
 import { getPricingContent, resolvePricingLocale } from '@/lib/pricing-content.mjs';
@@ -21,6 +22,7 @@ export default async function LocalizedPricingPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-4 py-10">
+      <TrackEventOnMount event="pay_view" locale={content.locale} />
       <BillingReturnNotice locale={content.locale} />
 
       <div className="mb-6">

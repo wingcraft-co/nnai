@@ -7,6 +7,13 @@ import TarotDeck from "@/components/tarot/TarotDeck";
 import type { DeckStage } from "@/components/tarot/TarotDeck";
 import type { CityData, TarotSession } from "@/components/tarot/types";
 import { TAROT_SESSION_KEY } from "@/components/tarot/types";
+import {
+  trackGuideClick,
+  trackRecommendFailure,
+  trackRecommendSubmit,
+  trackRecommendSuccess,
+  trackResultRevealComplete,
+} from "@/lib/analytics/events";
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -31,6 +38,16 @@ interface SessionV2 {
 }
 
 const SESSION_V2_KEY = "result_session_v2";
+
+function resolveRecommendEntry(payload: Record<string, unknown>): "quiz" | "direct" {
+  return payload.persona_type ? "quiz" : "direct";
+}
+
+function resolveErrorKind(error: unknown): "network" | "http" | "invalid_payload" {
+  if (error instanceof SyntaxError) return "invalid_payload";
+  if (error instanceof Error && /status|error/i.test(error.message)) return "http";
+  return "network";
+}
 
 // ── Result Page ────────────────────────────────────────────────────
 
@@ -92,6 +109,12 @@ export default function ResultPage() {
 
     try {
       const payload = JSON.parse(payloadStr) as Record<string, unknown>;
+      const hasPersona = Boolean(payload.persona_type);
+      trackRecommendSubmit({
+        entry: resolveRecommendEntry(payload),
+        hasPersona,
+      });
+
       const res = await fetch("/api/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,10 +129,19 @@ export default function ResultPage() {
 
       const topCities = (data.parsed?.top_cities ?? []) as CityData[];
       if ((data.card_count ?? topCities.length) < 5 || topCities.length < 5) {
+        trackRecommendFailure({
+          stage: "recommend",
+          errorKind: "invalid_payload",
+        });
         setError("추천 도시를 불러오지 못했어요. 다시 시도해주세요.");
         setStage("loading");
         return;
       }
+
+      trackRecommendSuccess({
+        cardCount: data.card_count ?? topCities.length,
+        hasPersona,
+      });
 
       localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
 
@@ -129,7 +161,11 @@ export default function ResultPage() {
         parsedData: data.parsed,
         stage: "selecting",
       });
-    } catch {
+    } catch (error) {
+      trackRecommendFailure({
+        stage: "recommend",
+        errorKind: resolveErrorKind(error),
+      });
       setError("추천을 불러오지 못했어요. 다시 시도해주세요.");
       setStage("loading");
     }
@@ -225,6 +261,10 @@ export default function ResultPage() {
       saveSession({ selectedIndices, revealedCities: data.revealed_cities, stage: "revealing" });
       runFullSequence(data.revealed_cities);
     } catch (err) {
+      trackRecommendFailure({
+        stage: "reveal",
+        errorKind: resolveErrorKind(err),
+      });
       setError(err instanceof Error ? err.message : "카드 열기에 실패했어요.");
     } finally {
       setIsLoading(false);
@@ -244,6 +284,7 @@ export default function ResultPage() {
       await delay(2000);
 
       setStage("done");
+      trackResultRevealComplete(cities.length);
       saveSession({ revealedCities: cities, stage: "done" });
     })();
   }
@@ -251,6 +292,10 @@ export default function ResultPage() {
   // ── Guide / retry ──────────────────────────────────────────────
 
   function handleGuideClick() {
+    const cityId = revealedCities?.[0]?.id;
+    if (cityId) {
+      trackGuideClick(cityId);
+    }
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2500);
   }

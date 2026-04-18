@@ -7,6 +7,7 @@ import {
   buildLogoutUrl,
   getLegalLabels,
 } from "@/lib/legal-content.mjs";
+import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -41,6 +42,8 @@ export function GoogleLoginPanel({ locale }: GoogleLoginPanelProps) {
   }, []);
 
   function startLogin() {
+    markLoginPending();
+    trackLoginClick("google");
     window.location.assign(buildGoogleLoginUrl(API_BASE, window.location.href));
   }
 

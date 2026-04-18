@@ -1,5 +1,6 @@
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import { routing } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/onboarding/locale-switcher";
 import { LegalFooter } from "@/components/legal/LegalFooter";
@@ -21,6 +22,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="flex min-h-screen flex-col">
+        <PageViewTracker locale={locale} />
         <LocaleSwitcher />
         <div className="flex-1">
           {children}

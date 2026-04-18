@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { trackCheckoutClick } from '@/lib/analytics/events';
 
 type PolarCheckoutButtonProps = {
   locale: string;
@@ -45,6 +46,7 @@ export function PolarCheckoutButton({
   async function handleCheckout() {
     if (loading) return;
     setError(null);
+    trackCheckoutClick('polar');
 
     if (directCheckoutUrl) {
       window.location.assign(directCheckoutUrl);

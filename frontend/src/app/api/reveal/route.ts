@@ -38,6 +38,7 @@ function enrichCities(cities: Record<string, unknown>[]) {
     return {
       ...city,
       // city_scores fields
+      id: scores?.id ?? null,
       internet_mbps: scores?.internet_mbps ?? null,
       safety_score: scores?.safety_score ?? null,
       english_score: scores?.english_score ?? null,
