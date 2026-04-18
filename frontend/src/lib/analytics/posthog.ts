@@ -66,7 +66,6 @@ export function initAnalytics(): void {
     capture_pageview: false,
     disable_session_recording: true,
     persistence: "memory",
-    person_profiles: "identified_only",
     before_send: (event) => {
       return sanitizeEvent(event as EventPayload | null) as typeof event;
     },
