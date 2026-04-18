@@ -30,6 +30,12 @@ export function resolveEffectiveAnalyticsMode({
   return deploymentMode === "full" ? "full" : "essential";
 }
 
+export function shouldPostHogCaptureBeEnabled(
+  mode: EffectiveAnalyticsMode,
+): boolean {
+  return mode !== "disabled";
+}
+
 export function readStoredAnalyticsConsent(): AnalyticsConsent {
   if (typeof window === "undefined") return "unknown";
   return normalizeAnalyticsConsent(

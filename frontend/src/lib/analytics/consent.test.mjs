@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   ANALYTICS_CONSENT_KEY,
+  shouldPostHogCaptureBeEnabled,
   normalizeAnalyticsConsent,
   normalizePostHogDeploymentMode,
   resolveEffectiveAnalyticsMode,
@@ -69,4 +70,10 @@ test("only enables full tracking when both consent and deployment allow it", () 
     }),
     "full",
   );
+});
+
+test("keeps PostHog event capture enabled for essential and full modes", () => {
+  assert.equal(shouldPostHogCaptureBeEnabled("disabled"), false);
+  assert.equal(shouldPostHogCaptureBeEnabled("essential"), true);
+  assert.equal(shouldPostHogCaptureBeEnabled("full"), true);
 });

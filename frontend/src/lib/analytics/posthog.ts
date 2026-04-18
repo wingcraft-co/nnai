@@ -7,6 +7,7 @@ import {
   normalizePostHogDeploymentMode,
   readStoredAnalyticsConsent,
   resolveEffectiveAnalyticsMode,
+  shouldPostHogCaptureBeEnabled,
   type AnalyticsConsent,
   type EffectiveAnalyticsMode,
   type PostHogDeploymentMode,
@@ -124,6 +125,7 @@ export function applyAnalyticsConsent(
   if (nextMode === "disabled") {
     posthog.set_config(buildAnalyticsModeConfig("disabled"));
     posthog.stopSessionRecording();
+    posthog.opt_out_capturing();
     activeAnalyticsMode = nextMode;
     return nextMode;
   }
@@ -131,13 +133,17 @@ export function applyAnalyticsConsent(
   if (nextMode === "essential") {
     posthog.set_config(buildAnalyticsModeConfig("essential"));
     posthog.stopSessionRecording();
-    posthog.opt_out_capturing();
+    if (shouldPostHogCaptureBeEnabled(nextMode)) {
+      posthog.opt_in_capturing({ captureEventName: false });
+    }
     activeAnalyticsMode = nextMode;
     return nextMode;
   }
 
   posthog.set_config(buildAnalyticsModeConfig("full"));
-  posthog.opt_in_capturing({ captureEventName: false });
+  if (shouldPostHogCaptureBeEnabled(nextMode)) {
+    posthog.opt_in_capturing({ captureEventName: false });
+  }
   posthog.startSessionRecording();
   activeAnalyticsMode = nextMode;
   return nextMode;
