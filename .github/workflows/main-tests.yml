@@ -78,4 +78,4 @@ jobs:
 
       - name: Frontend regression tests
         run: |
-          node --test frontend/src/lib/pricing-content.test.mjs frontend/src/lib/legal-content.test.mjs frontend/src/lib/billing-return.test.mjs
+          node --test --experimental-strip-types frontend/src/lib/analytics/consent.test.mjs frontend/src/lib/analytics/posthog-config.test.mjs frontend/src/lib/pricing-content.test.mjs frontend/src/lib/legal-content.test.mjs frontend/src/lib/billing-return.test.mjs

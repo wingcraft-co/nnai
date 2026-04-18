@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useLocale } from "next-intl";
+import { trackResultCardInteraction } from "@/lib/analytics/events";
 import { Banknote, Stamp, Wifi } from "lucide-react";
 import type { CityData } from "./types";
 import {
@@ -444,7 +445,10 @@ export default function TarotCard({
                 borderRadius: 4,
                 letterSpacing: "0.03em",
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                trackResultCardInteraction({ action: "unlock_click" });
+              }}
             >
               {isEn ? "Unlock with Pro" : "Pro 잠금 해제"}
             </a>

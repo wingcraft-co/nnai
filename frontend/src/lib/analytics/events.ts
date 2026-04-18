@@ -1,6 +1,10 @@
 "use client";
 
-import { captureAnalyticsEvent, sanitizePathname } from "@/lib/analytics/posthog";
+import {
+  captureAnalyticsEvent,
+  captureFullAnalyticsEvent,
+  sanitizePathname,
+} from "@/lib/analytics/posthog";
 
 export const LOGIN_PENDING_KEY = "nnai_posthog_login_pending";
 
@@ -10,6 +14,9 @@ export type EntryPoint = "quiz" | "direct";
 export type ErrorStage = "recommend" | "reveal";
 export type ErrorKind = "network" | "http" | "invalid_payload";
 export type Provider = "google" | "polar";
+export type OnboardingFlow = "quiz" | "form";
+export type ResultCardAction = "open_city" | "open_locked" | "unlock_click";
+export type PricingSection = "free_plan" | "pro_plan" | "faq" | "pro_expansion";
 export type PageKey =
   | "home"
   | "quiz"
@@ -195,4 +202,61 @@ export function trackCheckoutClick(provider: Provider): void {
 
 export function trackCheckoutSuccess(provider: Provider): void {
   captureAnalyticsEvent("checkout_success", { provider });
+}
+
+export function trackOnboardingStepDwell({
+  flow,
+  stepNumber,
+  durationMs,
+}: {
+  flow: OnboardingFlow;
+  stepNumber: number;
+  durationMs: number;
+}): void {
+  captureFullAnalyticsEvent("onboarding_step_dwell", {
+    flow,
+    step_number: stepNumber,
+    step_key: getStepKey(stepNumber),
+    duration_ms: Math.max(0, Math.round(durationMs)),
+  });
+}
+
+export function trackFormAbandon({
+  flow,
+  stepNumber,
+}: {
+  flow: OnboardingFlow;
+  stepNumber: number;
+}): void {
+  captureFullAnalyticsEvent("form_abandon", {
+    flow,
+    step_number: stepNumber,
+    step_key: getStepKey(stepNumber),
+  });
+}
+
+export function trackResultCardInteraction({
+  action,
+  cityId,
+}: {
+  action: ResultCardAction;
+  cityId?: string;
+}): void {
+  captureFullAnalyticsEvent("result_card_interaction", {
+    action,
+    city_id: cityId,
+  });
+}
+
+export function trackPricingSectionEngagement({
+  section,
+  action,
+}: {
+  section: PricingSection;
+  action: "view" | "click";
+}): void {
+  captureFullAnalyticsEvent("pricing_section_engagement", {
+    section,
+    action,
+  });
 }

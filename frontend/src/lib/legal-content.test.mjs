@@ -16,6 +16,7 @@ test("returns Korean legal footer labels", () => {
   assert.equal(labels.footer.terms, "이용약관");
   assert.equal(labels.footer.privacy, "개인정보처리방침");
   assert.equal(labels.footer.support, "문의");
+  assert.equal(labels.footer.privacySettings, "분석 설정");
 });
 
 test("builds Google login URL with encoded return_to", () => {

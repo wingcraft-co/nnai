@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { trackCheckoutClick } from '@/lib/analytics/events';
+import {
+  trackCheckoutClick,
+  trackPricingSectionEngagement,
+} from '@/lib/analytics/events';
 
 type PolarCheckoutButtonProps = {
   locale: string;
@@ -46,6 +49,7 @@ export function PolarCheckoutButton({
   async function handleCheckout() {
     if (loading) return;
     setError(null);
+    trackPricingSectionEngagement({ section: 'pro_plan', action: 'click' });
     trackCheckoutClick('polar');
 
     if (directCheckoutUrl) {

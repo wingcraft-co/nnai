@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { AnalyticsSettingsButton } from "@/components/analytics/AnalyticsSettingsButton";
 import { getLegalLabels, shouldHideLegalFooter } from "@/lib/legal-content.mjs";
 
 type LegalFooterProps = {
@@ -34,6 +35,10 @@ export function LegalFooter({ locale }: LegalFooterProps) {
           >
             {labels.footer.support}
           </a>
+          <AnalyticsSettingsButton
+            label={labels.footer.privacySettings}
+            className="transition-colors hover:text-foreground"
+          />
         </div>
         <p className="text-center text-[11px] text-muted-foreground/80">
           NomadNavigator AI

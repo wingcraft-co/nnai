@@ -8,6 +8,7 @@ const legalLabels = {
       terms: "이용약관",
       privacy: "개인정보처리방침",
       support: "문의",
+      privacySettings: "분석 설정",
     },
     login: {
       eyebrow: "NNAI Account",
@@ -31,6 +32,7 @@ const legalLabels = {
       terms: "Terms",
       privacy: "Privacy",
       support: "Support",
+      privacySettings: "Analytics settings",
     },
     login: {
       eyebrow: "NNAI Account",

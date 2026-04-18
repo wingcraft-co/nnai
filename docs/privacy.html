@@ -27,7 +27,7 @@
   <li>Google 로그인 시: 이름, 이메일 주소, 프로필 사진 (Google OAuth 제공 정보)</li>
   <li>서비스 이용 정보: 입력한 국적, 소득, 라이프스타일 등 추천 조건</li>
   <li>자동 수집: 접속 IP, 브라우저 종류, 방문 시각 (서버 로그)</li>
-  <li>제품 분석 정보: 페이지 경로, 언어, CTA 클릭, 추천 제출/성공/실패, 로그인/결제 진입 및 복귀 여부와 같은 이벤트형 사용 정보 (PostHog)</li>
+  <li>제품 분석 정보: 동의한 범위 내에서 수집되는 페이지 경로, 언어, CTA 클릭, 추천 제출/성공/실패, 로그인/결제 흐름, 결과 카드 상호작용과 같은 사용 정보 (PostHog)</li>
 </ul>
 
 <h2>2. 수집 목적</h2>
@@ -41,8 +41,21 @@
 <p>수집한 개인정보는 원칙적으로 제3자에게 제공하지 않습니다.
 단, Google AdSense를 통한 광고 게재 시 Google의 개인정보처리방침이 적용될 수 있습니다.</p>
 
-<h2>4. 분석 도구 사용</h2>
-<p>본 서비스는 서비스 흐름과 전환 퍼널 분석을 위해 PostHog Cloud EU를 사용합니다. PostHog에는 cookieless 방식으로 최소한의 이벤트형 분석 정보만 전송하며, 이메일·이름·OAuth 식별자·자유입력 텍스트·정확한 소득/예산값은 보내지 않습니다.</p>
+<h2 id="analytics-consent">4. 분석 도구 사용 및 동의 설정</h2>
+<p>본 서비스는 서비스 흐름과 전환 퍼널 분석을 위해 PostHog Cloud EU를 사용합니다. 분석은 이용자의 선택에 따라 아래 두 단계로 운영됩니다.</p>
+<ul>
+  <li><strong>필수 분석만 허용</strong>: cookieless 기반 익명 최소 추적만 활성화됩니다. persistent cookie 기반 식별, session replay, autocapture는 사용하지 않습니다.</li>
+  <li><strong>전체 허용</strong>: cookie 기반 persistent tracking, autocapture, session replay를 포함한 확장 분석이 활성화될 수 있습니다. 현재 배포 환경에 따라 전체 허용 기능은 단계적으로 적용될 수 있습니다.</li>
+</ul>
+<p>이용자가 아무 선택도 하지 않은 상태에서는 PostHog 이벤트 수집을 시작하지 않습니다.</p>
+<p><strong>필수 분석만 허용</strong> 상태에서 수집하는 항목은 아래와 같습니다.</p>
+<ul>
+  <li>페이지 조회, 랜딩 CTA 클릭, 추천 제출/성공/실패</li>
+  <li>로그인 진입/클릭/성공, 가격 페이지 진입, checkout 클릭/복귀</li>
+  <li>정확한 소득/예산값, 자유 입력 텍스트, 이메일, 이름, OAuth 식별자는 PostHog로 보내지 않습니다.</li>
+</ul>
+<p><strong>전체 허용</strong> 상태에서는 위 항목에 더해 autocapture, session replay, onboarding 체류 시간, form abandon, 결과 카드 상호작용, 가격 섹션 engagement 같은 추가 제품 분석이 포함될 수 있습니다.</p>
+<p>분석 설정은 하단 footer의 <strong>분석 설정</strong> 버튼 또는 개인정보처리방침 페이지의 설정 버튼에서 언제든 다시 열어 변경할 수 있습니다.</p>
 
 <h2>5. 광고 및 쿠키</h2>
 <p>본 서비스는 Google AdSense를 사용하며, 광고 제공을 위해 쿠키를 사용할 수 있습니다.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { PersonaType } from "@/data/personas";
@@ -9,8 +9,10 @@ import { House } from "lucide-react";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { SelectCard } from "@/components/onboarding/select-card";
 import {
+  trackFormAbandon,
   trackFormStepComplete,
   trackFormStepView,
+  trackOnboardingStepDwell,
 } from "@/lib/analytics/events";
 import dynamic from "next/dynamic";
 
@@ -175,6 +177,10 @@ export default function FormPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const previousStepRef = useRef<number | null>(null);
+  const stepEnteredAtRef = useRef(Date.now());
+  const currentStepRef = useRef(1);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("persona_type") as PersonaType | null;
@@ -186,8 +192,38 @@ export default function FormPage() {
   }, []);
 
   useEffect(() => {
+    const now = Date.now();
+    const previousStep = previousStepRef.current;
+
+    if (previousStep !== null && previousStep !== currentStep) {
+      trackOnboardingStepDwell({
+        flow: "form",
+        stepNumber: previousStep,
+        durationMs: now - stepEnteredAtRef.current,
+      });
+      stepEnteredAtRef.current = now;
+    }
+
+    previousStepRef.current = currentStep;
+    currentStepRef.current = currentStep;
     trackFormStepView(currentStep);
   }, [currentStep]);
+
+  useEffect(() => {
+    return () => {
+      if (submittedRef.current) return;
+
+      trackOnboardingStepDwell({
+        flow: "form",
+        stepNumber: currentStepRef.current,
+        durationMs: Date.now() - stepEnteredAtRef.current,
+      });
+      trackFormAbandon({
+        flow: "form",
+        stepNumber: currentStepRef.current,
+      });
+    };
+  }, []);
 
   const isShortStay = form.timeline === "1~3개월 단기 체류";
 
@@ -255,6 +291,7 @@ export default function FormPage() {
       // Clear any stale tarot session from a previous run
       localStorage.removeItem("tarot_session");
 
+      submittedRef.current = true;
       router.push("/result");
     } catch {
       setError("뭔가 막혔어요. 다시 해볼까요?");

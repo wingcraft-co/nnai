@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { QUIZ_QUESTIONS, calculatePersona, calculatePersonaVector } from "@/data/quiz-questions";
@@ -8,14 +8,56 @@ import type { PersonaType } from "@/data/personas";
 import { House } from "lucide-react";
 import { QuizCard } from "@/components/onboarding/quiz-card";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
-import { trackQuizComplete } from "@/lib/analytics/events";
+import {
+  trackFormAbandon,
+  trackOnboardingStepDwell,
+  trackQuizComplete,
+} from "@/lib/analytics/events";
 
 export default function QuizPage() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<PersonaType[]>([]);
+  const previousStepRef = useRef<number | null>(null);
+  const stepEnteredAtRef = useRef(Date.now());
+  const currentStepRef = useRef(1);
+  const completedRef = useRef(false);
 
   const currentQuestion = QUIZ_QUESTIONS[currentIndex];
+
+  useEffect(() => {
+    const stepNumber = currentIndex + 1;
+    const now = Date.now();
+    const previousStep = previousStepRef.current;
+
+    if (previousStep !== null && previousStep !== stepNumber) {
+      trackOnboardingStepDwell({
+        flow: "quiz",
+        stepNumber: previousStep,
+        durationMs: now - stepEnteredAtRef.current,
+      });
+      stepEnteredAtRef.current = now;
+    }
+
+    previousStepRef.current = stepNumber;
+    currentStepRef.current = stepNumber;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (completedRef.current) return;
+
+      trackOnboardingStepDwell({
+        flow: "quiz",
+        stepNumber: currentStepRef.current,
+        durationMs: Date.now() - stepEnteredAtRef.current,
+      });
+      trackFormAbandon({
+        flow: "quiz",
+        stepNumber: currentStepRef.current,
+      });
+    };
+  }, []);
 
   function handleSelect(answerIndex: number) {
     const newAnswers = [...answers, currentQuestion.options[answerIndex].persona];
@@ -26,6 +68,7 @@ export default function QuizPage() {
     } else {
       const persona = calculatePersona(newAnswers);
       const personaVector = calculatePersonaVector(newAnswers);
+      completedRef.current = true;
       trackQuizComplete(persona);
       localStorage.setItem("persona_type", persona);
       localStorage.setItem("persona_vector", JSON.stringify(personaVector));

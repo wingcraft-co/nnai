@@ -13,7 +13,11 @@ import {
   formatInternet,
 } from "./format";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
-import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
+import {
+  markLoginPending,
+  trackLoginClick,
+  trackResultCardInteraction,
+} from "@/lib/analytics/events";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -394,8 +398,13 @@ export default function TarotDeck({
       if (isSelecting && !isLoading) {
         onToggleSelect(i);
       } else if (isDone && isSelected && city) {
+        trackResultCardInteraction({
+          action: "open_city",
+          cityId: city.id ?? undefined,
+        });
         setLightboxCity(city);
       } else if (isDone && !isSelected) {
+        trackResultCardInteraction({ action: "open_locked" });
         setLockedOverlayIndex((prev) => (prev === i ? null : i));
       }
     };
