@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocale } from "next-intl";
-import { Banknote, Stamp, Wifi, X } from "lucide-react";
+import { Banknote, Stamp, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
 import TarotCard from "./TarotCard";
 import type { CityData } from "./types";
 import {
@@ -95,30 +95,149 @@ function getPersonalizedInsight(
 
 // ── City Lightbox ─────────────────────────────────────────────────
 
+interface LightboxCard {
+  state: "front" | "locked";
+  city: CityData | null;
+  orderNumber: number; // 1-based, for locked teaser label
+}
+
 function CityLightbox({
-  city,
+  cards,
+  startIndex,
   onClose,
 }: {
-  city: CityData;
+  cards: LightboxCard[];
+  startIndex: number;
   onClose: () => void;
 }) {
   const locale = useLocale();
   const krwRate = useKrwRate();
+  const [index, setIndex] = useState(startIndex);
+  const current = cards[index] ?? cards[0];
+  const directCheckoutUrl = process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL ?? null;
+  const isEn = locale === "en";
+
+  const goPrev = () => setIndex((i) => (i - 1 + cards.length) % cards.length);
+  const goNext = () => setIndex((i) => (i + 1) % cards.length);
+
+  // Keyboard: ESC + ← →
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setIndex((i) => (i - 1 + cards.length) % cards.length);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setIndex((i) => (i + 1) % cards.length);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, cards.length]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative flex items-center gap-2"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Prev button (outside card left) */}
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label={isEn ? "Previous" : "이전"}
+          className="shrink-0 w-8 h-8 flex items-center justify-center transition-colors"
+          style={{ color: "rgba(255,255,255,0.8)" }}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {/* Card wrapper (relative for external × positioning) */}
+        <div className="relative">
+          {/* × close — 카드 외부 우상단 (대각선 위) */}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={isEn ? "Close" : "닫기"}
+            className="absolute left-full bottom-full w-11 h-11 flex items-center justify-center transition-colors"
+            style={{ color: "rgba(255,255,255,0.8)" }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Card frame — 4:7 aspect, clamped by viewport on both axes */}
+          <motion.div
+            key={index}
+            initial={{ opacity: 0.4 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.18 }}
+            className="flex flex-col overflow-hidden"
+            style={{
+              width: "min(320px, calc(100vw - 80px), calc((100vh - 80px) * 4 / 7))",
+              aspectRatio: "4 / 7",
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+            }}
+          >
+            {current.state === "front" && current.city ? (
+              <LightboxFrontContent
+                city={current.city}
+                locale={locale}
+                krwRate={krwRate}
+              />
+            ) : (
+              <LightboxLockedTeaser
+                orderNumber={current.orderNumber}
+                locale={locale}
+                checkoutUrl={directCheckoutUrl}
+              />
+            )}
+          </motion.div>
+        </div>
+
+        {/* Next button (outside card right) */}
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label={isEn ? "Next" : "다음"}
+          className="shrink-0 w-8 h-8 flex items-center justify-center transition-colors"
+          style={{ color: "rgba(255,255,255,0.8)" }}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Lightbox Front Content (공개 카드) ─────────────────────────────
+
+function LightboxFrontContent({
+  city,
+  locale,
+  krwRate,
+}: {
+  city: CityData;
+  locale: string;
+  krwRate: number;
+}) {
   const flag = FLAG_EMOJI[city.country_id] ?? "🌍";
   const monthly = formatMonthly(city.monthly_cost_usd, locale, krwRate);
   const visa = formatVisa(city.visa_free_days, locale);
   const internet = formatInternet(city.internet_mbps);
 
-  // ESC key to close
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  // Personalized insight — read localStorage, compose one-liner (ko only)
+  // Personalized insight (ko only)
   const [personalInsight, setPersonalInsight] = useState<string | null>(null);
   useEffect(() => {
     if (locale !== "ko") {
@@ -142,15 +261,21 @@ function CityLightbox({
     }
   }, [city, locale]);
 
-  // Auth check — /auth/me (쿠키 세션). 로그인된 유저에겐 CTA 숨김
+  // Auth check — /auth/me 쿠키 세션
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetch(`${API_BASE}/auth/me`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (!cancelled) setIsLoggedIn(Boolean(data?.logged_in)); })
-      .catch(() => { if (!cancelled) setIsLoggedIn(false); });
-    return () => { cancelled = true; };
+      .then((data) => {
+        if (!cancelled) setIsLoggedIn(Boolean(data?.logged_in));
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoggedIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function handleGoogleLogin() {
@@ -163,163 +288,213 @@ function CityLightbox({
   const showLoginCta = locale === "ko" && isLoggedIn === false;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        className="relative w-full max-w-sm max-h-[85vh] flex flex-col"
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* Header */}
+      <div className="flex flex-col items-center pt-5 pb-3 px-5">
+        <span style={{ fontSize: 32 }}>{flag}</span>
+        <h2 className="font-serif text-base font-bold mt-1.5" style={{ color: "var(--foreground)" }}>
+          {city.city_kr}
+        </h2>
+        <p className="font-mono text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          {city.city}, {city.country}
+        </p>
+      </div>
+
+      {/* Metrics — 3x3 grid (icon/label/value rows aligned) */}
+      <div
+        className="grid grid-cols-3 gap-y-0.5 font-mono text-center px-5 py-3"
         style={{
-          background: "var(--card)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          overflow: "hidden",
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
+          justifyItems: "center",
+          alignItems: "center",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
-        {/* X close button — fixed to panel top-right, outside scroll, 44px touch target */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-1 top-1 z-10 flex items-center justify-center transition-colors"
-          style={{ width: 44, height: 44, color: "var(--muted-foreground)" }}
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <Banknote className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+        <Stamp className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+        <Wifi className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
 
-        {/* Scrollable content */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {/* Header */}
-          <div className="flex flex-col items-center pt-8 pb-4 px-6">
-            <span style={{ fontSize: 40 }}>{flag}</span>
-            <h2 className="font-serif text-xl font-bold mt-2" style={{ color: "var(--foreground)" }}>
-              {city.city_kr}
-            </h2>
-            <p className="font-mono text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              {city.city}, {city.country}
-            </p>
-          </div>
+        <span className="text-[10px] uppercase leading-tight" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>MONTHLY</span>
+        <span className="text-[10px] uppercase leading-tight" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>{visa.label}</span>
+        <span className="text-[10px] uppercase leading-tight" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>INTERNET</span>
 
-          {/* Metrics — always 3 cells for layout consistency */}
-          <div className="flex font-mono text-center px-6 py-4"
-            style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
-          >
-            <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
-              <Banknote className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
-              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>MONTHLY</span>
-              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{monthly}</span>
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
-              <Stamp className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
-              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>{visa.label}</span>
-              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{visa.value}</span>
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
-              <Wifi className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
-              <span className="text-xs uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>INTERNET</span>
-              <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{internet}</span>
-            </div>
-          </div>
+        <span className="text-[13px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>{monthly}</span>
+        <span className="text-[13px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>{visa.value}</span>
+        <span className="text-[13px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>{internet}</span>
+      </div>
 
-          {/* Detail info */}
-          <div className="px-6 pt-5 pb-8 space-y-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
-            {/* Personalized insight — one-liner above visa info */}
-            {personalInsight && (
-              <p className="font-serif text-sm" style={{ color: "var(--primary)" }}>
-                ✦ {personalInsight}
-              </p>
-            )}
+      {/* Detail */}
+      <div className="px-5 pt-3 pb-5 space-y-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
+        {personalInsight && (
+          <p className="font-serif text-xs" style={{ color: "var(--primary)" }}>
+            ✦ {personalInsight}
+          </p>
+        )}
 
-            {/* Visa detail */}
-            <div className="space-y-1.5">
-              <p className="font-mono text-xs uppercase" style={{ letterSpacing: "0.05em", color: "var(--foreground)" }}>비자 정보</p>
-              <p>{city.visa_type}{city.stay_months != null && ` · ${city.stay_months}개월`}{` · ${city.renewable ? "갱신 가능" : "갱신 불가"}`}</p>
-            </div>
-
-            {/* Stats */}
-            {(city.safety_score != null || city.english_score != null) && (
-              <div className="flex gap-6">
-                {city.safety_score != null && <p>치안 {city.safety_score}/10</p>}
-                {city.english_score != null && <p>영어 {city.english_score}/10</p>}
-              </div>
-            )}
-
-            {/* Insight */}
-            {city.city_insight && (
-              <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 12 }}>
-                <p className="text-sm italic" style={{ color: "var(--primary)" }}>{city.city_insight}</p>
-              </div>
-            )}
-
-            {/* Description */}
-            {city.city_description && (
-              <p className="leading-relaxed">{city.city_description}</p>
-            )}
-
-            {/* Login CTA (ko only, logged-out only) */}
-            {showLoginCta && (
-              <div className="space-y-3">
-                <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
-                <div className="space-y-2 pt-1">
-                  <h3 className="font-serif text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                    {city.city_kr} 맞춤 이민 가이드 받기
-                  </h3>
-                  <p className="font-sans text-xs" style={{ color: "var(--muted-foreground)" }}>
-                    비자 타임라인 · 세금 시뮬레이션 · 예산 로드맵을 AI가 생성해드려요.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-primary/10"
-                    style={{
-                      border: "1px solid var(--border)",
-                      background: "transparent",
-                      color: "var(--foreground)",
-                    }}
-                  >
-                    <GoogleLogo />
-                    <span>Google로 계속하기 →</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Links */}
-            <div className="flex flex-wrap gap-4 pt-2">
-              {city.visa_url && (
-                <a href={city.visa_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>비자 정보 →</a>
-              )}
-              {city.flatio_search_url && (
-                <a href={city.flatio_search_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>숙소 찾기 →</a>
-              )}
-              {city.anyplace_search_url && (
-                <a href={city.anyplace_search_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>Anyplace →</a>
-              )}
-              {city.nomad_meetup_url && (
-                <a href={city.nomad_meetup_url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: "var(--primary)" }}>밋업 →</a>
-              )}
-            </div>
-
-            {/* Data source */}
-            {city.data_verified_date && (
-              <p className="text-xs pt-2" style={{ color: "color-mix(in srgb, var(--muted-foreground) 50%, transparent)" }}>
-                데이터 기준: {city.data_verified_date} · Numbeo, NomadList
-              </p>
-            )}
-          </div>
+        <div className="space-y-1">
+          <p className="font-mono text-[10px] uppercase" style={{ letterSpacing: "0.05em", color: "var(--foreground)" }}>비자 정보</p>
+          <p>{city.visa_type}{city.stay_months != null && ` · ${city.stay_months}개월`}{` · ${city.renewable ? "갱신 가능" : "갱신 불가"}`}</p>
         </div>
-      </motion.div>
-    </motion.div>
+
+        {(city.safety_score != null || city.english_score != null) && (
+          <div className="flex gap-5">
+            {city.safety_score != null && <p>치안 {city.safety_score}/10</p>}
+            {city.english_score != null && <p>영어 {city.english_score}/10</p>}
+          </div>
+        )}
+
+        {city.city_insight && (
+          <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
+            <p className="text-xs italic" style={{ color: "var(--primary)" }}>{city.city_insight}</p>
+          </div>
+        )}
+
+        {city.city_description && (
+          <p className="leading-relaxed">{city.city_description}</p>
+        )}
+
+        {showLoginCta && (
+          <div className="space-y-2">
+            <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
+            <div className="space-y-1.5 pt-1">
+              <h3 className="font-serif text-xs font-medium" style={{ color: "var(--foreground)" }}>
+                {city.city_kr} 맞춤 이민 가이드 받기
+              </h3>
+              <p className="font-sans text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                비자 타임라인 · 세금 · 예산 로드맵을 AI가 생성해드려요.
+              </p>
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium transition-colors hover:bg-primary/10"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  color: "var(--foreground)",
+                }}
+              >
+                <GoogleLogo />
+                <span>Google로 계속하기 →</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-3 pt-1">
+          {city.visa_url && (
+            <a href={city.visa_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>비자 정보 →</a>
+          )}
+          {city.flatio_search_url && (
+            <a href={city.flatio_search_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>숙소 찾기 →</a>
+          )}
+          {city.anyplace_search_url && (
+            <a href={city.anyplace_search_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>Anyplace →</a>
+          )}
+          {city.nomad_meetup_url && (
+            <a href={city.nomad_meetup_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>밋업 →</a>
+          )}
+        </div>
+
+        {city.data_verified_date && (
+          <p className="text-[10px] pt-1" style={{ color: "color-mix(in srgb, var(--muted-foreground) 50%, transparent)" }}>
+            데이터 기준: {city.data_verified_date} · Numbeo, NomadList
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Lightbox Locked Teaser (잠금 카드 — 추론 방지 skeleton) ────────
+
+function LightboxLockedTeaser({
+  orderNumber,
+  locale,
+  checkoutUrl,
+}: {
+  orderNumber: number;
+  locale: string;
+  checkoutUrl: string | null;
+}) {
+  const isEn = locale === "en";
+  const label = isEn
+    ? `PREMIUM PICK #${orderNumber}`
+    : `Pro 전용 카드 #${orderNumber}`;
+  const ctaText = isEn ? "Unlock all cities with Pro" : "Pro로 모든 도시 보기";
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col items-center justify-between px-6 py-8">
+      {/* Top — lock icon + order label */}
+      <div className="flex flex-col items-center gap-3">
+        <span style={{ fontSize: 48, opacity: 0.5 }}>🔒</span>
+        <p
+          className="font-mono text-[11px] uppercase"
+          style={{ color: "var(--muted-foreground)", letterSpacing: "0.15em" }}
+        >
+          {label}
+        </p>
+      </div>
+
+      {/* Middle — skeleton blocks (fixed shapes, 도시별 편차 없음) */}
+      <div className="w-full flex flex-col items-center gap-5">
+        <div className="w-full flex flex-col items-center gap-2">
+          <div
+            className="h-3.5 w-2/3 rounded"
+            style={{ background: "color-mix(in srgb, var(--muted-foreground) 15%, transparent)" }}
+          />
+          <div
+            className="h-2.5 w-1/2 rounded"
+            style={{ background: "color-mix(in srgb, var(--muted-foreground) 10%, transparent)" }}
+          />
+        </div>
+
+        <div
+          className="w-full grid grid-cols-3 gap-3 py-3"
+          style={{
+            borderTop: "1px solid var(--border)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <div
+                className="h-3.5 w-3.5 rounded"
+                style={{ background: "color-mix(in srgb, var(--muted-foreground) 20%, transparent)" }}
+              />
+              <div
+                className="h-1.5 w-8 rounded"
+                style={{ background: "color-mix(in srgb, var(--muted-foreground) 10%, transparent)" }}
+              />
+              <div
+                className="h-2.5 w-6 rounded"
+                style={{ background: "color-mix(in srgb, var(--muted-foreground) 18%, transparent)" }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom — Pro CTA */}
+      {checkoutUrl ? (
+        <a
+          href={checkoutUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackResultCardInteraction({ action: "unlock_click" })}
+          className="w-full py-2.5 text-center font-mono text-xs font-medium"
+          style={{
+            background: "var(--primary)",
+            color: "var(--primary-foreground)",
+            borderRadius: 4,
+            letterSpacing: "0.03em",
+          }}
+        >
+          {ctaText}
+        </a>
+      ) : (
+        <div className="w-full py-2.5" />
+      )}
+    </div>
   );
 }
 
@@ -362,10 +537,8 @@ export default function TarotDeck({
 
   // ── Lightbox state ──────────────────────────────────────────────
 
-  const [lightboxCity, setLightboxCity] = useState<CityData | null>(null);
-  const [lockedOverlayIndex, setLockedOverlayIndex] = useState<number | null>(null);
+  const [lightboxStartIndex, setLightboxStartIndex] = useState<number | null>(null);
   const locale = useLocale();
-  const directCheckoutUrl = process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL ?? null;
 
   // ── Per-card helpers ────────────────────────────────────────────
 
@@ -386,6 +559,22 @@ export default function TarotDeck({
     return seqIdx >= 0 && flippedIndices.includes(seqIdx);
   }
 
+  // ── Lightbox cards (5장 전체, 공개/잠금 혼합) ───────────────────
+
+  const lightboxCards: LightboxCard[] = useMemo(() => {
+    if (!isPostReveal) return [];
+    return Array.from({ length: count }, (_, i) => {
+      const pos = selectedIndices.indexOf(i);
+      const isFront = pos >= 0;
+      const city = isFront ? (revealedCities?.[pos] ?? null) : null;
+      return {
+        state: isFront ? ("front" as const) : ("locked" as const),
+        city,
+        orderNumber: i + 1,
+      };
+    });
+  }, [count, isPostReveal, revealedCities, selectedIndices]);
+
   // ── Render card ─────────────────────────────────────────────────
 
   function renderCard(i: number) {
@@ -397,15 +586,16 @@ export default function TarotDeck({
     const handleClick = () => {
       if (isSelecting && !isLoading) {
         onToggleSelect(i);
-      } else if (isDone && isSelected && city) {
-        trackResultCardInteraction({
-          action: "open_city",
-          cityId: city.id ?? undefined,
-        });
-        setLightboxCity(city);
-      } else if (isDone && !isSelected) {
-        trackResultCardInteraction({ action: "open_locked" });
-        setLockedOverlayIndex((prev) => (prev === i ? null : i));
+      } else if (isDone) {
+        if (isSelected && city) {
+          trackResultCardInteraction({
+            action: "open_city",
+            cityId: city.id ?? undefined,
+          });
+        } else if (!isSelected) {
+          trackResultCardInteraction({ action: "open_locked" });
+        }
+        setLightboxStartIndex(i);
       }
     };
 
@@ -418,9 +608,6 @@ export default function TarotDeck({
         isSelected={isSelecting && isSelected}
         isFlipped={flipped}
         onClick={(isSelecting || isDone) ? handleClick : undefined}
-        showLockedOverlay={lockedOverlayIndex === i}
-        onCloseLockedOverlay={() => setLockedOverlayIndex(null)}
-        checkoutUrl={directCheckoutUrl}
         locale={locale}
       />
     );
@@ -429,7 +616,7 @@ export default function TarotDeck({
   // ── Layout ──────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col items-center" onClick={() => lockedOverlayIndex !== null && setLockedOverlayIndex(null)}>
+    <div className="flex flex-col items-center">
       {/* Cards — fixed position */}
       <div>
         <div className="hidden md:flex justify-center gap-3">
@@ -509,10 +696,11 @@ export default function TarotDeck({
 
       {/* Lightbox */}
       <AnimatePresence>
-        {lightboxCity && (
+        {lightboxStartIndex !== null && lightboxCards.length > 0 && (
           <CityLightbox
-            city={lightboxCity}
-            onClose={() => setLightboxCity(null)}
+            cards={lightboxCards}
+            startIndex={lightboxStartIndex}
+            onClose={() => setLightboxStartIndex(null)}
           />
         )}
       </AnimatePresence>

@@ -50,17 +50,9 @@ export function AnalyticsConsentBanner({
         <div className="relative px-4 py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1 pr-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-serif text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Cookie Settings
-                </p>
-                <Link
-                  href={`/${locale === "en" ? "en" : "ko"}/privacy#analytics-consent`}
-                  className="shrink-0 text-[11px] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-                >
-                  자세히 보기
-                </Link>
-              </div>
+              <p className="font-serif text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Cookie Settings
+              </p>
             </div>
             {showDismiss && (
               <button
@@ -75,10 +67,18 @@ export function AnalyticsConsentBanner({
           </div>
 
           <div className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">
-            <p>
-              더 나은 사용자 경험과 사이트 개선을 위해 분석을 사용합니다. 필수 분석은
-              익명 최소 추적만, 전체 허용은 쿠키 기반 추적을 포함합니다.
-            </p>
+            <div className="flex items-end justify-between gap-3">
+              <p className="flex-1">
+                더 나은 사용자 경험과 사이트 개선을 위해 분석을 사용합니다. 필수 분석은
+                익명 최소 추적만, 전체 허용은 쿠키 기반 추적을 포함합니다.
+              </p>
+              <Link
+                href={`/${locale === "en" ? "en" : "ko"}/privacy#analytics-consent`}
+                className="shrink-0 text-[11px] text-primary underline underline-offset-4 transition-colors hover:text-primary/80"
+              >
+                자세히 보기
+              </Link>
+            </div>
             {!fullTrackingAvailable && (
               <p className="text-[11px] leading-4 text-muted-foreground/80">
                 현재 preview에서는 전체 허용도 필수 분석으로 동작합니다.

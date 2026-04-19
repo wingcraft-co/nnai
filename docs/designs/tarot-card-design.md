@@ -35,10 +35,37 @@
 **HEX 하드코딩 금지.** 모든 색상은 CSS 변수로 참조한다.
 
 ## Card Dimensions
-- **Ratio:** 2:3 (real tarot proportions)
-- **Single card:** 200x300px
-- **5-card row:** 160x240px per card, 16px gap
-- **Border radius:** 8px outer, 4px inner border
+- **Ratio:** **4:7 ≈ 0.571** (Rider-Waite 실측 11:19=0.579와 오차 1%. 실제 타로 카드 proportion에 최대한 근접)
+- **Sizes (width × height):**
+  - sm: 140 × 245
+  - md: 200 × 350
+  - lg: 260 × 455
+- **Border radius:** 12px outer, 8px inner border (result 카드와 lightbox 공통)
+
+## Lightbox Card (공개/잠금 공통 frame)
+- **Ratio:** 4:7 (result 카드와 동일 — "카드가 확대된" 시각 연속성)
+- **Width:** `min(320px, calc(100vw - 80px))` — 양옆 40px 확보해 ‹›버튼(32px) + 8px 여백
+- **Height:** `aspect-[4/7]` (width × 1.75). 내부 콘텐츠는 카드 안에서 스크롤. 뷰포트 높이가 부족하면 `max-h: 85vh`로 clamp
+- **Border radius:** 12px outer (result 카드와 동일)
+- **Navigation:**
+  - 카드 **바깥 좌/우 가운데** ‹ › 버튼 (5장 순환)
+  - 카드 **바깥 우상단** × 버튼 (44×44 터치 타겟)
+  - 키보드 ← → 이전/다음, ESC 닫기
+  - 외부 dim 영역 클릭으로 닫기
+- **Content variants:**
+  - 공개 카드(state=front): flag + city_kr + city/country + metrics 3-col grid + personalized insight + visa/stats/description/login CTA + links
+  - 잠금 카드(state=locked): **정보 완전 은닉 skeleton** (아래 Locked Teaser 규칙)
+
+## Locked Teaser (lightbox 내부)
+- **추론 방지 원칙:** blur 이미지 금지 (형태 유추 가능). 모든 식별 데이터는 완전 hide.
+- **Hide 대상:** `city_kr`, `city`, `country`, `country_id`, `flag`, `monthly_cost_usd`, `visa_free_days`, `internet_mbps`, `visa_type`, `city_insight`, `city_description`, 링크 전부
+- **Show 대상 (추론 불가):**
+  - 🔒 아이콘 (48–56px, `--muted-foreground` opacity 0.4)
+  - 순서 라벨: `Pro 전용 카드 #{n}` (ko) / `Premium Pick #{n}` (en) — `n`은 1-based 전체 인덱스
+  - skeleton 블록 (제목용 bar + 부제 bar, 고정 폭)
+  - metric 자리용 3-column skeleton (icon 자리 + label bar + value bar), `--border` divider 상하
+  - CTA: "Pro로 모든 도시 보기" (ko) / "Unlock all cities with Pro" (en) — `NEXT_PUBLIC_POLAR_CHECKOUT_URL` 직접 링크, `trackResultCardInteraction({ action: "unlock_click" })`
+- skeleton 블록은 `color-mix(--muted-foreground 10–20%, transparent)` 배경. 고정 shape이므로 도시별 편차 없음
 
 ## Card Back — Compass Rose (Variant B)
 - Double border: 1.5px outer + 1px inner (6px gap), both `--border`
@@ -95,13 +122,15 @@
 - 닫기: X 버튼, 바깥 클릭
 - 스타일: `color-mix(--card 85%, transparent)` + `backdrop-filter: blur(4px)` + `--border`
 
-**CityLightbox (공개 카드 상세):**
-- 우상단 X 닫기 아이콘 (lucide-react `X`, `w-5 h-5`)
-- X 버튼은 스크롤 컨테이너 **바깥**에 absolute 배치 → 내용 스크롤 시에도 위치 고정
-- X 버튼 터치 영역 **44×44px** (WCAG 2.5.5 Target Size 준수)
-- ESC 키로 닫기 지원
-- 바깥 클릭으로 닫기
-- 하단 닫기 버튼 없음 — X/ESC/바깥 클릭만으로 닫기
+**CityLightbox (5장 순환 구조):**
+- 카드 폼은 위 "Lightbox Card" 스펙(4:7, width min(320,100vw-80), radius 12) 그대로
+- 카드 **바깥 좌/우 수직 중앙**에 ‹ › 네비게이션 (32×32, 아이콘 20px, `--foreground` on dim)
+- 카드 **바깥 우상단**에 × 닫기 (44×44 터치 타겟, lucide-react `X` 20px)
+- 키보드: ESC 닫기, ← → 이전/다음
+- 바깥 dim 영역 클릭으로 닫기
+- 하단 닫기 버튼 없음 — X/ESC/바깥 클릭/‹›만
+- 5장(선택된 3 + 잠금 2) 전체 순환: `(index + 1) % 5` / `(index - 1 + 5) % 5`
+- 공개 카드는 기존 콘텐츠(metrics/insight/login CTA/links). 잠금 카드는 위 Locked Teaser 규칙
 
 **Personalized Insight (CityLightbox 상단, 비자 정보 위):**
 - `getPersonalizedInsight(persona, travelType, timeline, city)` 헬퍼가 null 반환 시 미렌더
@@ -139,3 +168,7 @@
 | 2026-04-17 | CityLightbox 하단 닫기 버튼 제거, X 버튼 44×44 터치 영역 + 스크롤 밖 고정 | 중복 CTA 제거. WCAG 2.5.5 Target Size 준수. 스크롤 시 X가 사라지는 문제 해결 위해 scroll 컨테이너 구조 분리. |
 | 2026-04-17 | Personalized Insight 한 줄 도입 (CityLightbox 비자 정보 위) | "자기 발견 경험 입구" 포지셔닝 강화. 동반자 조건 copy는 `"파트너"` → `"동반자"` 중립화 (가족/자녀 동반 유저 포함). `--primary` amber 유지 (`--accent`는 dark 모드에서 muted brown이라 부적합). ko 전용. |
 | 2026-04-17 | Login CTA (CityLightbox 외부 링크 위) | 로그인 전환 entry point 추가. auth 체크는 localStorage 키 대신 `/auth/me` 쿠키 세션(프로젝트 실제 메커니즘). `buildGoogleLoginUrl` 기존 헬퍼 재사용. ko 전용. |
+| 2026-04-20 | Card ratio 문서 2:3 → **4:7** 정정 + lightbox도 4:7 카드화 | 문서의 2:3 기재는 실제 Rider-Waite 타로(11:19≈0.579)와 맞지 않음. 코드의 4:7(0.571)이 타로 실측과 오차 1%로 가장 충실. Lightbox를 같은 4:7/12radius 카드 frame으로 통일 → result↔lightbox "확대" 시각 연속성 확보. 모바일 `min(320, 100vw-80)`로 양옆 40px 확보해 외부 ‹›× 네비게이션 공간 마련. |
+| 2026-04-20 | Metric 3셀 flex → **grid 3×3** 재편 | `VISA-FREE` 라벨과 `30 days` 같은 공백 포함 value가 좁은 셀에서 wrap되면 해당 열만 아래로 밀리던 문제. grid rows로 icon/label/value 3행을 전 열에 동기화 → 어느 셀이 2줄이 되어도 세 열 함께 정렬. |
+| 2026-04-20 | Locked 카드 인라인 overlay 폐기, Lightbox 내 skeleton teaser로 통합 | 인라인 overlay는 목록 맥락엔 유지했지만 정보 탐색 단일 경로(Lightbox)로 통일하는 게 더 일관됨. blur 이미지 금지 — 형태 추론 가능하므로 이름/숫자 전부 hide한 skeleton + 순서 번호만. Pro CTA 카피는 "Pro로 모든 도시 보기"로 — "AI가 선별한" 류 표현은 순수 백엔드 로직 결과라 거짓이므로 금지. |
+| 2026-04-20 | Locked 카드 default opacity 0.15 → **0.65** (hover 0.85) | 0.15는 카드 존재 자체가 사라질 정도로 dim. 0.65에서 "카드가 여기 있다" 존재감 + lock 신호 공존. hover는 0.85까지 올려 인터랙티브 피드백. scale/shadow는 공개 카드와 동일한 whileHover로 자동 적용. |
