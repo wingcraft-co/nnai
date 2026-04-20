@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Noto_Serif_KR } from "next/font/google";
+import { Geist_Mono, Noto_Serif_KR, Roboto } from "next/font/google";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import "./globals.css";
 
@@ -14,6 +14,13 @@ const fontKR = Noto_Serif_KR({
   variable: "--font-kr-var",
 });
 
+// Google Sign-In 공식 버튼 전용 — Roboto Medium 500 (Google Identity Branding Guidelines)
+const fontRoboto = Roboto({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-roboto",
+});
+
 export const metadata: Metadata = {
   title: "NomadNavigator AI — 나에게 맞는 도시를 찾아드립니다",
   description: "AI 기반 디지털 노마드 이민 설계 서비스",
@@ -26,7 +33,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${fontMono.variable} ${fontKR.variable} antialiased`}>
+      <body
+        className={`${fontMono.variable} ${fontKR.variable} ${fontRoboto.variable} antialiased`}
+      >
         <PostHogProvider>{children}</PostHogProvider>
       </body>
     </html>

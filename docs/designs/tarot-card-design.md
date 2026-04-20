@@ -60,10 +60,7 @@
   5. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
   6. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
   7. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` — Primary 3 ↔ Secondary 3 대응, 객관 지표로 감성→지표 전환
-  8. **External links** — 3줄 양쪽 정렬. 왼쪽 카테고리(링크, `--primary` underline), 오른쪽 브랜드 라벨(`--muted-foreground`):
-     - 월세 숙소 찾기 / Monthly stay ............ (Flatio)
-     - 단기 숙소 찾기 / Short-term stay ......... (Anyplace)
-     - 노마드 모임 찾기 / Nomad meetup .......... (Meetup)
+  8. **External links** — 한 줄 dot-joined: `월세 숙소 찾기 · 단기 숙소 찾기 · 노마드 모임 찾기`. 각 카테고리가 `--primary` underline 링크, 브랜드명은 생략. 실제 destination: Flatio(월세), Anyplace(단기), Meetup(모임).
   9. Spacer (flex-1) — 하단 CTA까지 공간 채움
   10. **Login CTA** (ko + logged-out) — 단일 제목 serif + Google Sign-In 공식 **Dark Theme** 버튼
 
@@ -79,16 +76,20 @@
   - **External links**: `flatio_search_url` / `anyplace_search_url`은 **유통 BM의 affiliate 수익 경로**. `nomad_meetup_url` / `visa_url`은 engagement + reference. Lightbox가 핵심 전환 깔때기라 이 링크들은 반드시 Lightbox에 있어야 유통 수익 + 유저 탐색이 한 화면에서 완결.
 
 **External links 워딩 규칙 (ko/en):**
-| 링크 | 위치 | ko 카테고리 | en 카테고리 | 브랜드 라벨 |
-|---|---|---|---|---|
-| `visa_url` | 비자 섹션 — **비자명 자체가 링크** (underline + ExternalLink icon) | (비자명 그대로) | (비자명 그대로) | — |
-| `flatio_search_url` | External links | `월세 숙소 찾기` | `Monthly stay` | `(Flatio)` |
-| `anyplace_search_url` | External links | `단기 숙소 찾기` | `Short-term stay` | `(Anyplace)` |
-| `nomad_meetup_url` | External links | `노마드 모임 찾기` | `Nomad meetup` | `(Meetup)` |
+| 링크 | 위치 | ko 카테고리 | en 카테고리 |
+|---|---|---|---|
+| `visa_url` | 비자 섹션 — **비자명 자체가 링크** (underline + ExternalLink icon) | (비자명 그대로) | (비자명 그대로) |
+| `flatio_search_url` | External links | `월세 숙소 찾기` | `Monthly stay` |
+| `anyplace_search_url` | External links | `단기 숙소 찾기` | `Short-term stay` |
+| `nomad_meetup_url` | External links | `노마드 모임 찾기` | `Nomad meetup` |
 
-**External links 포맷**: 3줄 양쪽 정렬 (`flex justify-between items-baseline`). 왼쪽은 카테고리 텍스트(`--primary` underline 링크), 오른쪽은 브랜드명 `(괄호)` 라벨(`--muted-foreground`, 링크 아님). 카테고리 텍스트만 클릭 타겟 — 전체 줄이 아님. 화살표(`→`) 모두 제거, underline이 링크 신호. 카테고리 명시로 의미 직관적 + 브랜드 노출로 투명성 확보.
+**External links 포맷**: **한 줄 dot-joined** — `월세 숙소 찾기 · 단기 숙소 찾기 · 노마드 모임 찾기`. 각 카테고리가 `--primary` underline 링크, 구분자 `·`는 `--muted-foreground`. 브랜드명은 **카드 내에 생략** — 공간 절약 + 한국 유저가 브랜드명으로 의미 파악 어려움. 실제 서비스 구분은 카테고리명("월세"·"단기"·"모임")이 담당. 화살표(`→`) 없음, underline이 링크 signal.
 
-**숙소 서비스 차별화**: Flatio = 월세 중심, Anyplace = 단기·가구 완비 중심 — 실제 두 서비스 특성 반영. 유저가 체류 기간에 맞는 서비스 선택 가능.
+**숙소 서비스 차별화 (링크 destination)**:
+- 월세 숙소 찾기 → Flatio (중기 월 단위 임대)
+- 단기 숙소 찾기 → Anyplace (단기·가구 완비)
+
+**너비 검증**: 카드 body 폭 ≈ 280px에서 약 275-305px 필요 — 아슬아슬. `word-break: keep-all` 적용 상태라 초과 시 어절 단위로 2줄 wrap. 폰트 렌더링 편차에 따라 한 줄/두 줄 달라질 수 있어 실환경 확인 필수. 항상 한 줄 원하면 `text-[10px]` 축소나 "찾기" 단어 제거로 대응.
 
 - **포맷 원칙**: `{기능} [({브랜드})] →`. 기능이 주 라벨, 브랜드는 동일 기능의 다른 옵션을 구분할 때만 괄호로 부기.
 - **visa_url 배치**: 비자 섹션 조건 라인에 dot-joined로 통합 (`최대 체류 12개월 · 연장 가능 · 비자 확인하기 →`) — 비자 관련 정보를 섹션 하나로 응집. External links는 **action/유통 성격 3개**(숙소 × 2 + 모임)로 정제되어 역할 일관성 확보.
@@ -306,12 +307,16 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 └──────────────────────────────────┘
 ```
 
-- **타이틀**: `font-serif text-[13px] font-bold`, `--foreground` — `{city_kr} 맞춤 가이드를 검증된 데이터로 받아보세요`. 도시명을 주어로 복원 → 개인화 signal 강화. "검증된 데이터" 신뢰 신호를 제목에 통합해 서브카피 필요 없음. "받아보세요" 권유 톤으로 압박감 제거.
-- **버튼**: Google Sign-In 공식 **Dark Theme 가이드 준수**
+- **타이틀**: `font-serif text-[13px] font-medium`, `--foreground` — `{city_kr} 맞춤 가이드 받기` (4단어, 12자). CTA best practices(2–6단어, specific action verb, benefit-led)에 부합. Bold 대신 medium weight으로 아래 Google 공식 버튼(medium 500)과 시각 balance. "검증된 데이터" 신뢰 신호는 본문 위쪽 섹션들(metrics/scores/insight)에서 암묵적으로 전달되므로 제목에 중복 불필요.
+- **버튼**: Google Sign-In 공식 **Material Button Dark Theme** — `globals.css`의 `.gsi-material-button` 클래스 그대로 (Google Identity Branding Guidelines 원본 CSS 복제)
+  - 공식 구조: `button.gsi-material-button > .gsi-material-button-state + .gsi-material-button-content-wrapper > .gsi-material-button-icon + .gsi-material-button-contents`
   - `background: #131314` / `color: #E3E3E3` / `border: 1px solid #8E918F`
-  - `border-radius: 6px`, `padding: 10px 12px`, `gap: 10px`
-  - `fontFamily: 'Roboto', 'Noto Sans KR', sans-serif`, `fontSize: 14px`, `fontWeight: 500` (Google 권장)
-  - 내부: 표준 4색 G 로고(16×16) + `Google로 계속하기` (공식 승인 한국어 로컬라이즈 = "Continue with Google")
+  - `border-radius: 20px` (pill 모양), `height: 40px` 고정, `padding: 0 12px`
+  - `font-family: var(--font-roboto), 'Roboto', arial, sans-serif` — **Roboto Medium 500이 `next/font/google`로 self-host 로드됨** (`layout.tsx`에서 `variable: "--font-roboto"` 설정). `font-size: 14px`, `font-weight: 500`, `letter-spacing: 0.25px`
+  - 내부 레이아웃: `justify-content: space-between` — 로고 왼쪽, 텍스트 flex-grow 1로 중앙
+  - 로고: 표준 4색 G **20×20** (공식 규격), `margin-right: 10px`
+  - 텍스트: `Google로 계속하기` (Continue with Google 공식 로컬라이즈)
+  - **Interactive states (공식 구현)**: hover 시 material box-shadow + state overlay white 8%, active/focus 시 overlay 12%
   - **화살표 `→` 금지** — Google 공식 버튼 텍스트에 화살표 없음
 - 두 블록 사이 `gap-2` (8px)
 - 클릭 액션: `buildGoogleLoginUrl(API_BASE, window.location.href)` 헬퍼로 `/auth/google?return_to=...` 리다이렉트 (기존 `GoogleLoginPanel.tsx`와 동일 메커니즘 재사용)
@@ -380,3 +385,4 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 | 2026-04-20 | Lightbox 한국어 어절 단위 줄바꿈 (`word-break: keep-all`) | 한국어 텍스트(`personalInsight` / `city_description` 등)가 브라우저 기본값으로 **글자 단위**에서 줄바꿈되어 "실롬,/ 아리/, 통로 지역이" 같은 가독성 저하 현상. CJK 전용 CSS `word-break: keep-all` 적용하면 공백·구두점 경계에서만 wrap → "실롬, 아리, 통로 지역이 / 노마드에게 인기 있고" 같이 자연 읽기 가능. `overflow-wrap: break-word`로 긴 영단어/URL 안전망. Lightbox 카드 루트에 한 번 inline style로 적용해 하위 모든 텍스트에 CSS 상속. |
 | 2026-04-20 | Lightbox 추가 다이어트 — CTA 축소 + External links 브랜드만 + 비자 라인 재배치 + Google Dark Theme 공식 버튼 | 4:7 카드 비율 유지 시 콘텐츠 overflow 발생 (CTA 잘림). "스크롤 허용" 대신 **콘텐츠 다이어트**로 대응: (1) CTA 제목 `{city_kr} 맞춤 노마드 로드맵 받기` → `로그인하고 맞춤 노마드 로드맵 받기` (city_kr 중복 제거, "로그인하고" 액션 명시). (2) CTA 서브카피 `당신에게 맞는 검증된 데이터를 제공해드려요` 완전 삭제 — 제목의 "맞춤" 단어로 충분. (3) External links를 `숙소 찾기 (Flatio) → 숙소 찾기 (Anyplace) → 노마드 모임 찾기 (Meetup) →` 3줄/2줄에서 `Flatio · Anyplace · Meetup` 한 줄로 축약 — 카테고리 라벨과 화살표 전부 제거해 공간 확보, 브랜드명만으로 의미 전달 리스크는 수용. (4) 비자 섹션의 visa_url 링크를 조건 라인에서 비자명 줄로 이동 — `DE Rantau Nomad Pass ← flex justify-between → 비자 확인하기 →` 형태로 한 줄에 병치. 조건 라인은 `최대 체류 · 연장 가능`만. (5) **Google 버튼 공식 가이드 준수** — amber primary 배경 위반. Dark Theme 채택(#131314 bg, #E3E3E3 text, 1px #8E918F border), 화살표 `→` 제거, "Google로 계속하기"만. HEX 예외 목록에 추가. 추후 Light Theme 전환 시 카드 전체와 함께 재검토. |
 | 2026-04-20 | 4차 재조정 — 비자명 링크 통합 + External links 3줄 카테고리 + CTA 제목 주어 복원 + Google UI 장기 과제 등록 | 사용자 Vercel 실사 피드백 반영. (1) **Q2 비자 섹션**: 별도 "비자 확인하기 →" 제거, **비자명 자체를 underline + `ExternalLink` 아이콘 12px로 링크화** — action signal을 비자명에 내장해 공간 절약 + 직관성 ↑. 이전 "비자명=정보, 액션처럼 보이면 충돌" 우려는 외부 링크 아이콘의 표준 관례로 해소. (2) **Q3 External links**: 브랜드만 한 줄(`Flatio · Anyplace · Meetup`)은 의미 불명확 피드백 → **3줄 양쪽 정렬**로 복원. 카테고리(왼쪽 underline 링크)와 브랜드(오른쪽 muted 라벨) 분리. Flatio="월세 숙소 찾기", Anyplace="단기 숙소 찾기"로 실제 서비스 특성 차별화. (3) **Q5 CTA 제목**: "로그인하고 맞춤 노마드 로드맵 받기"가 일반 문구라 개인화 signal 약함 → `{city_kr} 맞춤 가이드를 검증된 데이터로 받아보세요`로 주어를 도시로 복원. "로드맵"보다 "가이드"가 더 일반 명사로 직관성 ↑ — 서비스 내 용어 혼용 감수. 이전 서브카피 "검증된 데이터" signal이 제목에 통합됨. (4) **Q4 백로그**: Google 버튼의 구조적 UI 부조화 해결을 위한 **Two-step 모달 분리** 방향을 "미래 과제"로 등록. Lightbox CTA는 프로젝트 디자인 자유 + 클릭 시 로그인 전용 모달에서 Google 공식 버튼 표시. 즉시 구현 아님. |
+| 2026-04-20 | 5차 — Google 공식 CSS `gsi-material-button` 완전 복제 + Roboto 로드 + External links 1줄 축약 + CTA 제목 CTA best practice 축약 | (1) **Google 버튼 CSS 완전 교체**: 수기 inline style(border-radius 6, height py-2.5, logo 16×16 등)을 폐기하고 `globals.css`에 Google Identity Branding Guidelines의 **`.gsi-material-button` CSS 전체 블록을 원본 그대로 복제**. pill shape(radius 20), fixed height 40, Material Button HTML 구조(state overlay + content-wrapper + icon div + contents span) 완전 준수. 공식 hover box-shadow + state overlay 상호작용도 포함. 추후 Google 가이드 업데이트 시 CSS 블록만 교체하면 됨. (2) **Roboto Medium 500**을 `next/font/google`로 self-host 로드 (`variable: "--font-roboto"`, `layout.tsx` body class). `.gsi-material-button` font-family 앞에 `var(--font-roboto)` 우선순위 — fallback은 공식 `'Roboto', arial, sans-serif`. (3) **External links 3줄 → 1줄 dot-joined**로 축약 — 3줄 layout이 공간을 다시 먹어 CTA overflow 위험. 브랜드명 생략하고 카테고리만(`월세 숙소 찾기 · 단기 숙소 찾기 · 노마드 모임 찾기`). 너비는 280px 대비 ~275-305px로 아슬아슬, `word-break: keep-all`로 초과 시 깔끔히 wrap. (4) **CTA 제목 CTA best practices 반영**: `{city_kr} 맞춤 가이드를 검증된 데이터로 받아보세요`(31자, bold, 2줄 wrap 위험) → `{city_kr} 맞춤 가이드 받기`(12자, 4단어, medium weight). 웹 검색 결과 높은 전환 CTA headline은 2-6 단어 + specific action verb + benefit-led. "맞춤" = benefit, "받기" = action. Bold→medium으로 Google 공식 버튼(medium 500)과 시각 balance. **NNAI의 서버사이드 OAuth redirect 방식은 deprecated된 gapi.auth2 / FedCM migration과 무관**하게 최신 표준(Authorization Code Flow)을 이미 준수 중 — 이전 필요 없음. |

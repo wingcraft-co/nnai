@@ -25,9 +25,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 // ── Google logo (official brand SVG — HEX 하드코딩은 브랜드 에셋 예외) ─────
 
-function GoogleLogo() {
+function GoogleLogo({ size = 20 }: { size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16" height="16" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width={size} height={size} aria-hidden="true">
       <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
       <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
       <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
@@ -464,38 +464,33 @@ function LightboxFrontContent({
           </div>
         )}
 
-        {/* 6. External links — 3줄 양쪽 정렬, 카테고리 링크 + 브랜드 라벨 */}
+        {/* 6. External links — 카테고리 3개 dot-joined 한 줄 (브랜드 노출 생략) */}
         {(() => {
-          const links: { url: string; category: string; brand: string }[] = [];
+          const links: { url: string; label: string }[] = [];
           if (city.flatio_search_url) {
             links.push({
               url: city.flatio_search_url,
-              category: isEn ? "Monthly stay" : "월세 숙소 찾기",
-              brand: "Flatio",
+              label: isEn ? "Monthly stay" : "월세 숙소 찾기",
             });
           }
           if (city.anyplace_search_url) {
             links.push({
               url: city.anyplace_search_url,
-              category: isEn ? "Short-term stay" : "단기 숙소 찾기",
-              brand: "Anyplace",
+              label: isEn ? "Short-term stay" : "단기 숙소 찾기",
             });
           }
           if (city.nomad_meetup_url) {
             links.push({
               url: city.nomad_meetup_url,
-              category: isEn ? "Nomad meetup" : "노마드 모임 찾기",
-              brand: "Meetup",
+              label: isEn ? "Nomad meetup" : "노마드 모임 찾기",
             });
           }
           if (links.length === 0) return null;
           return (
-            <div className="flex flex-col gap-1">
-              {links.map((l) => (
-                <div
-                  key={l.url}
-                  className="flex items-baseline justify-between gap-2 text-[11px]"
-                >
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              {links.map((l, i) => (
+                <span key={l.url}>
+                  {i > 0 && " · "}
                   <a
                     href={l.url}
                     target="_blank"
@@ -506,17 +501,11 @@ function LightboxFrontContent({
                       textUnderlineOffset: "2px",
                     }}
                   >
-                    {l.category}
+                    {l.label}
                   </a>
-                  <span
-                    className="shrink-0"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
-                    ({l.brand})
-                  </span>
-                </div>
+                </span>
               ))}
-            </div>
+            </p>
           );
         })()}
 
@@ -527,28 +516,28 @@ function LightboxFrontContent({
         {showLoginCta && (
           <div className="flex flex-col gap-2">
             <h3
-              className="font-serif text-[13px] font-bold leading-tight"
+              className="font-serif text-[13px] font-medium leading-tight"
               style={{ color: "var(--foreground)" }}
             >
-              {city.city_kr} 맞춤 가이드를 검증된 데이터로 받아보세요
+              {city.city_kr} 맞춤 가이드 받기
             </h3>
-            {/* Google Sign-In 공식 Dark Theme — HEX 직접 사용 (상표권 예외) */}
+            {/* Google Sign-In 공식 Material Button Dark Theme — globals.css의 .gsi-material-button 그대로 */}
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-2.5 py-2.5 text-[14px] font-medium transition-opacity hover:opacity-90"
-              style={{
-                background: "#131314",
-                color: "#E3E3E3",
-                border: "1px solid #8E918F",
-                borderRadius: 6,
-                fontFamily: "'Roboto', 'Noto Sans KR', sans-serif",
-                paddingLeft: 12,
-                paddingRight: 12,
-              }}
+              className="gsi-material-button"
+              style={{ width: "100%", maxWidth: "none" }}
             >
-              <GoogleLogo />
-              <span>Google로 계속하기</span>
+              <div className="gsi-material-button-state" />
+              <div className="gsi-material-button-content-wrapper">
+                <div className="gsi-material-button-icon">
+                  <GoogleLogo size={20} />
+                </div>
+                <span className="gsi-material-button-contents">
+                  Google로 계속하기
+                </span>
+                <span style={{ display: "none" }}>Google로 계속하기</span>
+              </div>
             </button>
           </div>
         )}
