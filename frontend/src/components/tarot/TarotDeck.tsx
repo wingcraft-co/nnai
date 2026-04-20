@@ -352,7 +352,7 @@ function LightboxFrontContent({
 
       {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
       <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
-        {/* 1. 비자 section — serif heading + 2-line detail (+ 비자 확인 링크 통합) */}
+        {/* 1. 비자 section — heading + {name | link} + 조건 라인 */}
         {showVisaSection && (
           <div className="flex flex-col gap-1">
             <h3
@@ -361,52 +361,38 @@ function LightboxFrontContent({
             >
               {isEn ? "Recommended Visa" : "추천 비자"}
             </h3>
-            <p className="leading-tight" style={{ color: "var(--foreground)" }}>
-              {normalizedVisaType}
-            </p>
-            {(() => {
-              const segs: React.ReactNode[] = [];
-              if (city.stay_months != null) {
-                segs.push(
-                  isEn
-                    ? `Max stay ${city.stay_months} months`
-                    : `최대 체류 ${city.stay_months}개월`,
-                );
-              }
-              if (city.renewable === true) segs.push(isEn ? "Renewable" : "연장 가능");
-              else if (city.renewable === false) segs.push(isEn ? "Non-renewable" : "연장 불가");
-              if (city.visa_url) {
-                segs.push(
-                  <a
-                    key="visa-link"
-                    href={city.visa_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      color: "var(--muted-foreground)",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "2px",
-                    }}
-                  >
-                    {isEn ? "Check visa →" : "비자 확인하기 →"}
-                  </a>,
-                );
-              }
-              if (segs.length === 0) return null;
-              return (
-                <p
-                  className="font-mono text-[11px]"
-                  style={{ color: "var(--muted-foreground)", letterSpacing: "0.03em" }}
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="leading-tight" style={{ color: "var(--foreground)" }}>
+                {normalizedVisaType}
+              </p>
+              {city.visa_url && (
+                <a
+                  href={city.visa_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-[11px]"
+                  style={{
+                    color: "var(--muted-foreground)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "2px",
+                  }}
                 >
-                  {segs.map((seg, i) => (
-                    <Fragment key={i}>
-                      {i > 0 && " · "}
-                      {seg}
-                    </Fragment>
-                  ))}
-                </p>
-              );
-            })()}
+                  {isEn ? "Check visa →" : "비자 확인하기 →"}
+                </a>
+              )}
+            </div>
+            {(city.stay_months != null || city.renewable != null) && (
+              <p
+                className="font-mono text-[11px]"
+                style={{ color: "var(--muted-foreground)", letterSpacing: "0.03em" }}
+              >
+                {city.stay_months != null &&
+                  (isEn ? `Max stay ${city.stay_months} months` : `최대 체류 ${city.stay_months}개월`)}
+                {city.stay_months != null && city.renewable != null && " · "}
+                {city.renewable === true && (isEn ? "Renewable" : "연장 가능")}
+                {city.renewable === false && (isEn ? "Non-renewable" : "연장 불가")}
+              </p>
+            )}
           </div>
         )}
 
@@ -478,77 +464,61 @@ function LightboxFrontContent({
           </div>
         )}
 
-        {/* 6. External links — 숙소 (Flatio / Anyplace) + 노마드 모임 (Meetup). 유통 BM + 커뮤니티 engagement */}
-        {(city.flatio_search_url || city.anyplace_search_url || city.nomad_meetup_url) && (
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {city.flatio_search_url && (
-              <a
-                href={city.flatio_search_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px]"
-                style={{ color: "var(--primary)" }}
-              >
-                {isEn ? "Find stay (Flatio) →" : "숙소 찾기 (Flatio) →"}
-              </a>
-            )}
-            {city.anyplace_search_url && (
-              <a
-                href={city.anyplace_search_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px]"
-                style={{ color: "var(--primary)" }}
-              >
-                {isEn ? "Find stay (Anyplace) →" : "숙소 찾기 (Anyplace) →"}
-              </a>
-            )}
-            {city.nomad_meetup_url && (
-              <a
-                href={city.nomad_meetup_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px]"
-                style={{ color: "var(--primary)" }}
-              >
-                {isEn ? "Find nomad meetup (Meetup) →" : "노마드 모임 찾기 (Meetup) →"}
-              </a>
-            )}
-          </div>
-        )}
+        {/* 6. External links — 브랜드만 dot-joined 한 줄 (Flatio · Anyplace · Meetup) */}
+        {(() => {
+          const links: { url: string; label: string }[] = [];
+          if (city.flatio_search_url) links.push({ url: city.flatio_search_url, label: "Flatio" });
+          if (city.anyplace_search_url) links.push({ url: city.anyplace_search_url, label: "Anyplace" });
+          if (city.nomad_meetup_url) links.push({ url: city.nomad_meetup_url, label: "Meetup" });
+          if (links.length === 0) return null;
+          return (
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              {links.map((l, i) => (
+                <Fragment key={l.url}>
+                  {i > 0 && " · "}
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {l.label}
+                  </a>
+                </Fragment>
+              ))}
+            </p>
+          );
+        })()}
 
         {/* Spacer — pushes CTA down */}
         <div className="flex-1" />
 
-        {/* Primary login CTA (ko + logged-out only) — 정보 div + primary 버튼 분리 */}
+        {/* Primary login CTA (ko + logged-out only) — 정보 텍스트 + Google Dark Theme 버튼 */}
         {showLoginCta && (
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <h3
-                className="font-serif text-[13px] font-bold leading-tight"
-                style={{ color: "var(--foreground)" }}
-              >
-                {city.city_kr} 맞춤 노마드 로드맵 받기
-              </h3>
-              <p
-                className="text-[11px] leading-snug"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                당신에게 맞는 검증된 데이터를 제공해드려요.
-              </p>
-            </div>
+            <h3
+              className="font-serif text-[13px] font-bold leading-tight"
+              style={{ color: "var(--foreground)" }}
+            >
+              로그인하고 맞춤 노마드 로드맵 받기
+            </h3>
+            {/* Google Sign-In 공식 Dark Theme — HEX 직접 사용 (상표권 예외) */}
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 text-[11px] font-medium transition-opacity hover:opacity-90"
+              className="w-full flex items-center justify-center gap-2.5 py-2.5 text-[14px] font-medium transition-opacity hover:opacity-90"
               style={{
-                background: "var(--primary)",
-                color: "var(--primary-foreground)",
+                background: "#131314",
+                color: "#E3E3E3",
+                border: "1px solid #8E918F",
                 borderRadius: 6,
+                fontFamily: "'Roboto', 'Noto Sans KR', sans-serif",
+                paddingLeft: 12,
+                paddingRight: 12,
               }}
             >
               <GoogleLogo />
-              <span>Google로 계속하기 →</span>
+              <span>Google로 계속하기</span>
             </button>
           </div>
         )}

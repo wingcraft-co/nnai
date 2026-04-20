@@ -55,14 +55,14 @@
 - **Content order (공개 카드)** — 실무 → 감성 → 지표 요약 → 외부 action → 전환:
   1. Flag + `city_kr` (serif) + `City, Country` (mono, muted) — Header
   2. Metrics 3×3 grid (MONTHLY / VISA / INTERNET) — Primary
-  3. **비자 섹션** — "추천 비자" serif 헤딩 + 정규화된 visa_type + 조건 라인 `최대 체류 {n}개월 · 연장 가능/불가 · 비자 확인하기 →` (visa_url을 조건 라인에 dot-joined로 통합, 링크는 `--muted-foreground` + underline으로 조건 톤 일치)
+  3. **비자 섹션** — "추천 비자" serif 헤딩 + **비자명 + `비자 확인하기 →` 같은 줄 flex justify-between** (비자명 왼쪽 / 링크 오른쪽 정렬) + 조건 라인 `최대 체류 {n}개월 · 연장 가능/불가`
   4. **city_insight** — 도시 한 줄 slogan (border-left `--primary` 2px + italic)
   5. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
   6. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
   7. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` — Primary 3 ↔ Secondary 3 대응, 객관 지표로 감성→지표 전환
-  8. **External links** — 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기 (Meetup) — 외부 action/유통 (inline flex-wrap, text-[11px] primary). `visa_url`은 비자 섹션으로 이관되어 제거됨
+  8. **External links** — `Flatio · Anyplace · Meetup` 브랜드만 dot-joined 한 줄 (text-[11px], 각 브랜드가 `--primary` 링크)
   9. Spacer (flex-1) — 하단 CTA까지 공간 채움
-  10. **Primary login CTA** (ko + logged-out) — `--primary` 배경, serif 헤딩, Google 로고 row
+  10. **Login CTA** (ko + logged-out) — 단일 제목 serif + Google Sign-In 공식 **Dark Theme** 버튼
 
 **Flow 근거**:
 - **실무 먼저(비자)**: 노마드 decision funnel의 첫 관문은 "이 비자로 갈 수 있는가?". Visa 상단 배치
@@ -78,12 +78,12 @@
 **External links 워딩 규칙 (ko/en):**
 | 링크 | 위치 | ko | en |
 |---|---|---|---|
-| `visa_url` | **비자 섹션 조건 라인** (underline, muted tone) | `비자 확인하기 →` | `Check visa →` |
-| `flatio_search_url` | External links | `숙소 찾기 (Flatio) →` | `Find stay (Flatio) →` |
-| `anyplace_search_url` | External links | `숙소 찾기 (Anyplace) →` | `Find stay (Anyplace) →` |
-| `nomad_meetup_url` | External links | `노마드 모임 찾기 (Meetup) →` | `Find nomad meetup (Meetup) →` |
+| `visa_url` | **비자 섹션 비자명 줄** (우측 정렬, underline, muted tone) | `비자 확인하기 →` | `Check visa →` |
+| `flatio_search_url` | External links (브랜드 단일) | `Flatio` | `Flatio` |
+| `anyplace_search_url` | External links (브랜드 단일) | `Anyplace` | `Anyplace` |
+| `nomad_meetup_url` | External links (브랜드 단일) | `Meetup` | `Meetup` |
 
-**일관성 원칙** — 모든 유통/플랫폼 링크에 **서비스명을 괄호 부기**. Flatio/Anyplace/Meetup 모두 동일 포맷. 브랜드 드러내기를 한 링크만 생략하는 비대칭은 금지.
+**External links 포맷**: 브랜드명만 dot-joined 한 줄 — `Flatio · Anyplace · Meetup`. 각각이 하이퍼링크(`--primary`), 구분자는 `--muted-foreground`. 한 줄 수용 위해 카테고리 라벨("숙소 찾기" 등)과 화살표(`→`) 모두 제거. 브랜드만으로 의미 불명확한 리스크는 감수 — 카드 폭 제약에서 overflow 방지를 최우선으로. 유저가 실제로 어디로 가는지는 클릭 전 tooltip 또는 호버 상태에서 도메인 노출로 확인 가능.
 
 - **포맷 원칙**: `{기능} [({브랜드})] →`. 기능이 주 라벨, 브랜드는 동일 기능의 다른 옵션을 구분할 때만 괄호로 부기.
 - **visa_url 배치**: 비자 섹션 조건 라인에 dot-joined로 통합 (`최대 체류 12개월 · 연장 가능 · 비자 확인하기 →`) — 비자 관련 정보를 섹션 하나로 응집. External links는 **action/유통 성격 3개**(숙소 × 2 + 모임)로 정제되어 역할 일관성 확보.
@@ -292,28 +292,36 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 - 렌더 조건: `locale === "ko"` AND `fetch("/auth/me")` 결과 `logged_in === false`
 - auth 체크는 쿠키 세션 기반 (프로젝트 실제 메커니즘). 네트워크 실패 시 기본 "로그아웃"으로 처리 (CTA 표시)
 
-**구조 — 정보 div + primary 버튼 분리 (Option α)**:
+**구조 — 타이틀 한 줄 + Google 공식 Dark Theme 버튼**:
 ```
-┌─ 정보 블록 (배경 없음) ──────────┐
-│ 제목 (serif, foreground)        │
-│ 서브카피 (muted-foreground)     │
-└──────────────────────────────┘
+로그인하고 맞춤 노마드 로드맵 받기        ← 단일 제목 (serif, foreground)
 
-┌─ 실제 버튼 (primary 배경) ──────┐
-│ [G]  Google로 계속하기 →        │
-└──────────────────────────────┘
+┌─ Google Sign-In Dark Theme 버튼 ──┐
+│ [G]  Google로 계속하기             │  ← #131314 bg, #E3E3E3 text, 1px #8E918F border
+└──────────────────────────────────┘
 ```
 
-- **정보 div**: `flex flex-col gap-1`, 배경 없음
-  - 타이틀: `font-serif text-[13px] font-bold`, `--foreground`
-  - 서브카피: `text-[11px] leading-snug`, `--muted-foreground`
-- **버튼**: `w-full flex items-center justify-center gap-1.5 py-2.5 px-3`
-  - `background: --primary`, `color: --primary-foreground`, `border-radius: 6px`
-  - `hover:opacity-90`
-  - 내부: Google 브랜드 SVG(16×16) + `Google로 계속하기 →`
+- **타이틀**: `font-serif text-[13px] font-bold`, `--foreground` — `{city_kr}` 같은 도시명 prefix 없이 공통 문구. 서브카피는 콘텐츠 다이어트로 제거 (헤더 city 정보 + 타이틀의 "맞춤" 단어로 충분)
+- **버튼**: Google Sign-In 공식 **Dark Theme 가이드 준수**
+  - `background: #131314` / `color: #E3E3E3` / `border: 1px solid #8E918F`
+  - `border-radius: 6px`, `padding: 10px 12px`, `gap: 10px`
+  - `fontFamily: 'Roboto', 'Noto Sans KR', sans-serif`, `fontSize: 14px`, `fontWeight: 500` (Google 권장)
+  - 내부: 표준 4색 G 로고(16×16) + `Google로 계속하기` (공식 승인 한국어 로컬라이즈 = "Continue with Google")
+  - **화살표 `→` 금지** — Google 공식 버튼 텍스트에 화살표 없음
 - 두 블록 사이 `gap-2` (8px)
 - 클릭 액션: `buildGoogleLoginUrl(API_BASE, window.location.href)` 헬퍼로 `/auth/google?return_to=...` 리다이렉트 (기존 `GoogleLoginPanel.tsx`와 동일 메커니즘 재사용)
-- Google 로고 브랜드 컬러(#EA4335/#4285F4/#FBBC05/#34A853)는 HEX 금지 규칙의 예외 — 상표권 준수
+
+**HEX 예외 목록 (상표권/공식 가이드 준수):**
+| 용도 | HEX | 출처 |
+|---|---|---|
+| Google G 로고 4색 | `#EA4335 / #4285F4 / #FBBC05 / #34A853` | Google Brand Guidelines |
+| Google 버튼 Dark Theme bg | `#131314` | Google Sign-In Branding Guide |
+| Google 버튼 Dark Theme text | `#E3E3E3` | 동상 |
+| Google 버튼 Dark Theme border | `#8E918F` | 동상 |
+
+위 HEX는 프로젝트의 "HEX 금지 → CSS 변수만" 규칙의 **명시적 예외**. 그 외 모든 UI는 여전히 CSS 변수만 사용.
+
+**미래 과제 — Light Theme 전환 검토**: 현재 다크 카드와 톤 통합을 위해 Dark Theme 채택. 추후 카드 전체 Light Theme 도입 시 Google 버튼도 Light Theme (#FFFFFF bg + #1F1F1F text + #747775 border)로 함께 전환.
 
 **카피 원칙:**
 - **"이민 가이드" → "노마드 로드맵"**: 서비스 타겟의 실제 유스케이스는 원격근무/프리랜서/장기여행/은퇴거주 등 다양 — "이민"은 영구 이주 뉘앙스라 부적합. "노마드 로드맵"이 브랜드 포지셔닝(자기 발견 경험 입구)과 일치.
@@ -356,3 +364,4 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 | 2026-04-20 | Login CTA 카피 재작성 — "이민 가이드/AI 생성" → "노마드 로드맵/검증된 데이터" | PM 관점 재검토로 기존 카피의 2가지 문제 확인. (1) "**이민 가이드**"는 서비스 타겟 유스케이스(원격근무/프리랜서/장기여행/은퇴거주)와 불일치 — "이민"은 영구 이주 뉘앙스. → "**노마드 로드맵**"으로 교체, 브랜드(NNAI = Nomad Navigator)와 일관. (2) "**AI가 생성해드려요**"는 생성형 AI 할루시네이션 우려 + AI 피싱 증가 시대에 유저 불안을 오히려 자극. 실제 NNAI 파이프라인은 공식 데이터(Numbeo/NomadList 등 `source_refs`) + LLM 개인화 조합이지 "창작"이 아님. → "**당신에게 맞는 검증된 데이터를 제공해드려요**"로 교체. "검증된 데이터"가 신뢰 신호, "당신에게 맞는"이 개인화 가치. AI 단어는 NNAI 브랜드명에 내재하므로 서브카피에서 삭제. |
 | 2026-04-20 | Lightbox 레이아웃 미세 조정 + Login CTA 구조 분리 (Option α) | (1) visa_url 링크(`비자 확인하기 →`)를 `--primary`에서 `--muted-foreground` + underline으로 변경 — 조건 라인(`최대 체류 N개월 · 연장 가능`)의 muted 톤과 일치시켜 "조건의 연장선"으로 자연스럽게. 링크임은 밑줄로 신호. (2) External links(숙소 × 2 + 모임)를 Visa 섹션 바로 아래에서 **Scores pills 아래**로 이동 — "외부 action(이탈)"을 CTA(전환) 직전에 배치해 "외부로 가거나 / NNAI와 계속"의 선택을 명확히 병치. (3) "노마드 모임 찾기 →"에 `(Meetup)` 브랜드 복원 — Flatio/Anyplace와 일관성. "동일 기능이면 동일 포맷" 원칙. (4) **Login CTA 구조 분리** — 기존엔 전체 `<button>`이 primary 배경이라 "정보 블록 + 버튼"처럼 보이지만 기능적으론 "전부가 버튼"인 시각/기능 불일치. Option α 적용: 제목/서브카피는 일반 텍스트 div(배경 없음), Google 버튼만 primary 배경. 정보는 정보, 액션은 액션으로 분리. |
 | 2026-04-20 | Lightbox 한국어 어절 단위 줄바꿈 (`word-break: keep-all`) | 한국어 텍스트(`personalInsight` / `city_description` 등)가 브라우저 기본값으로 **글자 단위**에서 줄바꿈되어 "실롬,/ 아리/, 통로 지역이" 같은 가독성 저하 현상. CJK 전용 CSS `word-break: keep-all` 적용하면 공백·구두점 경계에서만 wrap → "실롬, 아리, 통로 지역이 / 노마드에게 인기 있고" 같이 자연 읽기 가능. `overflow-wrap: break-word`로 긴 영단어/URL 안전망. Lightbox 카드 루트에 한 번 inline style로 적용해 하위 모든 텍스트에 CSS 상속. |
+| 2026-04-20 | Lightbox 추가 다이어트 — CTA 축소 + External links 브랜드만 + 비자 라인 재배치 + Google Dark Theme 공식 버튼 | 4:7 카드 비율 유지 시 콘텐츠 overflow 발생 (CTA 잘림). "스크롤 허용" 대신 **콘텐츠 다이어트**로 대응: (1) CTA 제목 `{city_kr} 맞춤 노마드 로드맵 받기` → `로그인하고 맞춤 노마드 로드맵 받기` (city_kr 중복 제거, "로그인하고" 액션 명시). (2) CTA 서브카피 `당신에게 맞는 검증된 데이터를 제공해드려요` 완전 삭제 — 제목의 "맞춤" 단어로 충분. (3) External links를 `숙소 찾기 (Flatio) → 숙소 찾기 (Anyplace) → 노마드 모임 찾기 (Meetup) →` 3줄/2줄에서 `Flatio · Anyplace · Meetup` 한 줄로 축약 — 카테고리 라벨과 화살표 전부 제거해 공간 확보, 브랜드명만으로 의미 전달 리스크는 수용. (4) 비자 섹션의 visa_url 링크를 조건 라인에서 비자명 줄로 이동 — `DE Rantau Nomad Pass ← flex justify-between → 비자 확인하기 →` 형태로 한 줄에 병치. 조건 라인은 `최대 체류 · 연장 가능`만. (5) **Google 버튼 공식 가이드 준수** — amber primary 배경 위반. Dark Theme 채택(#131314 bg, #E3E3E3 text, 1px #8E918F border), 화살표 `→` 제거, "Google로 계속하기"만. HEX 예외 목록에 추가. 추후 Light Theme 전환 시 카드 전체와 함께 재검토. |
