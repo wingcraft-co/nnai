@@ -190,6 +190,10 @@ function CityLightbox({
               background: "var(--card)",
               border: "1px solid var(--border)",
               borderRadius: 12,
+              // 한국어 어절 중간에서 줄바꿈되는 CJK 기본 동작을 막고, 공백·구두점 경계에서만 wrap.
+              // 영문은 기본대로 공백 기준, 너무 긴 영단어는 overflow-wrap으로 안전망.
+              wordBreak: "keep-all",
+              overflowWrap: "break-word",
             }}
           >
             {current.state === "front" && current.city ? (
@@ -378,7 +382,11 @@ function LightboxFrontContent({
                     href={city.visa_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "var(--primary)" }}
+                    style={{
+                      color: "var(--muted-foreground)",
+                      textDecoration: "underline",
+                      textUnderlineOffset: "2px",
+                    }}
                   >
                     {isEn ? "Check visa →" : "비자 확인하기 →"}
                   </a>,
@@ -402,46 +410,7 @@ function LightboxFrontContent({
           </div>
         )}
 
-        {/* 2. External links — 숙소 (Flatio / Anyplace) + 노마드 모임 (유통 BM) */}
-        {(city.flatio_search_url || city.anyplace_search_url || city.nomad_meetup_url) && (
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {city.flatio_search_url && (
-              <a
-                href={city.flatio_search_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px]"
-                style={{ color: "var(--primary)" }}
-              >
-                {isEn ? "Find stay (Flatio) →" : "숙소 찾기 (Flatio) →"}
-              </a>
-            )}
-            {city.anyplace_search_url && (
-              <a
-                href={city.anyplace_search_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px]"
-                style={{ color: "var(--primary)" }}
-              >
-                {isEn ? "Find stay (Anyplace) →" : "숙소 찾기 (Anyplace) →"}
-              </a>
-            )}
-            {city.nomad_meetup_url && (
-              <a
-                href={city.nomad_meetup_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px]"
-                style={{ color: "var(--primary)" }}
-              >
-                {isEn ? "Find meetup →" : "노마드 모임 찾기 →"}
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* 3. City insight — 도시 한 줄 slogan (ko only, 영어 번역 데이터 미보유) */}
+        {/* 2. City insight — 도시 한 줄 slogan (ko only, 영어 번역 데이터 미보유) */}
         {showCityInsight && (
           <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
             <p className="text-xs italic leading-snug" style={{ color: "var(--primary)" }}>
@@ -450,21 +419,21 @@ function LightboxFrontContent({
           </div>
         )}
 
-        {/* 4. Personalized insight — 유저 맞춤 (ko only) */}
+        {/* 3. Personalized insight — 유저 맞춤 (ko only) */}
         {personalInsight && (
           <p className="font-serif text-xs leading-snug" style={{ color: "var(--primary)" }}>
             ✦ {personalInsight}
           </p>
         )}
 
-        {/* 5. City description — 2–3줄 도시 소개 (ko only, 영어 번역 데이터 미보유) */}
+        {/* 4. City description — 2–3줄 도시 소개 (ko only, 영어 번역 데이터 미보유) */}
         {showCityDescription && (
           <p className="leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
             {city.city_description}
           </p>
         )}
 
-        {/* 6. Scores — pill row (Primary 3과 1:1 대응하는 Secondary qualifier 3개) */}
+        {/* 5. Scores — pill row (Primary 3과 1:1 대응하는 Secondary qualifier 3개) */}
         {(city.safety_score != null || city.english_score != null || climateLabel) && (
           <div className="flex flex-wrap gap-1.5">
             {city.safety_score != null && (
@@ -509,32 +478,79 @@ function LightboxFrontContent({
           </div>
         )}
 
+        {/* 6. External links — 숙소 (Flatio / Anyplace) + 노마드 모임 (Meetup). 유통 BM + 커뮤니티 engagement */}
+        {(city.flatio_search_url || city.anyplace_search_url || city.nomad_meetup_url) && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {city.flatio_search_url && (
+              <a
+                href={city.flatio_search_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Find stay (Flatio) →" : "숙소 찾기 (Flatio) →"}
+              </a>
+            )}
+            {city.anyplace_search_url && (
+              <a
+                href={city.anyplace_search_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Find stay (Anyplace) →" : "숙소 찾기 (Anyplace) →"}
+              </a>
+            )}
+            {city.nomad_meetup_url && (
+              <a
+                href={city.nomad_meetup_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Find nomad meetup (Meetup) →" : "노마드 모임 찾기 (Meetup) →"}
+              </a>
+            )}
+          </div>
+        )}
+
         {/* Spacer — pushes CTA down */}
         <div className="flex-1" />
 
-        {/* Primary login CTA (ko + logged-out only) */}
+        {/* Primary login CTA (ko + logged-out only) — 정보 div + primary 버튼 분리 */}
         {showLoginCta && (
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full flex flex-col gap-1.5 px-3 py-3 text-left transition-opacity hover:opacity-90"
-            style={{
-              background: "var(--primary)",
-              color: "var(--primary-foreground)",
-              borderRadius: 6,
-            }}
-          >
-            <h3 className="font-serif text-[13px] font-bold leading-tight">
-              {city.city_kr} 맞춤 노마드 로드맵 받기
-            </h3>
-            <p className="text-[11px] leading-snug opacity-90">
-              당신에게 맞는 검증된 데이터를 제공해드려요.
-            </p>
-            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-medium">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <h3
+                className="font-serif text-[13px] font-bold leading-tight"
+                style={{ color: "var(--foreground)" }}
+              >
+                {city.city_kr} 맞춤 노마드 로드맵 받기
+              </h3>
+              <p
+                className="text-[11px] leading-snug"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                당신에게 맞는 검증된 데이터를 제공해드려요.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 text-[11px] font-medium transition-opacity hover:opacity-90"
+              style={{
+                background: "var(--primary)",
+                color: "var(--primary-foreground)",
+                borderRadius: 6,
+              }}
+            >
               <GoogleLogo />
               <span>Google로 계속하기 →</span>
-            </div>
-          </button>
+            </button>
+          </div>
         )}
       </div>
     </div>

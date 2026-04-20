@@ -52,22 +52,23 @@
   - 카드 **바깥 우상단** × 버튼 (44×44 터치 타겟)
   - 키보드 ← → 이전/다음, ESC 닫기
   - 외부 dim 영역 클릭으로 닫기
-- **Content order (공개 카드)** — 실무 → 감성 → 지표 요약 → 전환 흐름:
+- **Content order (공개 카드)** — 실무 → 감성 → 지표 요약 → 외부 action → 전환:
   1. Flag + `city_kr` (serif) + `City, Country` (mono, muted) — Header
   2. Metrics 3×3 grid (MONTHLY / VISA / INTERNET) — Primary
-  3. **비자 섹션** — "추천 비자" serif 헤딩 + 정규화된 visa_type + 조건 라인 `최대 체류 {n}개월 · 연장 가능/불가 · 비자 확인하기 →` (visa_url을 조건 라인에 dot-joined로 통합)
-  4. **External links** — 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기 (inline flex-wrap, text-[11px] primary). `visa_url`은 비자 섹션으로 이관되어 제거됨
-  5. **city_insight** — 도시 한 줄 slogan (border-left `--primary` 2px + italic)
-  6. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
-  7. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
-  8. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` — Primary 3 ↔ Secondary 3 대응, 객관 지표로 카드 마감
+  3. **비자 섹션** — "추천 비자" serif 헤딩 + 정규화된 visa_type + 조건 라인 `최대 체류 {n}개월 · 연장 가능/불가 · 비자 확인하기 →` (visa_url을 조건 라인에 dot-joined로 통합, 링크는 `--muted-foreground` + underline으로 조건 톤 일치)
+  4. **city_insight** — 도시 한 줄 slogan (border-left `--primary` 2px + italic)
+  5. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
+  6. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
+  7. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` — Primary 3 ↔ Secondary 3 대응, 객관 지표로 감성→지표 전환
+  8. **External links** — 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기 (Meetup) — 외부 action/유통 (inline flex-wrap, text-[11px] primary). `visa_url`은 비자 섹션으로 이관되어 제거됨
   9. Spacer (flex-1) — 하단 CTA까지 공간 채움
   10. **Primary login CTA** (ko + logged-out) — `--primary` 배경, serif 헤딩, Google 로고 row
 
 **Flow 근거**:
-- **실무 먼저(비자+링크)**: 노마드 decision funnel의 첫 관문은 "이 비자로 갈 수 있는가?". Visa 정보 + 직후 실행 링크로 실무 블록 응집
+- **실무 먼저(비자)**: 노마드 decision funnel의 첫 관문은 "이 비자로 갈 수 있는가?". Visa 상단 배치
 - **감성 중간(도시 slogan → 유저 맞춤 → 도시 설명)**: city_insight(도시 입장) → ✦(유저 맞춤) → city_description(더 긴 도시 소개)로 타인(도시) ↔ 나 ↔ 타인 왕복하며 관점 다양화
-- **지표 요약 마지막(Scores)**: Header 밑 Primary metrics grid와 시각적 거리 확보로 숫자 중복 피로 해소. 카드 마감에 pill 형태 요약 지표가 "엔드 마크" 역할
+- **지표 요약(Scores)**: Header 밑 Primary metrics grid와 시각적 거리 확보로 숫자 중복 피로 해소
+- **외부 action(External links) → 전환(CTA)**: 외부 이동 옵션을 CTA 바로 위에 두어 "외부로 가거나 / NNAI와 계속"의 선택을 명확히 병치
 - **Drop된 항목** (Pro 가이드로 이관):
   - `data_verified_date` (데이터 출처 일자)
 - **Lightbox에 유지한 이유**
@@ -77,10 +78,12 @@
 **External links 워딩 규칙 (ko/en):**
 | 링크 | 위치 | ko | en |
 |---|---|---|---|
-| `visa_url` | **비자 섹션 조건 라인** | `비자 확인하기 →` | `Check visa →` |
+| `visa_url` | **비자 섹션 조건 라인** (underline, muted tone) | `비자 확인하기 →` | `Check visa →` |
 | `flatio_search_url` | External links | `숙소 찾기 (Flatio) →` | `Find stay (Flatio) →` |
 | `anyplace_search_url` | External links | `숙소 찾기 (Anyplace) →` | `Find stay (Anyplace) →` |
-| `nomad_meetup_url` | External links | `노마드 모임 찾기 →` | `Find meetup →` |
+| `nomad_meetup_url` | External links | `노마드 모임 찾기 (Meetup) →` | `Find nomad meetup (Meetup) →` |
+
+**일관성 원칙** — 모든 유통/플랫폼 링크에 **서비스명을 괄호 부기**. Flatio/Anyplace/Meetup 모두 동일 포맷. 브랜드 드러내기를 한 링크만 생략하는 비대칭은 금지.
 
 - **포맷 원칙**: `{기능} [({브랜드})] →`. 기능이 주 라벨, 브랜드는 동일 기능의 다른 옵션을 구분할 때만 괄호로 부기.
 - **visa_url 배치**: 비자 섹션 조건 라인에 dot-joined로 통합 (`최대 체류 12개월 · 연장 가능 · 비자 확인하기 →`) — 비자 관련 정보를 섹션 하나로 응집. External links는 **action/유통 성격 3개**(숙소 × 2 + 모임)로 정제되어 역할 일관성 확보.
@@ -141,6 +144,14 @@ Card 앞면은 전통 타로 카드의 3-section 문법을 따른다 — `상단
 - 모든 수치는 Lightbox(1단 상세) 또는 Pro 가이드(2단 상세)에서 제공
 - 이유: Card = "도시의 얼굴 · 식별", Lightbox = "프로필 · 요약", Pro 가이드 = "상세 문서"의 3단 계층을 흐리지 않기 위함
 - 또 다른 이유: `$1,400` / `약 196만원` / `VISA-FREE / 90 days` 등이 좁은 카드(sm=140px) 폭에서 wrap을 유발했고, 축약(`90d`, `80M`)은 의미 훼손으로 불가 → 수치를 Card에서 뺌으로써 근본 해결
+
+## 텍스트 줄바꿈 정책
+
+Lightbox 카드 루트 `<motion.div>`에 `word-break: keep-all` + `overflow-wrap: break-word`를 적용한다. CJK(한국어) 텍스트가 브라우저 기본값으로 글자 단위에서 줄바꿈되는 것을 막고, **어절/공백/구두점 경계**에서만 wrap되도록. 영문은 기본 동작(공백 기준)을 유지, 너무 긴 영단어/URL은 `overflow-wrap`으로 안전망.
+
+- 적용 스코프: Lightbox 카드 전체 (공개 FrontContent + LockedTeaser 공통)
+- 효과: `city_description`(2-3줄 wrap), `personalInsight`(✦ 한 줄), Login CTA 타이틀/서브카피, visa 조건 라인 등 모든 한국어 텍스트가 어절 단위로 읽히게 됨
+- Tailwind 대신 inline style로 적용 — `wordBreak: "keep-all"` + `overflowWrap: "break-word"` (Tailwind 버전 무관, CSS 상속)
 
 ## i18n 정책
 
@@ -280,11 +291,27 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 **Login CTA (Lightbox 하단 전환 지점):**
 - 렌더 조건: `locale === "ko"` AND `fetch("/auth/me")` 결과 `logged_in === false`
 - auth 체크는 쿠키 세션 기반 (프로젝트 실제 메커니즘). 네트워크 실패 시 기본 "로그아웃"으로 처리 (CTA 표시)
-- 스타일: `--primary` 배경 블록 + `border-radius: 6px` + `hover:opacity-90`
-- 구성:
-  - **타이틀**: `{city_kr} 맞춤 노마드 로드맵 받기` (font-serif 13px bold)
-  - **서브카피**: `당신에게 맞는 검증된 데이터를 제공해드려요.` (11px, `opacity-90`)
-  - **Action row**: Google 브랜드 SVG(16×16) + `Google로 계속하기 →` (11px medium)
+
+**구조 — 정보 div + primary 버튼 분리 (Option α)**:
+```
+┌─ 정보 블록 (배경 없음) ──────────┐
+│ 제목 (serif, foreground)        │
+│ 서브카피 (muted-foreground)     │
+└──────────────────────────────┘
+
+┌─ 실제 버튼 (primary 배경) ──────┐
+│ [G]  Google로 계속하기 →        │
+└──────────────────────────────┘
+```
+
+- **정보 div**: `flex flex-col gap-1`, 배경 없음
+  - 타이틀: `font-serif text-[13px] font-bold`, `--foreground`
+  - 서브카피: `text-[11px] leading-snug`, `--muted-foreground`
+- **버튼**: `w-full flex items-center justify-center gap-1.5 py-2.5 px-3`
+  - `background: --primary`, `color: --primary-foreground`, `border-radius: 6px`
+  - `hover:opacity-90`
+  - 내부: Google 브랜드 SVG(16×16) + `Google로 계속하기 →`
+- 두 블록 사이 `gap-2` (8px)
 - 클릭 액션: `buildGoogleLoginUrl(API_BASE, window.location.href)` 헬퍼로 `/auth/google?return_to=...` 리다이렉트 (기존 `GoogleLoginPanel.tsx`와 동일 메커니즘 재사용)
 - Google 로고 브랜드 컬러(#EA4335/#4285F4/#FBBC05/#34A853)는 HEX 금지 규칙의 예외 — 상표권 준수
 
@@ -327,3 +354,5 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 | 2026-04-20 | **i18n 정책 — defaultLocale ko + localeDetection off + 영어 locale 방어막** | **엣지케이스 발견**: 한국인 유저의 시스템 언어가 영어라 브라우저 `Accept-Language: en-US`로 자동 `/en/`로 redirect됨. 결과: UI 라벨은 영어, 일부 데이터(city_kr/city_insight/city_description/한글 visa_type)는 한국어로 혼재 노출. **해결**: (T1) 서비스 타겟이 한국이므로 `defaultLocale: ko` + `localeDetection: false`로 자동 redirect 차단, 유저의 명시적 선택으로만 locale 전환. (T2a) 영어 locale에서 한국어 전용 데이터 4종(`city_kr`, `city_insight`, `city_description`, 한글 `visa_type`) 생략 가드 추가. (T2b) `normalizeVisaType`에 한글 제거 로직 확장 — 모든 locale에서 영문 비자명 원칙. T3(영어 번역 데이터 pipeline)은 별도 로드맵. |
 | 2026-04-20 | Lightbox body 순서 재배열 + visa_url을 비자 섹션 조건 라인에 통합 | 기존 순서(Scores → ✦ → insight → description → Visa → Links)는 "감성→실무" 흐름이었으나, 실제 노마드 decision funnel은 "이 비자로 갈 수 있는가?"가 첫 관문이라 Visa를 상단에 배치하는 것이 더 natural. 새 순서: Visa → External links → city_insight → ✦ → city_description → Scores → CTA. 부가 효과 — Header 밑 Primary metrics grid와 Scores pills가 시각적 거리를 확보해 숫자 중복 피로 해소, Scores가 pill 형태로 카드 마감 "엔드 마크" 역할. visa_url은 External links에서 제거하고 비자 섹션 조건 라인에 dot-joined로 통합(`최대 체류 12개월 · 연장 가능 · 비자 확인하기 →`) — 비자 관련 정보 응집 + External links가 action/유통 3개(숙소×2 + 모임)로 정제되어 역할 일관성 확보. |
 | 2026-04-20 | Login CTA 카피 재작성 — "이민 가이드/AI 생성" → "노마드 로드맵/검증된 데이터" | PM 관점 재검토로 기존 카피의 2가지 문제 확인. (1) "**이민 가이드**"는 서비스 타겟 유스케이스(원격근무/프리랜서/장기여행/은퇴거주)와 불일치 — "이민"은 영구 이주 뉘앙스. → "**노마드 로드맵**"으로 교체, 브랜드(NNAI = Nomad Navigator)와 일관. (2) "**AI가 생성해드려요**"는 생성형 AI 할루시네이션 우려 + AI 피싱 증가 시대에 유저 불안을 오히려 자극. 실제 NNAI 파이프라인은 공식 데이터(Numbeo/NomadList 등 `source_refs`) + LLM 개인화 조합이지 "창작"이 아님. → "**당신에게 맞는 검증된 데이터를 제공해드려요**"로 교체. "검증된 데이터"가 신뢰 신호, "당신에게 맞는"이 개인화 가치. AI 단어는 NNAI 브랜드명에 내재하므로 서브카피에서 삭제. |
+| 2026-04-20 | Lightbox 레이아웃 미세 조정 + Login CTA 구조 분리 (Option α) | (1) visa_url 링크(`비자 확인하기 →`)를 `--primary`에서 `--muted-foreground` + underline으로 변경 — 조건 라인(`최대 체류 N개월 · 연장 가능`)의 muted 톤과 일치시켜 "조건의 연장선"으로 자연스럽게. 링크임은 밑줄로 신호. (2) External links(숙소 × 2 + 모임)를 Visa 섹션 바로 아래에서 **Scores pills 아래**로 이동 — "외부 action(이탈)"을 CTA(전환) 직전에 배치해 "외부로 가거나 / NNAI와 계속"의 선택을 명확히 병치. (3) "노마드 모임 찾기 →"에 `(Meetup)` 브랜드 복원 — Flatio/Anyplace와 일관성. "동일 기능이면 동일 포맷" 원칙. (4) **Login CTA 구조 분리** — 기존엔 전체 `<button>`이 primary 배경이라 "정보 블록 + 버튼"처럼 보이지만 기능적으론 "전부가 버튼"인 시각/기능 불일치. Option α 적용: 제목/서브카피는 일반 텍스트 div(배경 없음), Google 버튼만 primary 배경. 정보는 정보, 액션은 액션으로 분리. |
+| 2026-04-20 | Lightbox 한국어 어절 단위 줄바꿈 (`word-break: keep-all`) | 한국어 텍스트(`personalInsight` / `city_description` 등)가 브라우저 기본값으로 **글자 단위**에서 줄바꿈되어 "실롬,/ 아리/, 통로 지역이" 같은 가독성 저하 현상. CJK 전용 CSS `word-break: keep-all` 적용하면 공백·구두점 경계에서만 wrap → "실롬, 아리, 통로 지역이 / 노마드에게 인기 있고" 같이 자연 읽기 가능. `overflow-wrap: break-word`로 긴 영단어/URL 안전망. Lightbox 카드 루트에 한 번 inline style로 적용해 하위 모든 텍스트에 CSS 상속. |
