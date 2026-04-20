@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-20 KST (세션 6)_
+_Last updated: 2026-04-20 KST (세션 7)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -27,8 +27,8 @@ _Last updated: 2026-04-20 KST (세션 6)_
 - **Information Hierarchy (3-tier) 원칙**: Result Card = 식별 (얼굴) / Lightbox = 요약 + 전환 / Pro 가이드 = 상세 문서. 각 레이어가 상위를 반복하지 않고 확장.
 - **Result Card 재설계 (3-B/B5, 4:7 비율)**: Card 앞면은 전통 타로 3-section 구조 — 상단 compass mini(뒷면 compass rose의 echo) + 중앙 flag/city_kr/city·country + 하단 NNAI. **수치 metric 완전 제거** (Lightbox로 이관). Hover 시 compass mini + NNAI 모두 `--primary` echo.
 - **카드 비율**: 4:7 (Rider-Waite 실측 11:19과 오차 1%). 기존 디자인 문서의 2:3 기재는 오기 정정됨.
-- **CityLightbox 10단계 body 구조**: Header(flag/city/country) → Primary metrics 3×3 grid → **city_insight**(감성 intro) → **비자 섹션**(비자명 자체가 ExternalLink 링크 + 조건 라인) → Personalized Insight(✦, ko 전용) → city_description → Secondary 배지 3종(치안/영어/기후) → External links 한 줄 → spacer → **Login CTA**(정보 div + Google 공식 버튼).
-- **Secondary 배지 3종**: `치안 N/10` `영어 N/10` `{기후} 기후` — Primary 3 metric과 1:1 대응. `formatClimate` 9개 매핑.
+- **CityLightbox 10단계 body 구조**: Header(flag/city/country) → Primary metrics 3×3 grid → **city_insight**(감성 intro, center align, 세로선 없음) → **비자 섹션**(비자명 자체가 ExternalLink 링크 + 조건 라인) → Personalized Insight(✦, ko 전용) → city_description → **Qualitative 태그 top 3 + climate neutral pill** → External links 한 줄(center align) → spacer → **Login CTA**(정보 div + Google 공식 버튼, 하단 여백 pb-8).
+- **Qualitative 태그 시스템 (뱃지 교체)**: 기존 `치안 N/10 · 영어 N/10 · {기후} 기후` 고정 3개 → **임계 돌파 강점 top 3 + climate neutral pill**로 교체. `computeCityTags(city, locale)` 함수가 7 카테고리(safety/english/nomad/coworking/community/korean_community/cowork_cheap)에서 임계 초과 폭 내림차순 + tie-break 카테고리 우선순위로 top 3 선정. 내부 점수(safety_score=Numbeo+GPI 블렌딩, english_score=내부 판단 등 근거 강도 이질적)는 recommender sort/filter에 그대로 사용하되 UI에는 qualitative 태그만 노출하여 객관성 불균형 해소. climate는 장단점이 아닌 취향이라 pill row 끝에 `opacity 0.75`로 중립 descriptor 유지. 임계값·라벨은 `format.ts` 상수.
 - **비자 섹션**: "추천 비자" serif 헤딩 + **비자명 자체가 underline 링크 + ExternalLink 아이콘**. 조건 라인 `최대 체류 N개월 · 연장 가능/불가`. `normalizeVisaType` 헬퍼로 국가 prefix 제거 + 한글 제거 (MX/JP/DE/NL 등 혼재 케이스 영문 추출).
 - **External links**: 한 줄 dot-joined `월세 숙소 찾기 · 단기 숙소 찾기 · 노마드 모임 찾기`. 각 카테고리 `--primary` underline 링크. 실제 destination: Flatio/Anyplace/Meetup. 브랜드명 생략.
 - **Login CTA (ko 전용)**: 정보 div(배경 없음, center align) + Google 공식 `.gsi-material-button` Dark Theme 버튼. 제목 "로그인하고 {city_kr} 맞춤 가이드 받기" (font-medium, center). 버튼: pill shape, Roboto Medium 500, 공식 HTML 구조(state overlay + content-wrapper + icon + contents).
@@ -115,6 +115,10 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [x] `normalizeVisaType` / `formatClimate` 헬퍼 (영문 비자명 원칙, 9개 기후 한국어 매핑)
 - [x] Google Sign-In 공식 `.gsi-material-button` CSS 채택 + Roboto 500 `next/font/google` 로드
 - [x] Lightbox 잠금 카드 skeleton teaser (추론 방지, Pro CTA)
+- [x] Lightbox 7차 align center 3종 (External links / city_insight / Login CTA) + CTA 하단 여백 확보(pb-4→pb-8) + city_insight 좌측 세로선 제거
+- [x] 뱃지 시스템 전환 — 점수 N/10 고정 → qualitative 태그 top 3 (Method B: 임계 초과 폭 + 카테고리 우선순위 tie-break, 7 카테고리, 0개면 섹션 생략)
+- [ ] `computeCityTags` 52개 도시 snapshot 테스트 추가
+- [ ] 영문 라벨 worst case 2줄 여부 실측 (필요시 `TAG_LABELS` 추가 축약)
 - [ ] Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영)
 - [ ] visa_free_days 아내팀 검수 (docs/review/REVIEW_visa_free_days.md)
 - [ ] 타로 세션 DB/Redis 마이그레이션 (현재 인메모리)
@@ -141,6 +145,7 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - **CTA best practices 수렴**: 2-6단어 + specific action verb + benefit-led + medium weight + center align.
 - **서버사이드 OAuth redirect 유지**: Authorization Code Flow. `gapi.auth2` / FedCM migration 대상 아님.
 - **HEX 금지 규칙 예외 목록**: Google 로고 4색(#EA4335/#4285F4/#FBBC05/#34A853) + Google Dark Theme 3색(#131314/#E3E3E3/#8E918F) — 공식 브랜드 가이드 준수.
+- **내부 점수 vs UI 표기 분리 원칙**: safety/english/nomad/coworking 등 점수 필드는 근거 강도가 이질적(외부 지표 블렌딩 vs 내부 에디토리얼). 내부는 raw score로 sort/filter 계속 사용하되, 사용자 노출은 qualitative 태그(임계 돌파만, 객관성 착시 방지) 로 통일. 수치 직접 노출은 Pro 가이드 같은 상세 컨텍스트에서만.
 
 ## 참고 링크
 - Repository: git@github.com:wingcraft-co/nnai.git

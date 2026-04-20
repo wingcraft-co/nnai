@@ -1,5 +1,53 @@
 # CHANGELOG
 
+## [2026-04-20 KST 세션 7] — Lightbox 7차 + 뱃지 시스템 전환 (점수 → qualitative 태그)
+
+### 변경 파일
+- `frontend/src/components/tarot/TarotDeck.tsx` : External links / city_insight / Login CTA 영역 center align, city_insight 좌측 세로선 제거, body pb-4 → pb-8, Secondary 배지 3종 고정 → `computeCityTags()` 기반 동적 태그 top 3 + climate neutral pill로 교체
+- `frontend/src/components/tarot/format.ts` : `computeCityTags(city, locale)` 함수 신설 (7 카테고리 × ko/en 라벨, Method B 정렬 로직, 카테고리 우선순위 tie-break)
+- `frontend/src/components/tarot/types.ts` : `CityData`에 `coworking_score: number | null` 필드 추가
+- `frontend/src/app/api/reveal/route.ts` : enrichCities 응답에 `coworking_score` 포함
+- `frontend/src/app/api/recommend/route.ts` : enrichCities 응답에 `coworking_score` 포함
+
+### 작업 요약
+
+**무엇을** (커밋 607ff6e):
+
+1. **Lightbox 7차 align center + 여백 조정**:
+   - External links (`월세 숙소 찾기 · 단기 숙소 찾기 · 노마드 모임 찾기`) 한 줄 center align
+   - city_insight 한 줄 설명 좌측 `borderLeft: 2px solid var(--primary)` 제거 + center align → wrapper div 삭제하고 `<p>` 단독
+   - Login CTA 제목 + Google 버튼 아래 여백 확보: body `pb-4 → pb-8`
+
+2. **뱃지 시스템 전환 (객관성 이슈 해소)**:
+   - 기존: `치안 N/10 · 영어 N/10 · {기후} 기후` 3개 고정 pill. 문제 — safety_score는 Numbeo+GPI 블렌딩(외부 지표 계산), english_score는 내부 에디토리얼 판단이라 같은 `/10` 포맷으로 병치하는 것이 객관성 불균형
+   - 신규: 임계 돌파 강점만 qualitative 태그로 노출. 내부 score는 recommender sort/filter 유지, UI만 태그 변환
+   - **Method B**: 임계 초과 폭 내림차순 정렬 → tie 시 카테고리 우선순위 (safety > nomad > english > coworking > community > korean_community > cowork_cheap)
+   - **카테고리 7종 & 임계값**: safety≥7 / english≥9 / nomad≥8 / coworking≥8 / community=large / korean_community=large / cowork_usd_month≤150
+   - **i18n 라벨 (# 기호 없이 짧게)**: 안전/Safe, 영어권/English OK, 노마드 친화/Nomad hub, 코워킹 허브/Cowork hub, 커뮤니티 탄탄/Big community, 한인 커뮤니티/Korean hub, 저렴한 코워킹/Cheap cowork
+   - **최대 3개 상한** + 0개면 태그 섹션 전체 생략 (52개 도시 중 San Jose 1곳 해당)
+   - internet_mbps는 Top grid INTERNET과 중복이라 태그 카테고리에서 제외
+   - climate는 장단점이 아니라 취향 → 태그 시스템에 편입하지 않고 pill row 끝에 `opacity: 0.75` neutral descriptor로 유지
+   - `coworking_score` 필드가 types.ts/reveal/recommend enrichment에 누락되어 있어 함께 추가
+
+**왜**:
+- "치안 N/10, 영어 N/10" 같은 정량 표기가 **서로 다른 근거 강도의 점수를 동일 포맷으로 병치**하면서 객관성 착시 유발. 내부 점수 체계는 건드리지 않되 유저 앞 표현만 정직하게 재정리
+- 세로선/좌측 정렬 이슈는 6차까지 iteration 중 남아있던 시각 weak point — center align + 세로선 제거로 lightbox 전체 톤 통일
+- CTA 하단 여백은 Google 버튼이 카드 가장자리에 너무 붙어있던 호흡 문제
+
+**영향 범위**:
+- Lightbox Front Content (타로 카드 공개 상태) 전반의 시각 + 정보 구조
+- `computeCityTags()`는 `format.ts` 순수 함수 — 향후 모바일 앱 쪽에서도 재사용 가능 (현재는 FE only)
+- 백엔드 스코어링 로직은 무변경, 응답 스키마에 `coworking_score` 추가만
+
+### 다음 세션 참고사항
+
+- **임계값 튜닝 여지**: 현재 임계값은 설계 시 "보수적으로 노출" 방향. 실측해보며 `format.ts:SAFETY_THRESHOLD ~ COWORK_CHEAP_THRESHOLD_USD` 상수 조정 가능
+- **영문 라벨 축약 재검토**: `English OK` `Nomad hub` 등 worst case 3개 조합이 약 ~351px 예상으로 280px 카드 폭에서 2줄이 될 수 있음 — 실물 확인 후 더 축약 필요하면 `TAG_LABELS` 상수만 조정
+- **CityCompare.tsx 연계 미적용**: 아코디언 상세에서 여전히 `치안: N/10 · 영어: N/10` 텍스트로 노출. 의도적 — 상세 컨텍스트에서는 raw 수치가 유효. 통일하고 싶으면 별도 판단 필요
+- **단위 테스트 부재**: `computeCityTags` 52개 도시 snapshot 테스트가 아직 없음 — 회귀 방지용으로 추가 권장
+
+---
+
 ## [2026-04-20 KST 세션 6] — Lightbox 3단 정보 계층 재설계 + i18n 혼재 해결 + Google 공식 버튼 준수
 
 ### 변경 파일
