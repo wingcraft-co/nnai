@@ -13,6 +13,7 @@ import {
   formatInternet,
   normalizeVisaType,
   formatClimate,
+  computeCityTags,
 } from "./format";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
 import {
@@ -351,14 +352,12 @@ function LightboxFrontContent({
       </div>
 
       {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
-      <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
+      <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-8 text-xs">
         {/* 1. City insight — 도시 한 줄 slogan (감성 intro, ko only) */}
         {showCityInsight && (
-          <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
-            <p className="text-xs italic leading-snug" style={{ color: "var(--primary)" }}>
-              {city.city_insight}
-            </p>
-          </div>
+          <p className="text-xs italic leading-snug text-center" style={{ color: "var(--primary)" }}>
+            {city.city_insight}
+          </p>
         )}
 
         {/* 2. 비자 section — heading + 비자명(링크 통합) + 조건 라인 */}
@@ -419,50 +418,43 @@ function LightboxFrontContent({
           </p>
         )}
 
-        {/* 5. Scores — pill row (Primary 3과 1:1 대응하는 Secondary qualifier 3개) */}
-        {(city.safety_score != null || city.english_score != null || climateLabel) && (
-          <div className="flex flex-wrap gap-1.5">
-            {city.safety_score != null && (
-              <span
-                className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
-                style={{
-                  border: "1px solid var(--border)",
-                  borderRadius: 9999,
-                  color: "var(--muted-foreground)",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                {isEn ? `Safety ${city.safety_score}/10` : `치안 ${city.safety_score}/10`}
-              </span>
-            )}
-            {city.english_score != null && (
-              <span
-                className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
-                style={{
-                  border: "1px solid var(--border)",
-                  borderRadius: 9999,
-                  color: "var(--muted-foreground)",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                {isEn ? `English ${city.english_score}/10` : `영어 ${city.english_score}/10`}
-              </span>
-            )}
-            {climateLabel && (
-              <span
-                className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
-                style={{
-                  border: "1px solid var(--border)",
-                  borderRadius: 9999,
-                  color: "var(--muted-foreground)",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                {climateLabel}
-              </span>
-            )}
-          </div>
-        )}
+        {/* 5. Tags — 임계 돌파 강점 top 3 + climate (neutral descriptor) */}
+        {(() => {
+          const tags = computeCityTags(city, locale);
+          if (tags.length === 0 && !climateLabel) return null;
+          return (
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
+                  style={{
+                    border: "1px solid var(--border)",
+                    borderRadius: 9999,
+                    color: "var(--muted-foreground)",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  {label}
+                </span>
+              ))}
+              {climateLabel && (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
+                  style={{
+                    border: "1px solid var(--border)",
+                    borderRadius: 9999,
+                    color: "var(--muted-foreground)",
+                    letterSpacing: "0.03em",
+                    opacity: 0.75,
+                  }}
+                >
+                  {climateLabel}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {/* 6. External links — 카테고리 3개 dot-joined 한 줄 (브랜드 노출 생략) */}
         {(() => {
@@ -487,7 +479,7 @@ function LightboxFrontContent({
           }
           if (links.length === 0) return null;
           return (
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="text-[11px] text-center" style={{ color: "var(--muted-foreground)" }}>
               {links.map((l, i) => (
                 <span key={l.url}>
                   {i > 0 && " · "}

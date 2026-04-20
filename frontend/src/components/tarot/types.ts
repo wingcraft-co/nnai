@@ -19,6 +19,7 @@ export interface CityData {
   safety_score: number | null;
   english_score: number | null;
   nomad_score: number | null;
+  coworking_score: number | null;
   cowork_usd_month: number | null;
   community_size: string | null;
   korean_community_size: string | null;

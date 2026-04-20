@@ -42,6 +42,7 @@ function enrichCities(cities: Record<string, unknown>[]) {
       safety_score: scores?.safety_score ?? null,
       english_score: scores?.english_score ?? null,
       nomad_score: scores?.nomad_score ?? null,
+      coworking_score: scores?.coworking_score ?? null,
       cowork_usd_month: scores?.cowork_usd_month ?? null,
       community_size: scores?.community_size ?? null,
       korean_community_size: scores?.korean_community_size ?? null,

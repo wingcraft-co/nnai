@@ -153,3 +153,121 @@ export function formatClimate(
   // English: "tropical" → "Tropical", "semi-arid" → "Semi-arid"
   return climate.charAt(0).toUpperCase() + climate.slice(1);
 }
+
+// ── City tag system ────────────────────────────────────────────────
+// 점수 산정 기준의 이질성(치안=외부지표 / 영어=내부판단)을 숫자로 병치하는
+// 대신, 임계값 통과 시 qualitative 태그만 노출. 수치는 recommender 내부
+// sort/filter에 그대로 사용. Method B: 임계 초과 폭 기준 top 3.
+
+interface TagInput {
+  safety_score?: number | null;
+  english_score?: number | null;
+  nomad_score?: number | null;
+  coworking_score?: number | null;
+  cowork_usd_month?: number | null;
+  community_size?: string | null;
+  korean_community_size?: string | null;
+}
+
+type TagKey =
+  | "safety"
+  | "nomad"
+  | "english"
+  | "coworking"
+  | "community"
+  | "korean_community"
+  | "cowork_cheap";
+
+interface TagCandidate {
+  key: TagKey;
+  margin: number; // 임계 초과 폭 (tie-break 보조)
+  priority: number; // 낮을수록 우선
+}
+
+const TAG_PRIORITY: Record<TagKey, number> = {
+  safety: 0,
+  nomad: 1,
+  english: 2,
+  coworking: 3,
+  community: 4,
+  korean_community: 5,
+  cowork_cheap: 6,
+};
+
+const TAG_LABELS: Record<TagKey, { ko: string; en: string }> = {
+  safety: { ko: "안전", en: "Safe" },
+  english: { ko: "영어권", en: "English OK" },
+  nomad: { ko: "노마드 친화", en: "Nomad hub" },
+  coworking: { ko: "코워킹 허브", en: "Cowork hub" },
+  community: { ko: "커뮤니티 탄탄", en: "Big community" },
+  korean_community: { ko: "한인 커뮤니티", en: "Korean hub" },
+  cowork_cheap: { ko: "저렴한 코워킹", en: "Cheap cowork" },
+};
+
+const SAFETY_THRESHOLD = 7;
+const ENGLISH_THRESHOLD = 9;
+const NOMAD_THRESHOLD = 8;
+const COWORKING_THRESHOLD = 8;
+const COWORK_CHEAP_THRESHOLD_USD = 150;
+const MAX_TAGS = 3;
+
+export function computeCityTags(city: TagInput, locale: string): string[] {
+  const candidates: TagCandidate[] = [];
+
+  if ((city.safety_score ?? 0) >= SAFETY_THRESHOLD) {
+    candidates.push({
+      key: "safety",
+      margin: (city.safety_score ?? 0) - SAFETY_THRESHOLD,
+      priority: TAG_PRIORITY.safety,
+    });
+  }
+  if ((city.english_score ?? 0) >= ENGLISH_THRESHOLD) {
+    candidates.push({
+      key: "english",
+      margin: (city.english_score ?? 0) - ENGLISH_THRESHOLD,
+      priority: TAG_PRIORITY.english,
+    });
+  }
+  if ((city.nomad_score ?? 0) >= NOMAD_THRESHOLD) {
+    candidates.push({
+      key: "nomad",
+      margin: (city.nomad_score ?? 0) - NOMAD_THRESHOLD,
+      priority: TAG_PRIORITY.nomad,
+    });
+  }
+  if ((city.coworking_score ?? 0) >= COWORKING_THRESHOLD) {
+    candidates.push({
+      key: "coworking",
+      margin: (city.coworking_score ?? 0) - COWORKING_THRESHOLD,
+      priority: TAG_PRIORITY.coworking,
+    });
+  }
+  if (city.community_size === "large") {
+    candidates.push({ key: "community", margin: 0, priority: TAG_PRIORITY.community });
+  }
+  if (city.korean_community_size === "large") {
+    candidates.push({
+      key: "korean_community",
+      margin: 0,
+      priority: TAG_PRIORITY.korean_community,
+    });
+  }
+  if (
+    city.cowork_usd_month != null &&
+    city.cowork_usd_month <= COWORK_CHEAP_THRESHOLD_USD
+  ) {
+    candidates.push({
+      key: "cowork_cheap",
+      margin: COWORK_CHEAP_THRESHOLD_USD - city.cowork_usd_month,
+      priority: TAG_PRIORITY.cowork_cheap,
+    });
+  }
+
+  // 정렬: margin 내림차순, tie면 priority 오름차순
+  candidates.sort((a, b) => b.margin - a.margin || a.priority - b.priority);
+
+  const isEn = locale === "en";
+  return candidates
+    .slice(0, MAX_TAGS)
+    .map((c) => (isEn ? TAG_LABELS[c.key].en : TAG_LABELS[c.key].ko));
+}
