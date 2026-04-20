@@ -352,7 +352,16 @@ function LightboxFrontContent({
 
       {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
       <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
-        {/* 1. 비자 section — heading + 비자명(링크 통합) + 조건 라인 */}
+        {/* 1. City insight — 도시 한 줄 slogan (감성 intro, ko only) */}
+        {showCityInsight && (
+          <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
+            <p className="text-xs italic leading-snug" style={{ color: "var(--primary)" }}>
+              {city.city_insight}
+            </p>
+          </div>
+        )}
+
+        {/* 2. 비자 section — heading + 비자명(링크 통합) + 조건 라인 */}
         {showVisaSection && (
           <div className="flex flex-col gap-1">
             <h3
@@ -393,15 +402,6 @@ function LightboxFrontContent({
                 {city.renewable === false && (isEn ? "Non-renewable" : "연장 불가")}
               </p>
             )}
-          </div>
-        )}
-
-        {/* 2. City insight — 도시 한 줄 slogan (ko only, 영어 번역 데이터 미보유) */}
-        {showCityInsight && (
-          <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
-            <p className="text-xs italic leading-snug" style={{ color: "var(--primary)" }}>
-              {city.city_insight}
-            </p>
           </div>
         )}
 
@@ -516,10 +516,10 @@ function LightboxFrontContent({
         {showLoginCta && (
           <div className="flex flex-col gap-2">
             <h3
-              className="font-serif text-[13px] font-medium leading-tight"
+              className="font-serif text-[13px] font-medium leading-tight text-center"
               style={{ color: "var(--foreground)" }}
             >
-              {city.city_kr} 맞춤 가이드 받기
+              로그인하고 {city.city_kr} 맞춤 가이드 받기
             </h3>
             {/* Google Sign-In 공식 Material Button Dark Theme — globals.css의 .gsi-material-button 그대로 */}
             <button
