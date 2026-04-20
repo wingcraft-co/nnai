@@ -136,6 +136,35 @@ Card 앞면은 전통 타로 카드의 3-section 문법을 따른다 — `상단
 - 이유: Card = "도시의 얼굴 · 식별", Lightbox = "프로필 · 요약", Pro 가이드 = "상세 문서"의 3단 계층을 흐리지 않기 위함
 - 또 다른 이유: `$1,400` / `약 196만원` / `VISA-FREE / 90 days` 등이 좁은 카드(sm=140px) 폭에서 wrap을 유발했고, 축약(`90d`, `80M`)은 의미 훼손으로 불가 → 수치를 Card에서 뺌으로써 근본 해결
 
+## i18n 정책
+
+**Locale 결정 (`frontend/src/i18n/routing.ts`):**
+- `defaultLocale: "ko"` — 서비스 타겟이 한국 디지털 노마드이므로 기본값은 한국어
+- `localeDetection: false` — 브라우저 `Accept-Language` 기반 자동 redirect 끔. 시스템 언어가 영어인 한국 유저(실제 발생한 엣지케이스)가 `/en/`로 이동해 혼재 콘텐츠 보는 것을 차단
+- 영어 locale은 유저가 **명시적으로** URL(`/en/...`) 또는 언어 스위처로 진입할 때만
+
+**영어 locale에서 생략되는 한국어 전용 데이터:**
+| 필드 | 이유 |
+|---|---|
+| `city_kr` | 한국어 도시명. 영어 locale은 `city, country`만 노출 |
+| `city_insight` | 영어 번역 데이터 미보유 (ko JSON 50건만) |
+| `city_description` | 영어 번역 데이터 미보유 |
+| `visa_type` 한글 잔존 시 | "없음 (솅겐 90일 활용)" 등 7개 국가 — visa 섹션 전체 생략 |
+
+Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription` / `showVisaSection` 가드 변수로 조건부 렌더.
+
+**Visa 이름 정규화 (`normalizeVisaType`):**
+모든 locale에서 **영문 비자명 노출 원칙** (공식성/식별성 우선). 2단계 처리:
+1. 국가 prefix 제거 ("Colombia Digital Nomad Visa" → "Digital Nomad Visa") — CO/GR/HR 3건
+2. 한글 제거 — 양방향 괄호 패턴 매칭
+   - "영어 (한국어)" → 괄호 블록 삭제 (예: `Freiberufler (프리랜서 비자)` → `Freiberufler`)
+   - "한국어 (영어)" → 괄호 내용만 추출 (예: `임시거주비자 (Temporary Resident Visa)` → `Temporary Resident Visa`)
+   - 매칭되는 영문 대응이 없으면 원문 유지 (best-effort)
+
+대응 영문이 없는 7개 국가(CZ/MA/MK/PY/QA/RS/VN — "없음/무비자" 계열)는 영어 locale에서 visa 섹션 자체를 렌더하지 않음.
+
+**영어 번역 데이터 확장은 별도 이니셔티브 (T3)**: `city_insights.en.json` / `city_descriptions.en.json` 추가, `visa_db`에 한/영 분리 필드. 로드맵 과제.
+
 ## Information Hierarchy (3-tier)
 
 | Layer | Role | Content |
@@ -283,3 +312,4 @@ Card 앞면은 전통 타로 카드의 3-section 문법을 따른다 — `상단
 | 2026-04-20 | **city_insight + city_description 복원** (drop 철회) | 초기 콘텐츠 다이어트에서 Pro 가이드로 이관했으나, 실제 데이터 길이 검토 결과 insight 평균 21자 + description 평균 93자로 공간 부담 적음. NNAI 서비스 포지셔닝("자기 발견 경험 입구")의 **감성 축**을 담당하는 핵심 텍스트 — 실무(metrics/visa)만으로는 "이 도시가 나에게 어떤 의미인지" 전달 부족. reading flow: Scores(숫자) → ✦(유저 맥락) → city_insight(도시 slogan) → city_description(도시 설명) → 비자(실무) → CTA(전환)으로 감성→실무→전환 자연 흐름. 3-tier 원칙은 여전히 유효 — 외부 링크/data_verified_date 같은 reference 성격은 Pro 가이드 이관 유지. |
 | 2026-04-20 | **External links 복원** (유통 BM 반영) | `flatio_search_url`/`anyplace_search_url`은 서비스의 **유통 수익 모델 핵심 접점**. Lightbox는 유저가 도시별로 머무는 단일 전환 깔때기이므로 여기서 숙소 affiliate 링크가 빠지면 수익 구조 자체가 작동하지 않음. `nomad_meetup_url`(커뮤니티 engagement), `visa_url`(공식 reference)도 함께 복원. 스타일: Visa section 아래 `flex-wrap`, `text-[11px]` `--primary`, 영어 locale 라벨 매핑(Visa info / Flatio / Anyplace / Meetup). spacer가 자동 흡수하므로 CTA 레이아웃 영향 없음. `data_verified_date`만 drop 유지 — 실무 수익 vs 데이터 reference의 가치 차이. |
 | 2026-04-20 | External links 워딩 통일 — `{기능} [(브랜드)] →` 포맷 | 초기 워딩(`비자 정보 / 숙소 찾기 / Anyplace / 밋업`)은 축이 혼재(카테고리·action·브랜드·장르)되어 유저 파악 실패. 특히 한국 유저에겐 Flatio/Anyplace 브랜드 생소 + Meetup만 브랜드 생략되어 일관성도 깨졌음. 원칙 재수립: **기능이 주 라벨, 브랜드는 동일 기능 옵션 구분용 괄호로만**. Flatio vs Anyplace 분기 큐레이션(stay_months 기반) 대신 **둘 다 같은 "숙소 찾기" 라벨 + 브랜드 괄호로 동시 노출** — 분기 로직 자의성 회피 + 파트너십 공정성 + 유저 선택권. 최종 4개: 비자 확인하기 / 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기. |
+| 2026-04-20 | **i18n 정책 — defaultLocale ko + localeDetection off + 영어 locale 방어막** | **엣지케이스 발견**: 한국인 유저의 시스템 언어가 영어라 브라우저 `Accept-Language: en-US`로 자동 `/en/`로 redirect됨. 결과: UI 라벨은 영어, 일부 데이터(city_kr/city_insight/city_description/한글 visa_type)는 한국어로 혼재 노출. **해결**: (T1) 서비스 타겟이 한국이므로 `defaultLocale: ko` + `localeDetection: false`로 자동 redirect 차단, 유저의 명시적 선택으로만 locale 전환. (T2a) 영어 locale에서 한국어 전용 데이터 4종(`city_kr`, `city_insight`, `city_description`, 한글 `visa_type`) 생략 가드 추가. (T2b) `normalizeVisaType`에 한글 제거 로직 확장 — 모든 locale에서 영문 비자명 원칙. T3(영어 번역 데이터 pipeline)은 별도 로드맵. |

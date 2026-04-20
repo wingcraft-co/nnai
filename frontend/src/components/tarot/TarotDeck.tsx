@@ -292,15 +292,33 @@ function LightboxFrontContent({
   const climateLabel = formatClimate(city.climate, locale);
   const isEn = locale === "en";
 
+  // i18n 방어막 — 한국어 전용 데이터는 en locale에서 생략
+  const showCityKr = !isEn && !!city.city_kr;
+  const showCityInsight = !isEn && !!city.city_insight;
+  const showCityDescription = !isEn && !!city.city_description;
+  // visa_type에 한글 잔존(대응 영문 없는 "없음/무비자" 계열)이면 en locale에서 섹션 생략
+  const showVisaSection =
+    !!normalizedVisaType && !(isEn && /[가-힣]/.test(normalizedVisaType));
+
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {/* Header — flag + city */}
       <div className="flex flex-col items-center pt-5 pb-3 px-5">
         <span style={{ fontSize: 32 }}>{flag}</span>
-        <h2 className="font-serif text-base font-bold mt-1.5" style={{ color: "var(--foreground)" }}>
-          {city.city_kr}
-        </h2>
-        <p className="font-mono text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+        {showCityKr && (
+          <h2 className="font-serif text-base font-bold mt-1.5" style={{ color: "var(--foreground)" }}>
+            {city.city_kr}
+          </h2>
+        )}
+        <p
+          className="font-mono text-[11px] mt-0.5"
+          style={{
+            color: "var(--muted-foreground)",
+            // en locale에서 city_kr 없이 city만 있을 땐 폰트 크기 올려 비중 보정
+            fontSize: isEn ? 13 : undefined,
+            marginTop: isEn ? 6 : undefined,
+          }}
+        >
           {city.city}, {city.country}
         </p>
       </div>
@@ -382,8 +400,8 @@ function LightboxFrontContent({
           </p>
         )}
 
-        {/* City insight — 도시 한 줄 slogan */}
-        {city.city_insight && (
+        {/* City insight — 도시 한 줄 slogan (ko only, 영어 번역 데이터 미보유) */}
+        {showCityInsight && (
           <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
             <p className="text-xs italic leading-snug" style={{ color: "var(--primary)" }}>
               {city.city_insight}
@@ -391,15 +409,15 @@ function LightboxFrontContent({
           </div>
         )}
 
-        {/* City description — 2–3줄 도시 소개 */}
-        {city.city_description && (
+        {/* City description — 2–3줄 도시 소개 (ko only, 영어 번역 데이터 미보유) */}
+        {showCityDescription && (
           <p className="leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
             {city.city_description}
           </p>
         )}
 
         {/* 비자 section — serif heading + 2-line detail */}
-        {normalizedVisaType && (
+        {showVisaSection && (
           <div className="flex flex-col gap-1">
             <h3
               className="font-serif text-[13px] font-bold"

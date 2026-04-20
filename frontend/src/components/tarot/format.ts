@@ -74,21 +74,56 @@ export function formatInternet(mbps: number | null | undefined): string {
 }
 
 /**
- * country 필드가 "Colombia (Medellín)"처럼 복합 표기여도 primary name만 추출해
- * visa_type 앞의 국가 prefix를 제거한다.
+ * visa_type 정규화 — 2단계 정제:
+ *   1) 국가 prefix 제거 ("Colombia Digital Nomad Visa" → "Digital Nomad Visa")
+ *   2) 한글 제거 (공식 비자명 = 영문 원칙)
+ *      - "임시거주비자 (Temporary Resident Visa)" → "Temporary Resident Visa"
+ *      - "Freiberufler (프리랜서 비자)" → "Freiberufler"
+ *      - "MVV Zelfstandige (자영업 비자)" → "MVV Zelfstandige"
+ *      - "특정활동 디지털 노마드 비자 (Specified Visa)" → "Specified Visa"
+ *      - 한글이 전혀 없는 경우 (대부분) → 원문 그대로
+ *      - 영문 대응이 없는 경우 ("없음 (솅겐 90일)") → 원문 그대로 (best-effort)
  *
- * 현재 39개 비자 중 prefix 있는 건 CO/GR/HR 3건뿐, 나머지는 no-op.
+ * 모든 locale에서 동일하게 영문 비자명 노출 — 공식성/식별성 우선.
  */
 export function normalizeVisaType(
   visaType: string | null | undefined,
   country: string | null | undefined,
 ): string {
   if (!visaType) return "";
-  if (!country) return visaType;
-  const primaryName = country.split(" (")[0].trim();
-  if (!primaryName) return visaType;
-  const prefix = primaryName + " ";
-  return visaType.startsWith(prefix) ? visaType.slice(prefix.length) : visaType;
+
+  // Step 1 — country prefix 제거
+  let result = visaType;
+  if (country) {
+    const primaryName = country.split(" (")[0].trim();
+    if (primaryName) {
+      const prefix = primaryName + " ";
+      if (result.startsWith(prefix)) result = result.slice(prefix.length);
+    }
+  }
+
+  // Step 2 — 한글 제거 (양방향 괄호 패턴)
+  const HANGUL = /[가-힣]/;
+  if (HANGUL.test(result)) {
+    // Pattern A: "영어 (한국어)" — 뒷 괄호에 한글 → 괄호 블록 제거
+    const parenKorean = /\s*\([^)]*[가-힣][^)]*\)\s*/g;
+    const cleaned = result.replace(parenKorean, " ").trim();
+
+    if (cleaned && !HANGUL.test(cleaned)) {
+      // 성공: 괄호 제거만으로 영문만 남음
+      result = cleaned;
+    } else {
+      // Pattern B: "한국어 (영어)" — 앞 부분에 한글, 괄호 안에 영문
+      const leadingKorean = /^[가-힣\s·,]+\(([^)]+)\)\s*$/;
+      const m = leadingKorean.exec(result);
+      if (m && !HANGUL.test(m[1])) {
+        result = m[1].trim();
+      }
+      // 그 외 (대응 영문 없음) → 원문 유지 (best-effort)
+    }
+  }
+
+  return result.replace(/\s+/g, " ").trim();
 }
 
 /**
