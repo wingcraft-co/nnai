@@ -44,17 +44,25 @@
 
 ## Lightbox Card (공개/잠금 공통 frame)
 - **Ratio:** 4:7 (result 카드와 동일 — "카드가 확대된" 시각 연속성)
-- **Width:** `min(320px, calc(100vw - 80px))` — 양옆 40px 확보해 ‹›버튼(32px) + 8px 여백
-- **Height:** `aspect-[4/7]` (width × 1.75). 내부 콘텐츠는 카드 안에서 스크롤. 뷰포트 높이가 부족하면 `max-h: 85vh`로 clamp
+- **Width:** `min(320px, calc(100vw - 80px), calc((100vh - 80px) * 4 / 7))` — 양옆 40px 확보해 ‹›버튼(32px) + 8px 여백. 뷰포트 세로가 부족하면 너비도 비율 맞춰 함께 줄어듦.
+- **Height:** `aspect-[4/7]` (width × 1.75). **카드 내부 스크롤 금지** — 카드 메타포 유지를 위해 콘텐츠가 넘치지 않도록 정보 다이어트.
 - **Border radius:** 12px outer (result 카드와 동일)
 - **Navigation:**
   - 카드 **바깥 좌/우 가운데** ‹ › 버튼 (5장 순환)
   - 카드 **바깥 우상단** × 버튼 (44×44 터치 타겟)
   - 키보드 ← → 이전/다음, ESC 닫기
   - 외부 dim 영역 클릭으로 닫기
-- **Content variants:**
-  - 공개 카드(state=front): flag + city_kr + city/country + metrics 3-col grid + personalized insight + visa/stats/description/login CTA + links
-  - 잠금 카드(state=locked): **정보 완전 은닉 skeleton** (아래 Locked Teaser 규칙)
+- **Content order (공개 카드):**
+  1. Flag + `city_kr` (serif) + `City, Country` (mono, muted)
+  2. Metrics 3×3 grid (MONTHLY / VISA / INTERNET)
+  3. **Scores pill row** — `치안 N/10` `영어 N/10` (mono, pill 형태)
+  4. Personalized insight (`✦` prefix, ko 전용, 조건부)
+  5. **비자 섹션** — serif 헤딩 "비자" + 정규화된 visa_type + `{stay_months}개월` (+ `갱신 불가`는 `renewable=false`일 때만)
+  6. Spacer (flex-1) — 하단 CTA까지 공간 채움
+  7. **Primary login CTA** (ko + logged-out) — `--primary` 배경, serif 헤딩, Google 로고 row
+- **Drop된 항목** (상세는 Pro 가이드로 이관):
+  - `city_insight`, `city_description`, 외부 링크(`visa_url`/`flatio_search_url`/`anyplace_search_url`/`nomad_meetup_url`), `data_verified_date`
+- **잠금 카드(state=locked):** **정보 완전 은닉 skeleton** (아래 Locked Teaser 규칙)
 
 ## Locked Teaser (lightbox 내부)
 - **추론 방지 원칙:** blur 이미지 금지 (형태 유추 가능). 모든 식별 데이터는 완전 hide.
@@ -78,21 +86,45 @@
 - Below compass: "NNAI" in Geist Mono 10px, `letter-spacing: 0.35em`, `--border`
 - **Selected state:** outer border brightens to `--primary`, `box-shadow: 0 0 20px 4px var(--ring)`, inner border brightens to `--primary`
 
-## Card Front — Label + Value (Variant A)
-- Single border: 1.5px `--border`
-- Padding: 20px 16px 16px
-- **Top section:**
-  - Flag emoji: 32px centered
-  - City name EN: Geist Mono 14px 500, `--text-white`, centered, `letter-spacing: 0.05em`
-  - City name KR: Noto Serif KR 18px 700, `--text-white`, centered
-- **Divider:** 1px `--border`, 14px margin top/bottom
-- **Metrics (3 rows, 12px gap):**
-  - Each row: icon (lucide-react w-4 h-4, `--muted-foreground`) + text column
-  - Label: Geist Mono 10px uppercase, `--text-muted`, `letter-spacing: 0.1em`
-  - Value: Geist Mono 13px 500, `--text-white`
-  - Icons: Banknote (MONTHLY), Stamp (VISA), Wifi (INTERNET) — lucide-react
-  - Metrics: MONTHLY + cost, VISA-FREE + days, INTERNET + Mbps
-- **Bottom divider:** 1px `--border`
+## Card Front — Tarot Convention (상단 심볼 / 중앙 인물 / 하단 라벨)
+
+Card 앞면은 전통 타로 카드의 3-section 문법을 따른다 — `상단 심볼` + `중앙 주인공` + `하단 카드명`. 앞뒤 레이아웃이 동일한 골격(심볼/주인공/NNAI)이고 **"주인공만 교체"** — 뒷면은 compass rose가 주인공, 앞면은 도시 정보가 주인공.
+
+### 구성 (위→아래)
+
+1. **상단 심볼 (compass mini)**
+   - 뒷면의 `CompassRose`와 동일 glyph, `diameter` 축소판 (sm: 20, md/lg: 24)
+   - 뒷면은 full-size 중앙 compass, 앞면은 축소 compass가 상단에 위치 → "echo" 관계
+   - Hover/active 시 `--border` → `--primary` (뒷면 selected와 동일 로직, trigger만 다름)
+
+2. **중앙 (flex-1, 주인공)**
+   - Flag emoji: `SIZE_CONFIG.flag` (sm: 24, md/lg: 28) centered
+   - City KR: Noto Serif KR **Bold**, `SIZE_CONFIG.cityKr` (sm: 14, md/lg: 18), `--foreground`
+   - City + country: Geist Mono, `SIZE_CONFIG.cityEn` (sm: 9, md/lg: 11), `--muted-foreground`, `letter-spacing: 0.03em`
+
+3. **하단 divider** — 1px, `color-mix(--border 40%, transparent)`
+
+4. **하단 NNAI 라벨**
+   - Geist Mono, `SIZE_CONFIG.nnaiFs` (sm: 8, md/lg: 10), `letter-spacing: 0.2em`
+   - Hover/active: `--muted-foreground` → `--primary` (compass mini와 색상 동기화)
+   - 뒷면 NNAI와 **같은 위치·같은 스타일** (앞뒤 일관)
+
+### Metric/Value 금지
+
+- Card 앞면에 **수치(monthly_cost/visa_free_days/internet_mbps) 노출 금지**
+- 모든 수치는 Lightbox(1단 상세) 또는 Pro 가이드(2단 상세)에서 제공
+- 이유: Card = "도시의 얼굴 · 식별", Lightbox = "프로필 · 요약", Pro 가이드 = "상세 문서"의 3단 계층을 흐리지 않기 위함
+- 또 다른 이유: `$1,400` / `약 196만원` / `VISA-FREE / 90 days` 등이 좁은 카드(sm=140px) 폭에서 wrap을 유발했고, 축약(`90d`, `80M`)은 의미 훼손으로 불가 → 수치를 Card에서 뺌으로써 근본 해결
+
+## Information Hierarchy (3-tier)
+
+| Layer | Role | Content |
+|---|---|---|
+| **Result Card** | 식별 + 도시의 얼굴 | flag, city_kr, city/country, compass mini(echo), NNAI |
+| **Lightbox Card** | 요약 + 보조 지표 + 전환 | + MONTHLY/VISA/INTERNET metrics, scores pill(치안/영어), 비자 섹션, login CTA |
+| **Pro 가이드** | 상세 문서 | + city_insight, city_description, 타임라인, 외부 링크, data_verified_date |
+
+각 레이어는 상위 레이어를 **반복하지 않고 확장**한다. Lightbox가 Card의 단순 확대가 아니라 "한 단계 더 파면 새 정보가 나오는" 독립 가치를 갖는다.
 
 ## Layout
 - **5-card arrangement:** Flex row, centered, equal spacing (16px gap)
@@ -131,6 +163,23 @@
 - 하단 닫기 버튼 없음 — X/ESC/바깥 클릭/‹›만
 - 5장(선택된 3 + 잠금 2) 전체 순환: `(index + 1) % 5` / `(index - 1 + 5) % 5`
 - 공개 카드는 기존 콘텐츠(metrics/insight/login CTA/links). 잠금 카드는 위 Locked Teaser 규칙
+
+**Visa 섹션 데이터 규칙:**
+- `visa_type`은 `normalizeVisaType(visa_type, country)`로 정규화 — 국가명 prefix가 있으면 제거 ("Colombia Digital Nomad Visa" → "Digital Nomad Visa"). country의 복합 표기 "Colombia (Medellín)"는 `split(' (')[0]`로 primary name만 추출해 매칭.
+- 39개 중 CO/GR/HR 3건만 prefix 제거 대상, 나머지는 no-op.
+- `stay_months`는 `{n}개월` 포맷. null이면 생략.
+- **`renewable` 노출 정책**: `renewable === false`일 때만 "갱신 불가"로 노출. true/null은 생략 (긍정은 당연시되어 정보 가치 낮음, 네거티브만 행동에 영향).
+
+**Scores (치안/영어) 섹션:**
+- metric(MONTHLY/VISA/INTERNET)과 **층위 분리**. pill/badge 형태로 flex wrap.
+- `font-mono`, `text-[10px]`, `border: 1px var(--border)`, `border-radius: 9999px`, `color: var(--muted-foreground)`
+- 값 null이면 해당 pill 생략 (둘 다 null이면 섹션 전체 생략)
+
+**Primary Login CTA:**
+- 기존 transparent border 스타일에서 `--primary` 배경으로 강화 — 라이트박스의 유일 전환 지점
+- 구성: serif 헤딩 `{city_kr} 맞춤 이민 가이드 받기` + 11px 서브카피 + Google 로고 + `"Google로 계속하기 →"` 텍스트
+- amber glow 적용 금지 (selected 전용 정책 유지), hover는 `opacity: 0.9`로만 피드백
+- `showLoginCta = locale === "ko" && isLoggedIn === false`일 때만 렌더. 로그인된 유저는 CTA 미노출, 하단 공간은 비워둔다 (카드 자연스러움).
 
 **Personalized Insight (CityLightbox 상단, 비자 정보 위):**
 - `getPersonalizedInsight(persona, travelType, timeline, city)` 헬퍼가 null 반환 시 미렌더
@@ -172,3 +221,9 @@
 | 2026-04-20 | Metric 3셀 flex → **grid 3×3** 재편 | `VISA-FREE` 라벨과 `30 days` 같은 공백 포함 value가 좁은 셀에서 wrap되면 해당 열만 아래로 밀리던 문제. grid rows로 icon/label/value 3행을 전 열에 동기화 → 어느 셀이 2줄이 되어도 세 열 함께 정렬. |
 | 2026-04-20 | Locked 카드 인라인 overlay 폐기, Lightbox 내 skeleton teaser로 통합 | 인라인 overlay는 목록 맥락엔 유지했지만 정보 탐색 단일 경로(Lightbox)로 통일하는 게 더 일관됨. blur 이미지 금지 — 형태 추론 가능하므로 이름/숫자 전부 hide한 skeleton + 순서 번호만. Pro CTA 카피는 "Pro로 모든 도시 보기"로 — "AI가 선별한" 류 표현은 순수 백엔드 로직 결과라 거짓이므로 금지. |
 | 2026-04-20 | Locked 카드 default opacity 0.15 → **0.65** (hover 0.85) | 0.15는 카드 존재 자체가 사라질 정도로 dim. 0.65에서 "카드가 여기 있다" 존재감 + lock 신호 공존. hover는 0.85까지 올려 인터랙티브 피드백. scale/shadow는 공개 카드와 동일한 whileHover로 자동 적용. |
+| 2026-04-20 | Lightbox 카드 내부 스크롤 제거 + 콘텐츠 다이어트 | 4:7 카드에 스크롤은 "카드" 메타포와 충돌. drop: `city_insight` / `city_description` / 외부 링크 / `data_verified_date`. 이들은 Pro 가이드로 이관 (라이트박스=요약, 가이드=상세). `flex-col + flex-1 spacer`로 CTA가 자연스럽게 하단 정렬. |
+| 2026-04-20 | Scores(치안/영어)를 pill 층위로 분리 | 기존엔 metric(주)과 일반 텍스트(보조)가 평면 나열되어 중요도가 흐림. pill/badge로 시각 층위 구분 → metric이 주 지표, scores가 보조 컨텍스트임이 즉시 전달. 카드 폭 제약(≤320px)에서 metric grid를 5열로 확장하는 것보다 경제적. |
+| 2026-04-20 | 비자 섹션 재설계: normalizeVisaType + serif 헤딩 + `갱신 불가` 조건부 | 39개 비자 중 3건(CO/GR/HR)만 "Country ..." prefix가 있어 헤더의 `City, Country`와 중복 → primary country name prefix를 제거하는 `normalizeVisaType` 유틸 도입. '갱신 가능'은 대다수 비자가 공유하는 기본값이라 정보 가치 낮음 → `renewable=false`일 때만 '갱신 불가'로 노출 (exception-only UX). "비자 정보"(mono 10px) 라벨 → "비자"(serif 13px bold) 헤딩으로 위계 강화. |
+| 2026-04-20 | Login CTA를 transparent border → `--primary` 배경 블록으로 강화 | 라이트박스는 "자기 발견 입구 → 로그인 → Pro" 전환 깔때기의 핵심 지점. CTA 위계가 주변 콘텐츠보다 약하면 전환 손실. amber glow는 selected 전용 정책이므로 CTA는 primary 배경 + hover opacity로 차별화. |
+| 2026-04-20 | Card 앞면 metric 전면 제거 → 3-B/B5 (compass mini + title + NNAI) | sm=140px 카드 폭에서 `$1,400` / `약 196만원` / `VISA-FREE` / `90 days` / `80Mbps` value가 wrap되는 문제를 축약(`90d`/`80M`)으로는 의미 훼손 없이 해결 불가. 대신 **3단 정보 계층(Card=식별, Lightbox=요약, Pro 가이드=상세)을 엄격히 분리** — 모든 수치는 Lightbox 이하로 이관. Card는 전통 타로 3-section(상단 심볼/중앙 인물/하단 라벨) 문법 채택 → 뒷면 compass rose와 앞면 compass mini가 "같은 세계관"의 echo 관계를 이룸. `readingText` prop 및 관련 JSX는 dead code로 제거. |
+| 2026-04-20 | Information Hierarchy 3-tier 원칙 명문화 | 이전엔 각 레이어(Card/Lightbox/Guide)가 실질적 역할 분담 없이 같은 metric을 중복 표시했음. 원칙: **각 레이어는 상위 레이어를 반복하지 않고 확장한다.** Lightbox가 Card의 단순 확대가 아니라 한 단계 더 파야 나오는 독립 가치 확보 — MONTHLY/VISA/INTERNET/scores/비자/CTA는 Lightbox 이하 전용. |

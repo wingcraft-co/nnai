@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useLocale } from "next-intl";
-import { Banknote, Stamp, Wifi } from "lucide-react";
 import type { CityData } from "./types";
-import {
-  useKrwRate,
-  formatMonthly,
-  formatVisa,
-  formatInternet,
-} from "./format";
 
 // ── Flag emoji lookup ─────────────────────────────────────────────
 
@@ -61,9 +53,9 @@ const FLAG_EMOJI: Record<string, string> = {
 export type CardSize = "sm" | "md" | "lg";
 
 const SIZE_CONFIG = {
-  sm:  { w: 140, h: 245, pad: 16, flag: 24, cityKr: 14, cityEn: 9,  metricLabel: 7,  metricVal: 10, readingFs: 10, compassD: 56 },
-  md:  { w: 200, h: 350, pad: 20, flag: 28, cityKr: 18, cityEn: 11, metricLabel: 8,  metricVal: 11, readingFs: 12, compassD: 80 },
-  lg:  { w: 260, h: 455, pad: 20, flag: 28, cityKr: 18, cityEn: 11, metricLabel: 8,  metricVal: 11, readingFs: 12, compassD: 80 },
+  sm:  { w: 140, h: 245, pad: 16, flag: 24, cityKr: 14, cityEn: 9,  compassD: 56, compassMiniD: 20, nnaiFs: 8  },
+  md:  { w: 200, h: 350, pad: 20, flag: 28, cityKr: 18, cityEn: 11, compassD: 80, compassMiniD: 24, nnaiFs: 10 },
+  lg:  { w: 260, h: 455, pad: 20, flag: 28, cityKr: 18, cityEn: 11, compassD: 80, compassMiniD: 24, nnaiFs: 10 },
 } as const;
 
 // ── Props ─────────────────────────────────────────────────────────
@@ -74,9 +66,7 @@ export interface TarotCardProps {
   cityData?: CityData | null;
   isSelected?: boolean;
   isFlipped?: boolean;
-  readingText?: string | null;
   onClick?: () => void;
-  locale?: string;
 }
 
 // ── Compass Rose SVG ──────────────────────────────────────────────
@@ -159,27 +149,18 @@ function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize })
 function FrontFace({
   cityData,
   size,
-  readingText,
   isHovered = false,
-  locale,
-  krwRate,
 }: {
   cityData: CityData;
   size: CardSize;
-  readingText?: string | null;
   isHovered?: boolean;
-  locale: string;
-  krwRate: number;
 }) {
   const cfg = SIZE_CONFIG[size];
   const flag = FLAG_EMOJI[cityData.country_id] ?? "🌍";
-  const monthly = formatMonthly(cityData.monthly_cost_usd, locale, krwRate);
-  const visa = formatVisa(cityData.visa_free_days, locale);
-  const internet = formatInternet(cityData.internet_mbps);
 
   return (
     <div
-      className="absolute inset-0 flex flex-col overflow-hidden pointer-events-none"
+      className="absolute inset-0 flex flex-col items-center overflow-hidden pointer-events-none"
       style={{
         borderRadius: 12,
         background: "var(--card)",
@@ -193,7 +174,10 @@ function FrontFace({
         transition: "border 0.2s ease",
       }}
     >
-      {/* Top section — flex-1 */}
+      {/* Top — compass mini (뒷면 compass rose의 축소 echo) */}
+      <CompassRose diameter={cfg.compassMiniD} active={isHovered} />
+
+      {/* Center — flag + city_kr + city/country (flex-1) */}
       <div className="flex-1 flex flex-col items-center justify-center">
         <span className="leading-none" style={{ fontSize: cfg.flag }}>{flag}</span>
         <p
@@ -210,54 +194,27 @@ function FrontFace({
         </p>
       </div>
 
-      {/* Divider */}
-      <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
-
-      {/* Metrics — 3x3 grid로 icon/label/value 행 정렬 고정 */}
+      {/* Bottom divider */}
       <div
-        className="grid grid-cols-3 gap-y-0.5 font-mono text-center pt-2.5 pb-1"
-        style={{ justifyItems: "center", alignItems: "center" }}
+        style={{
+          width: "100%",
+          height: 1,
+          background: "color-mix(in srgb, var(--border) 40%, transparent)",
+        }}
+      />
+
+      {/* Bottom — NNAI label (뒷면과 대칭 위치) */}
+      <span
+        className="font-mono mt-2"
+        style={{
+          fontSize: cfg.nnaiFs,
+          letterSpacing: "0.2em",
+          color: isHovered ? "var(--primary)" : "var(--muted-foreground)",
+          transition: "color 0.35s ease",
+        }}
       >
-        {/* Row 1 — icons */}
-        <div className="flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
-          <Banknote className="w-4 h-4" />
-        </div>
-        <div className="flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
-          <Stamp className="w-4 h-4" />
-        </div>
-        <div className="flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
-          <Wifi className="w-4 h-4" />
-        </div>
-
-        {/* Row 2 — labels */}
-        <span className="uppercase leading-tight" style={{ fontSize: cfg.metricLabel, color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>MONTHLY</span>
-        <span className="uppercase leading-tight" style={{ fontSize: cfg.metricLabel, color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>{visa.label}</span>
-        <span className="uppercase leading-tight" style={{ fontSize: cfg.metricLabel, color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>INTERNET</span>
-
-        {/* Row 3 — values */}
-        <span className="font-bold leading-tight" style={{ fontSize: cfg.metricVal, color: "var(--foreground)" }}>{monthly}</span>
-        <span className="font-bold leading-tight" style={{ fontSize: cfg.metricVal, color: "var(--foreground)" }}>{visa.value}</span>
-        <span className="font-bold leading-tight" style={{ fontSize: cfg.metricVal, color: "var(--foreground)" }}>{internet}</span>
-      </div>
-
-      {/* Reading text area — only when provided */}
-      {readingText && (
-        <>
-          <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)", marginTop: 4 }} />
-          <p
-            className="font-serif leading-snug mt-2 overflow-hidden"
-            style={{
-              fontSize: cfg.readingFs,
-              color: "var(--muted-foreground)",
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical" as const,
-            }}
-          >
-            {readingText}
-          </p>
-        </>
-      )}
+        NNAI
+      </span>
     </div>
   );
 }
@@ -275,18 +232,13 @@ export default function TarotCard({
   cityData,
   isSelected = false,
   isFlipped = false,
-  readingText,
   onClick,
-  locale: localeProp,
 }: TarotCardProps) {
   const cfg = SIZE_CONFIG[size];
   const isLocked = state === "locked";
   const isFront = state === "front";
   const [isHovered, setIsHovered] = useState(false);
   const clickable = !!onClick;
-  const localeHook = useLocale();
-  const locale = localeProp ?? localeHook;
-  const krwRate = useKrwRate();
 
   return (
     <motion.div
@@ -331,10 +283,7 @@ export default function TarotCard({
           <FrontFace
             cityData={cityData}
             size={size}
-            readingText={readingText}
             isHovered={isFront && isHovered}
-            locale={locale}
-            krwRate={krwRate}
           />
         ) : (
           <div

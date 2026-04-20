@@ -11,6 +11,7 @@ import {
   formatMonthly,
   formatVisa,
   formatInternet,
+  normalizeVisaType,
 } from "./format";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
 import {
@@ -286,10 +287,11 @@ function LightboxFrontContent({
   }
 
   const showLoginCta = locale === "ko" && isLoggedIn === false;
+  const normalizedVisaType = normalizeVisaType(city.visa_type, city.country);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
-      {/* Header */}
+    <div className="flex-1 min-h-0 flex flex-col">
+      {/* Header — flag + city */}
       <div className="flex flex-col items-center pt-5 pb-3 px-5">
         <span style={{ fontSize: 32 }}>{flag}</span>
         <h2 className="font-serif text-base font-bold mt-1.5" style={{ color: "var(--foreground)" }}>
@@ -300,7 +302,7 @@ function LightboxFrontContent({
         </p>
       </div>
 
-      {/* Metrics — 3x3 grid (icon/label/value rows aligned) */}
+      {/* Primary metrics — 3x3 grid */}
       <div
         className="grid grid-cols-3 gap-y-0.5 font-mono text-center px-5 py-3"
         style={{
@@ -323,82 +325,98 @@ function LightboxFrontContent({
         <span className="text-[13px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>{internet}</span>
       </div>
 
-      {/* Detail */}
-      <div className="px-5 pt-3 pb-5 space-y-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
+      {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
+      <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
+        {/* Scores — pill row (보조 지표 층위 분리) */}
+        {(city.safety_score != null || city.english_score != null) && (
+          <div className="flex flex-wrap gap-1.5">
+            {city.safety_score != null && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 9999,
+                  color: "var(--muted-foreground)",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                치안 {city.safety_score}/10
+              </span>
+            )}
+            {city.english_score != null && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 9999,
+                  color: "var(--muted-foreground)",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                영어 {city.english_score}/10
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Personalized insight (ko only) */}
         {personalInsight && (
-          <p className="font-serif text-xs" style={{ color: "var(--primary)" }}>
+          <p className="font-serif text-xs leading-snug" style={{ color: "var(--primary)" }}>
             ✦ {personalInsight}
           </p>
         )}
 
-        <div className="space-y-1">
-          <p className="font-mono text-[10px] uppercase" style={{ letterSpacing: "0.05em", color: "var(--foreground)" }}>비자 정보</p>
-          <p>{city.visa_type}{city.stay_months != null && ` · ${city.stay_months}개월`}{` · ${city.renewable ? "갱신 가능" : "갱신 불가"}`}</p>
-        </div>
-
-        {(city.safety_score != null || city.english_score != null) && (
-          <div className="flex gap-5">
-            {city.safety_score != null && <p>치안 {city.safety_score}/10</p>}
-            {city.english_score != null && <p>영어 {city.english_score}/10</p>}
-          </div>
-        )}
-
-        {city.city_insight && (
-          <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
-            <p className="text-xs italic" style={{ color: "var(--primary)" }}>{city.city_insight}</p>
-          </div>
-        )}
-
-        {city.city_description && (
-          <p className="leading-relaxed">{city.city_description}</p>
-        )}
-
-        {showLoginCta && (
-          <div className="space-y-2">
-            <div style={{ height: 1, background: "color-mix(in srgb, var(--border) 40%, transparent)" }} />
-            <div className="space-y-1.5 pt-1">
-              <h3 className="font-serif text-xs font-medium" style={{ color: "var(--foreground)" }}>
-                {city.city_kr} 맞춤 이민 가이드 받기
-              </h3>
-              <p className="font-sans text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                비자 타임라인 · 세금 · 예산 로드맵을 AI가 생성해드려요.
-              </p>
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium transition-colors hover:bg-primary/10"
-                style={{
-                  border: "1px solid var(--border)",
-                  background: "transparent",
-                  color: "var(--foreground)",
-                }}
+        {/* 비자 section — serif heading + 2-line detail */}
+        {normalizedVisaType && (
+          <div className="flex flex-col gap-1">
+            <h3
+              className="font-serif text-[13px] font-bold"
+              style={{ color: "var(--foreground)" }}
+            >
+              비자
+            </h3>
+            <p className="leading-tight" style={{ color: "var(--foreground)" }}>
+              {normalizedVisaType}
+            </p>
+            {(city.stay_months != null || city.renewable === false) && (
+              <p
+                className="font-mono text-[11px]"
+                style={{ color: "var(--muted-foreground)", letterSpacing: "0.03em" }}
               >
-                <GoogleLogo />
-                <span>Google로 계속하기 →</span>
-              </button>
-            </div>
+                {city.stay_months != null && `${city.stay_months}개월`}
+                {city.stay_months != null && city.renewable === false && " · "}
+                {city.renewable === false && "갱신 불가"}
+              </p>
+            )}
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3 pt-1">
-          {city.visa_url && (
-            <a href={city.visa_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>비자 정보 →</a>
-          )}
-          {city.flatio_search_url && (
-            <a href={city.flatio_search_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>숙소 찾기 →</a>
-          )}
-          {city.anyplace_search_url && (
-            <a href={city.anyplace_search_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>Anyplace →</a>
-          )}
-          {city.nomad_meetup_url && (
-            <a href={city.nomad_meetup_url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--primary)" }}>밋업 →</a>
-          )}
-        </div>
+        {/* Spacer — pushes CTA down */}
+        <div className="flex-1" />
 
-        {city.data_verified_date && (
-          <p className="text-[10px] pt-1" style={{ color: "color-mix(in srgb, var(--muted-foreground) 50%, transparent)" }}>
-            데이터 기준: {city.data_verified_date} · Numbeo, NomadList
-          </p>
+        {/* Primary login CTA (ko + logged-out only) */}
+        {showLoginCta && (
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full flex flex-col gap-1.5 px-3 py-3 text-left transition-opacity hover:opacity-90"
+            style={{
+              background: "var(--primary)",
+              color: "var(--primary-foreground)",
+              borderRadius: 6,
+            }}
+          >
+            <h3 className="font-serif text-[13px] font-bold leading-tight">
+              {city.city_kr} 맞춤 이민 가이드 받기
+            </h3>
+            <p className="text-[11px] leading-snug opacity-90">
+              비자 타임라인 · 세금 · 예산 로드맵을 AI가 생성해드려요.
+            </p>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-medium">
+              <GoogleLogo />
+              <span>Google로 계속하기 →</span>
+            </div>
+          </button>
         )}
       </div>
     </div>
@@ -608,7 +626,6 @@ export default function TarotDeck({
         isSelected={isSelecting && isSelected}
         isFlipped={flipped}
         onClick={(isSelecting || isDone) ? handleClick : undefined}
-        locale={locale}
       />
     );
   }

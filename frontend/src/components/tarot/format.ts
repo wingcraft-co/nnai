@@ -72,3 +72,21 @@ export function formatInternet(mbps: number | null | undefined): string {
   if (mbps == null) return "—";
   return `${mbps}Mbps`;
 }
+
+/**
+ * country 필드가 "Colombia (Medellín)"처럼 복합 표기여도 primary name만 추출해
+ * visa_type 앞의 국가 prefix를 제거한다.
+ *
+ * 현재 39개 비자 중 prefix 있는 건 CO/GR/HR 3건뿐, 나머지는 no-op.
+ */
+export function normalizeVisaType(
+  visaType: string | null | undefined,
+  country: string | null | undefined,
+): string {
+  if (!visaType) return "";
+  if (!country) return visaType;
+  const primaryName = country.split(" (")[0].trim();
+  if (!primaryName) return visaType;
+  const prefix = primaryName + " ";
+  return visaType.startsWith(prefix) ? visaType.slice(prefix.length) : visaType;
+}
