@@ -12,6 +12,7 @@ import {
   formatVisa,
   formatInternet,
   normalizeVisaType,
+  formatClimate,
 } from "./format";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
 import {
@@ -288,6 +289,8 @@ function LightboxFrontContent({
 
   const showLoginCta = locale === "ko" && isLoggedIn === false;
   const normalizedVisaType = normalizeVisaType(city.visa_type, city.country);
+  const climateLabel = formatClimate(city.climate, locale);
+  const isEn = locale === "en";
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -327,8 +330,8 @@ function LightboxFrontContent({
 
       {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
       <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
-        {/* Scores — pill row (보조 지표 층위 분리) */}
-        {(city.safety_score != null || city.english_score != null) && (
+        {/* Scores — pill row (Primary 3과 1:1 대응하는 Secondary qualifier 3개) */}
+        {(city.safety_score != null || city.english_score != null || climateLabel) && (
           <div className="flex flex-wrap gap-1.5">
             {city.safety_score != null && (
               <span
@@ -340,7 +343,7 @@ function LightboxFrontContent({
                   letterSpacing: "0.03em",
                 }}
               >
-                치안 {city.safety_score}/10
+                {isEn ? `Safety ${city.safety_score}/10` : `치안 ${city.safety_score}/10`}
               </span>
             )}
             {city.english_score != null && (
@@ -353,16 +356,45 @@ function LightboxFrontContent({
                   letterSpacing: "0.03em",
                 }}
               >
-                영어 {city.english_score}/10
+                {isEn ? `English ${city.english_score}/10` : `영어 ${city.english_score}/10`}
+              </span>
+            )}
+            {climateLabel && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 font-mono text-[10px]"
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 9999,
+                  color: "var(--muted-foreground)",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                {climateLabel}
               </span>
             )}
           </div>
         )}
 
-        {/* Personalized insight (ko only) */}
+        {/* Personalized insight (ko only, user context) */}
         {personalInsight && (
           <p className="font-serif text-xs leading-snug" style={{ color: "var(--primary)" }}>
             ✦ {personalInsight}
+          </p>
+        )}
+
+        {/* City insight — 도시 한 줄 slogan */}
+        {city.city_insight && (
+          <div style={{ borderLeft: "2px solid var(--primary)", paddingLeft: 10 }}>
+            <p className="text-xs italic leading-snug" style={{ color: "var(--primary)" }}>
+              {city.city_insight}
+            </p>
+          </div>
+        )}
+
+        {/* City description — 2–3줄 도시 소개 */}
+        {city.city_description && (
+          <p className="leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            {city.city_description}
           </p>
         )}
 
@@ -373,20 +405,72 @@ function LightboxFrontContent({
               className="font-serif text-[13px] font-bold"
               style={{ color: "var(--foreground)" }}
             >
-              비자
+              {isEn ? "Recommended Visa" : "추천 비자"}
             </h3>
             <p className="leading-tight" style={{ color: "var(--foreground)" }}>
               {normalizedVisaType}
             </p>
-            {(city.stay_months != null || city.renewable === false) && (
+            {(city.stay_months != null || city.renewable != null) && (
               <p
                 className="font-mono text-[11px]"
                 style={{ color: "var(--muted-foreground)", letterSpacing: "0.03em" }}
               >
-                {city.stay_months != null && `${city.stay_months}개월`}
-                {city.stay_months != null && city.renewable === false && " · "}
-                {city.renewable === false && "갱신 불가"}
+                {city.stay_months != null &&
+                  (isEn ? `Max stay ${city.stay_months} months` : `최대 체류 ${city.stay_months}개월`)}
+                {city.stay_months != null && city.renewable != null && " · "}
+                {city.renewable === true && (isEn ? "Renewable" : "연장 가능")}
+                {city.renewable === false && (isEn ? "Non-renewable" : "연장 불가")}
               </p>
+            )}
+          </div>
+        )}
+
+        {/* External links — 비자 / 숙소(Flatio, Anyplace) / 모임 (유통 BM + reference) */}
+        {(city.visa_url || city.flatio_search_url || city.anyplace_search_url || city.nomad_meetup_url) && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {city.visa_url && (
+              <a
+                href={city.visa_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Check visa →" : "비자 확인하기 →"}
+              </a>
+            )}
+            {city.flatio_search_url && (
+              <a
+                href={city.flatio_search_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Find stay (Flatio) →" : "숙소 찾기 (Flatio) →"}
+              </a>
+            )}
+            {city.anyplace_search_url && (
+              <a
+                href={city.anyplace_search_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Find stay (Anyplace) →" : "숙소 찾기 (Anyplace) →"}
+              </a>
+            )}
+            {city.nomad_meetup_url && (
+              <a
+                href={city.nomad_meetup_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px]"
+                style={{ color: "var(--primary)" }}
+              >
+                {isEn ? "Find meetup →" : "노마드 모임 찾기 →"}
+              </a>
             )}
           </div>
         )}

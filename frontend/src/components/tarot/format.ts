@@ -90,3 +90,31 @@ export function normalizeVisaType(
   const prefix = primaryName + " ";
   return visaType.startsWith(prefix) ? visaType.slice(prefix.length) : visaType;
 }
+
+/**
+ * city.climate (tropical/mediterranean/... 등 9종) → locale별 표기.
+ * 한국어는 "기후" 접미사로 문장 자연스러움 확보.
+ */
+const CLIMATE_KO: Record<string, string> = {
+  tropical: "열대 기후",
+  subtropical: "아열대 기후",
+  mediterranean: "지중해성 기후",
+  continental: "대륙성 기후",
+  maritime: "해양성 기후",
+  temperate: "온대 기후",
+  desert: "사막 기후",
+  "semi-arid": "반건조 기후",
+  highland: "고산 기후",
+};
+
+export function formatClimate(
+  climate: string | null | undefined,
+  locale: string,
+): string | null {
+  if (!climate) return null;
+  if (locale === "ko") {
+    return CLIMATE_KO[climate] ?? `${climate} 기후`;
+  }
+  // English: "tropical" → "Tropical", "semi-arid" → "Semi-arid"
+  return climate.charAt(0).toUpperCase() + climate.slice(1);
+}

@@ -55,13 +55,33 @@
 - **Content order (공개 카드):**
   1. Flag + `city_kr` (serif) + `City, Country` (mono, muted)
   2. Metrics 3×3 grid (MONTHLY / VISA / INTERNET)
-  3. **Scores pill row** — `치안 N/10` `영어 N/10` (mono, pill 형태)
-  4. Personalized insight (`✦` prefix, ko 전용, 조건부)
-  5. **비자 섹션** — serif 헤딩 "비자" + 정규화된 visa_type + `{stay_months}개월` (+ `갱신 불가`는 `renewable=false`일 때만)
-  6. Spacer (flex-1) — 하단 CTA까지 공간 채움
-  7. **Primary login CTA** (ko + logged-out) — `--primary` 배경, serif 헤딩, Google 로고 row
-- **Drop된 항목** (상세는 Pro 가이드로 이관):
-  - `city_insight`, `city_description`, 외부 링크(`visa_url`/`flatio_search_url`/`anyplace_search_url`/`nomad_meetup_url`), `data_verified_date`
+  3. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` (Primary 3 ↔ Secondary 3 대응)
+  4. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
+  5. **city_insight** — 도시 한 줄 slogan (border-left `--primary` 2px + italic)
+  6. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
+  7. **비자 섹션** — "추천 비자" serif 헤딩 + 정규화된 visa_type + `최대 체류 {n}개월 · 연장 가능/불가`
+  8. **External links** — 비자 확인하기 / 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기 (inline flex-wrap, text-[11px] primary)
+  9. Spacer (flex-1) — 하단 CTA까지 공간 채움
+  10. **Primary login CTA** (ko + logged-out) — `--primary` 배경, serif 헤딩, Google 로고 row
+- **Drop된 항목** (Pro 가이드로 이관):
+  - `data_verified_date` (데이터 출처 일자)
+- **Lightbox에 유지한 이유**
+  - `city_insight`(평균 21자) / `city_description`(평균 93자): "자기 발견 경험 입구" 포지셔닝의 **감성 축**. 실무(metrics/visa)와 감성(insight/description)이 함께 있어야 "이 도시가 나에게 어떤 의미인지" 감 잡음.
+  - **External links**: `flatio_search_url` / `anyplace_search_url`은 **유통 BM의 affiliate 수익 경로**. `nomad_meetup_url` / `visa_url`은 engagement + reference. Lightbox가 핵심 전환 깔때기라 이 링크들은 반드시 Lightbox에 있어야 유통 수익 + 유저 탐색이 한 화면에서 완결.
+
+**External links 워딩 규칙 (ko/en):**
+| 링크 | ko | en |
+|---|---|---|
+| `visa_url` | `비자 확인하기 →` | `Check visa →` |
+| `flatio_search_url` | `숙소 찾기 (Flatio) →` | `Find stay (Flatio) →` |
+| `anyplace_search_url` | `숙소 찾기 (Anyplace) →` | `Find stay (Anyplace) →` |
+| `nomad_meetup_url` | `노마드 모임 찾기 →` | `Find meetup →` |
+
+- **포맷 원칙**: `{기능} [({브랜드})] →`. 기능이 주 라벨, 브랜드는 동일 기능의 다른 옵션을 구분할 때만 괄호로 부기.
+- Flatio/Anyplace가 동일 "숙소 찾기" 라벨을 공유 — 동일 기능의 **두 옵션을 동시 노출**하는 패턴 (분기 큐레이션 대신 유저 선택권 제공).
+- `visa_url` / `nomad_meetup_url`은 단일 소스이므로 브랜드 표기 불필요.
+- **도시 쿼리**: 모든 URL은 이미 도시별 쿼리를 포함 — 예: `flatio.com/s?destination=kuala-lumpur`, `anyplace.com/rent/kuala-lumpur`, `meetup.com/digital-nomads-kuala-lumpur/`. 빈 페이지 이동 없음.
+- **결측 처리**: `nomad_meetup_url`은 52개 중 11개 도시에서 null/빈값 — 해당 링크만 조건부 생략. 숙소 2개와 visa_url은 52/52 모두 채워져 있음.
 - **잠금 카드(state=locked):** **정보 완전 은닉 skeleton** (아래 Locked Teaser 규칙)
 
 ## Locked Teaser (lightbox 내부)
@@ -165,15 +185,46 @@ Card 앞면은 전통 타로 카드의 3-section 문법을 따른다 — `상단
 - 공개 카드는 기존 콘텐츠(metrics/insight/login CTA/links). 잠금 카드는 위 Locked Teaser 규칙
 
 **Visa 섹션 데이터 규칙:**
-- `visa_type`은 `normalizeVisaType(visa_type, country)`로 정규화 — 국가명 prefix가 있으면 제거 ("Colombia Digital Nomad Visa" → "Digital Nomad Visa"). country의 복합 표기 "Colombia (Medellín)"는 `split(' (')[0]`로 primary name만 추출해 매칭.
-- 39개 중 CO/GR/HR 3건만 prefix 제거 대상, 나머지는 no-op.
-- `stay_months`는 `{n}개월` 포맷. null이면 생략.
-- **`renewable` 노출 정책**: `renewable === false`일 때만 "갱신 불가"로 노출. true/null은 생략 (긍정은 당연시되어 정보 가치 낮음, 네거티브만 행동에 영향).
+- **헤더**: `추천 비자` (ko) / `Recommended Visa` (en) — NNAI가 이 도시에 제안하는 비자라는 맥락 명시 (단순 "비자"보다 context 강화)
+- **비자명** (`visa_type`): `normalizeVisaType(visa_type, country)`로 정규화 — 국가명 prefix가 있으면 제거 ("Colombia Digital Nomad Visa" → "Digital Nomad Visa"). country의 복합 표기 "Colombia (Medellín)"는 `split(' (')[0]`로 primary name만 추출해 매칭. 39개 중 CO/GR/HR 3건만 prefix 제거 대상.
+- **체류 기간** (`stay_months`): `최대 체류 {n}개월` (ko) / `Max stay {n} months` (en). null이면 생략. 단순 `{n}개월`은 무엇의 기간인지 모호했으므로 "최대 체류" 접두사로 의미 명시.
+- **연장 여부** (`renewable`): `true` → `연장 가능` / `Renewable`, `false` → `연장 불가` / `Non-renewable`, null이면 생략. "갱신" 대신 "연장"(일상 한국어 + renewable의 자연스러운 번역) 사용.
+- **조건 줄 연결**: `stay_months`와 `renewable` 둘 다 있으면 ` · ` 구분자로 한 줄. 하나만 있으면 해당 값만.
+- **소득 요건/수수료 미포함 (E-1)**: `min_income_usd`, `visa_fee_usd`는 데이터에 있지만 Lightbox에 포함 안 함. 3-tier 원칙(Lightbox=요약, Pro 가이드=상세)상 상세 조건은 Pro 가이드로 이관.
 
-**Scores (치안/영어) 섹션:**
-- metric(MONTHLY/VISA/INTERNET)과 **층위 분리**. pill/badge 형태로 flex wrap.
-- `font-mono`, `text-[10px]`, `border: 1px var(--border)`, `border-radius: 9999px`, `color: var(--muted-foreground)`
-- 값 null이면 해당 pill 생략 (둘 다 null이면 섹션 전체 생략)
+**Scores (치안/영어/기후) 섹션 — Secondary qualifier 3개:**
+- Primary 3 metric(MONTHLY/VISA/INTERNET)과 **1:1 대응하는 Secondary 3 배지**. "Primary = filter, Secondary = qualifier" 층위 분리.
+- pill/badge 형태로 flex wrap (3개면 sm 카드폭에서 자연 한 줄).
+- 스타일: `font-mono`, `text-[10px]`, `border: 1px var(--border)`, `border-radius: 9999px`, `color: var(--muted-foreground)`, `letter-spacing: 0.03em`
+- 각 값 null이면 해당 pill 생략. 3개 모두 null이면 섹션 전체 생략.
+
+**Secondary 배지 3종:**
+| 배지 | 데이터 소스 | ko 포맷 | en 포맷 |
+|---|---|---|---|
+| 치안 | `safety_score` (1–10) | `치안 6/10` | `Safety 6/10` |
+| 영어 | `english_score` (1–10) | `영어 8/10` | `English 8/10` |
+| 기후 | `climate` (범주형 9종) | `{매핑} 기후` | `{capitalized}` |
+
+**Climate 매핑 (ko):**
+- `tropical` → 열대 기후
+- `subtropical` → 아열대 기후
+- `mediterranean` → 지중해성 기후
+- `continental` → 대륙성 기후
+- `maritime` → 해양성 기후
+- `temperate` → 온대 기후
+- `desert` → 사막 기후
+- `semi-arid` → 반건조 기후
+- `highland` → 고산 기후
+- 미매핑 값 → `{원본} 기후`로 fallback
+
+영어 locale은 첫 글자 capitalize (`Tropical`, `Semi-arid`).
+
+**배지 후보에서 의도적으로 제외된 것:**
+- **코워킹 점수**: INTERNET(Primary)의 파생 지표 성격 강함 → 정보 중복
+- **한인 커뮤니티 (`korean_community_size`)**: "한인"이라는 용어가 맥락 의존적 — 배지 단독으로 self-explanatory하지 않음
+- **노마드 점수 (`nomad_score`)**: Primary 3 metric의 overall 평균 성격 → 중복
+- **연평균 기온 (°C)**: 데이터 없음. 추가하려면 외부 소스 import 필요 (현재 보류)
+- **외부 노마드 랭킹 (Nomad List 등)**: 데이터 없음. 장기적으로 정보 가치 높지만 매년 갱신 pipeline 부담 → 보류
 
 **Primary Login CTA:**
 - 기존 transparent border 스타일에서 `--primary` 배경으로 강화 — 라이트박스의 유일 전환 지점
@@ -227,3 +278,8 @@ Card 앞면은 전통 타로 카드의 3-section 문법을 따른다 — `상단
 | 2026-04-20 | Login CTA를 transparent border → `--primary` 배경 블록으로 강화 | 라이트박스는 "자기 발견 입구 → 로그인 → Pro" 전환 깔때기의 핵심 지점. CTA 위계가 주변 콘텐츠보다 약하면 전환 손실. amber glow는 selected 전용 정책이므로 CTA는 primary 배경 + hover opacity로 차별화. |
 | 2026-04-20 | Card 앞면 metric 전면 제거 → 3-B/B5 (compass mini + title + NNAI) | sm=140px 카드 폭에서 `$1,400` / `약 196만원` / `VISA-FREE` / `90 days` / `80Mbps` value가 wrap되는 문제를 축약(`90d`/`80M`)으로는 의미 훼손 없이 해결 불가. 대신 **3단 정보 계층(Card=식별, Lightbox=요약, Pro 가이드=상세)을 엄격히 분리** — 모든 수치는 Lightbox 이하로 이관. Card는 전통 타로 3-section(상단 심볼/중앙 인물/하단 라벨) 문법 채택 → 뒷면 compass rose와 앞면 compass mini가 "같은 세계관"의 echo 관계를 이룸. `readingText` prop 및 관련 JSX는 dead code로 제거. |
 | 2026-04-20 | Information Hierarchy 3-tier 원칙 명문화 | 이전엔 각 레이어(Card/Lightbox/Guide)가 실질적 역할 분담 없이 같은 metric을 중복 표시했음. 원칙: **각 레이어는 상위 레이어를 반복하지 않고 확장한다.** Lightbox가 Card의 단순 확대가 아니라 한 단계 더 파야 나오는 독립 가치 확보 — MONTHLY/VISA/INTERNET/scores/비자/CTA는 Lightbox 이하 전용. |
+| 2026-04-20 | Secondary 배지 2개 → **3개(치안/영어/기후)로 확장**, Primary 3과 1:1 대응 | 원래 2개 배지에서 대칭적 4개로 확장 검토. 후보 전수 검토 결과: **코워킹**은 INTERNET 파생(중복), **한인 커뮤니티**는 "한인" 용어의 맥락 의존성으로 self-explanatory 실패, **노마드 점수**는 Primary 평균 성격으로 중복, **연평균 기온/외부 노마드 랭킹**은 데이터 pipeline 부재. 남은 강한 배지 = 치안/영어/기후. 4개 대칭 대신 **"Primary 3 ↔ Secondary 3" 1:1 대응**이 정보 계층 원칙과 더 정합. `climate` 범주형을 한국어 "{xxx} 기후" 접미사로 표기해 배지 단독 self-explanatory 확보. |
+| 2026-04-20 | 비자 섹션 copy 개선 — "비자" → "추천 비자", "{n}개월" → "최대 체류 {n}개월", `renewable=true`도 "연장 가능"으로 노출 | KL 케이스에서 헤더 "비자"가 context 부족 + "12개월"이 무엇의 기간인지 불명 + 연장 여부 한쪽만 노출되어 불완전. Secondary 배지 층위 분리 이후 비자 섹션은 "친절한 정보 요약" 역할로 재정의 → 긍정 쪽도 정보 가치 보유(이전 "당연한 긍정은 노이즈" 원칙 맥락 전환). "갱신" → "연장"은 일상 한국어 + renewable 번역 자연스러움. E-1: `min_income_usd`/`visa_fee_usd`는 3-tier 원칙상 Pro 가이드로 이관, Lightbox는 요약 역할 유지. 명사만 사용하는 일관성 유지. |
+| 2026-04-20 | **city_insight + city_description 복원** (drop 철회) | 초기 콘텐츠 다이어트에서 Pro 가이드로 이관했으나, 실제 데이터 길이 검토 결과 insight 평균 21자 + description 평균 93자로 공간 부담 적음. NNAI 서비스 포지셔닝("자기 발견 경험 입구")의 **감성 축**을 담당하는 핵심 텍스트 — 실무(metrics/visa)만으로는 "이 도시가 나에게 어떤 의미인지" 전달 부족. reading flow: Scores(숫자) → ✦(유저 맥락) → city_insight(도시 slogan) → city_description(도시 설명) → 비자(실무) → CTA(전환)으로 감성→실무→전환 자연 흐름. 3-tier 원칙은 여전히 유효 — 외부 링크/data_verified_date 같은 reference 성격은 Pro 가이드 이관 유지. |
+| 2026-04-20 | **External links 복원** (유통 BM 반영) | `flatio_search_url`/`anyplace_search_url`은 서비스의 **유통 수익 모델 핵심 접점**. Lightbox는 유저가 도시별로 머무는 단일 전환 깔때기이므로 여기서 숙소 affiliate 링크가 빠지면 수익 구조 자체가 작동하지 않음. `nomad_meetup_url`(커뮤니티 engagement), `visa_url`(공식 reference)도 함께 복원. 스타일: Visa section 아래 `flex-wrap`, `text-[11px]` `--primary`, 영어 locale 라벨 매핑(Visa info / Flatio / Anyplace / Meetup). spacer가 자동 흡수하므로 CTA 레이아웃 영향 없음. `data_verified_date`만 drop 유지 — 실무 수익 vs 데이터 reference의 가치 차이. |
+| 2026-04-20 | External links 워딩 통일 — `{기능} [(브랜드)] →` 포맷 | 초기 워딩(`비자 정보 / 숙소 찾기 / Anyplace / 밋업`)은 축이 혼재(카테고리·action·브랜드·장르)되어 유저 파악 실패. 특히 한국 유저에겐 Flatio/Anyplace 브랜드 생소 + Meetup만 브랜드 생략되어 일관성도 깨졌음. 원칙 재수립: **기능이 주 라벨, 브랜드는 동일 기능 옵션 구분용 괄호로만**. Flatio vs Anyplace 분기 큐레이션(stay_months 기반) 대신 **둘 다 같은 "숙소 찾기" 라벨 + 브랜드 괄호로 동시 노출** — 분기 로직 자의성 회피 + 파트너십 공정성 + 유저 선택권. 최종 4개: 비자 확인하기 / 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기. |
