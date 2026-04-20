@@ -7,15 +7,28 @@ import psycopg2
 
 from utils.crypto import decrypt_text, encrypt_text, has_pii_encryption_key, pii_hash
 
-_DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def _database_url() -> str | None:
+    return os.environ.get("DATABASE_URL")
+
+
+def _connect_timeout_seconds() -> int:
+    raw = os.environ.get("DATABASE_CONNECT_TIMEOUT_SECONDS", "5").strip()
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 5
 
 
 def init_db(url: str | None = None) -> psycopg2.extensions.connection:
     """DB 연결 + 테이블 생성."""
-    db_url = url or _DATABASE_URL
+    db_url = url or _database_url()
     if not db_url:
         raise RuntimeError("DATABASE_URL 환경변수가 설정되지 않았습니다.")
-    conn = psycopg2.connect(db_url)
+    conn = psycopg2.connect(
+        db_url,
+        connect_timeout=_connect_timeout_seconds(),
+    )
     conn.autocommit = False
     with conn.cursor() as cur:
         cur.execute("""

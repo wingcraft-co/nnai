@@ -3,12 +3,13 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import psycopg2
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.auth import router as auth_router
-from api.auth import normalize_return_to
+from api.auth import issue_session_token, normalize_return_to
 
 
 class _OAuthClientStub:
@@ -147,6 +148,47 @@ def test_google_callback_redirects_to_signed_return_to(monkeypatch):
 
     assert callback.status_code == 307
     assert callback.headers["location"] == "https://dev.nnai.app/en/login"
+
+
+def test_google_callback_redirects_with_db_error_when_user_persist_fails(monkeypatch):
+    client = _build_client(monkeypatch)
+    monkeypatch.setattr(
+        "api.auth.upsert_user_identity",
+        lambda *args, **kwargs: (_ for _ in ()).throw(psycopg2.OperationalError("db down")),
+    )
+
+    response = client.get(
+        "/auth/google?return_to=https://dev.nnai.app/en/login",
+        follow_redirects=False,
+    )
+
+    oauth_state = client.cookies.get("oauth_state")
+    assert oauth_state
+
+    callback = client.get(
+        f"/auth/google/callback?code=test-code&state={oauth_state}",
+        follow_redirects=False,
+    )
+
+    assert callback.status_code == 307
+    assert callback.headers["location"] == "https://dev.nnai.app/en/login?auth_error=db"
+
+
+def test_auth_me_returns_logged_out_when_db_is_unavailable(monkeypatch):
+    client = _build_client(monkeypatch)
+    client.cookies.set("nnai_session", issue_session_token("sess_test"))
+    monkeypatch.setattr(
+        "api.auth.get_auth_session_identity",
+        lambda session_id: (_ for _ in ()).throw(psycopg2.OperationalError("db down")),
+    )
+
+    response = client.get("/auth/me")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "logged_in": False,
+        "error": "db_unavailable",
+    }
 
 
 def test_logout_deletes_session_cookie_with_root_path(monkeypatch):

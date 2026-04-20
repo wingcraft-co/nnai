@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-17
+> 최종 업데이트: 2026-04-21
 
 운영 메모:
 - FastAPI 앱은 startup lifecycle에서 `utils.db.init_db()`를 호출해 DB 스키마를 보장합니다.
@@ -76,8 +76,9 @@ GET /auth/google/callback?code={code}
 - `return_to`가 없거나 허용되지 않으면 서버 기본 `{FRONTEND_URL}`로 복귀
 
 에러 시:
-- `return_to`가 있으면 해당 URL에 `auth_error=1` 또는 `auth_error=csrf` 쿼리를 붙여 복귀
+- `return_to`가 있으면 해당 URL에 `auth_error=1`, `auth_error=csrf`, 또는 `auth_error=db` 쿼리를 붙여 복귀
 - `return_to`가 없으면 기존처럼 `/?auth_error=...` 로 리다이렉트
+- DB 연결/쓰기 실패 시 `auth_error=db` 로 복귀하며, 임시 OAuth 쿠키는 정리됩니다.
 
 프론트엔드 구현 메모:
 - `dev.nnai.app/[locale]/login` 같은 preview/dev 도메인에서도 같은 origin으로 복귀 가능
@@ -120,6 +121,17 @@ GET /auth/me
 ```
 
 유효하지 않은 session cookie, 만료된 session, revoke된 session은 모두 `logged_in: false`로 정규화됩니다.
+
+**응답 (DB 일시 장애):**
+```json
+{
+  "logged_in": false,
+  "error": "db_unavailable"
+}
+```
+
+- 상태 코드는 `503 Service Unavailable`
+- 프론트엔드는 이 응답을 로그인 실패/재시도 가능 상태로 처리해야 합니다.
 
 **프론트엔드 사용 예시:**
 ```js

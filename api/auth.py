@@ -1,5 +1,6 @@
 # api/auth.py
 """Google OAuth 2.0 FastAPI 라우터."""
+import logging
 import os
 import secrets
 from datetime import datetime, timezone
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from itsdangerous import URLSafeTimedSerializer, BadSignature
+import psycopg2
 from utils.db import (
     create_auth_session,
     get_auth_session_identity,
@@ -19,6 +21,7 @@ from utils.rate_limit import normalize_entitlement
 from utils.security_events import log_security_event
 
 router = APIRouter()
+logger = logging.getLogger("nnai.auth")
 
 _CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
 _CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
@@ -127,6 +130,31 @@ def _error_redirect(request: Request, code: str) -> RedirectResponse:
     return RedirectResponse(f"/?auth_error={code}")
 
 
+def _clear_oauth_cookies(response: RedirectResponse) -> None:
+    response.delete_cookie(
+        _OAUTH_STATE_COOKIE,
+        path="/",
+        samesite="lax",
+        secure=_should_use_secure_cookie(),
+    )
+    response.delete_cookie(
+        _OAUTH_RETURN_COOKIE,
+        path="/",
+        samesite="lax",
+        secure=_should_use_secure_cookie(),
+    )
+
+
+def _db_unavailable_response() -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "logged_in": False,
+            "error": "db_unavailable",
+        },
+    )
+
+
 def build_me_response(session_data: dict, entitlement: dict | None) -> dict:
     normalized = normalize_entitlement(entitlement)
     return {
@@ -192,18 +220,7 @@ async def google_callback(request: Request, code: str = "", error: str = ""):
             has_expected_state=bool(expected_state),
         )
         response = _error_redirect(request, "csrf")
-        response.delete_cookie(
-            _OAUTH_STATE_COOKIE,
-            path="/",
-            samesite="lax",
-            secure=_should_use_secure_cookie(),
-        )
-        response.delete_cookie(
-            _OAUTH_RETURN_COOKIE,
-            path="/",
-            samesite="lax",
-            secure=_should_use_secure_cookie(),
-        )
+        _clear_oauth_cookies(response)
         return response
     async with AsyncOAuth2Client(
         client_id=_CLIENT_ID,
@@ -217,31 +234,28 @@ async def google_callback(request: Request, code: str = "", error: str = ""):
     if not uid:
         log_security_event("oauth_callback_rejected", reason="missing_sub")
         response = _error_redirect(request, "1")
-        response.delete_cookie(
-            _OAUTH_STATE_COOKIE,
-            path="/",
-            samesite="lax",
-            secure=_should_use_secure_cookie(),
-        )
-        response.delete_cookie(
-            _OAUTH_RETURN_COOKIE,
-            path="/",
-            samesite="lax",
-            secure=_should_use_secure_cookie(),
-        )
+        _clear_oauth_cookies(response)
         return response
 
-    # upsert user
-    upsert_user_identity(
-        uid,
-        email=info.get("email"),
-        name=info.get("name"),
-        picture=info.get("picture"),
-        created_at=datetime.now(timezone.utc).isoformat(),
-    )
+    try:
+        upsert_user_identity(
+            uid,
+            email=info.get("email"),
+            name=info.get("name"),
+            picture=info.get("picture"),
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        session_id = create_auth_session(uid)
+    except psycopg2.Error:
+        logger.exception("Failed to persist OAuth session for uid=%s", uid)
+        log_security_event(
+            "auth_db_unavailable",
+            route="/auth/google/callback",
+        )
+        resp = _error_redirect(request, "db")
+        _clear_oauth_cookies(resp)
+        return resp
 
-    # 서명 쿠키 발급
-    session_id = create_auth_session(uid)
     token_str = issue_session_token(session_id)
     return_to = _resolve_signed_return_to(request) or _FRONTEND_URL
     resp = RedirectResponse(return_to)
@@ -249,18 +263,7 @@ async def google_callback(request: Request, code: str = "", error: str = ""):
         _COOKIE_NAME, token_str,
         path="/", httponly=True, samesite="none", secure=True, max_age=86400,
     )
-    resp.delete_cookie(
-        _OAUTH_STATE_COOKIE,
-        path="/",
-        samesite="lax",
-        secure=_should_use_secure_cookie(),
-    )
-    resp.delete_cookie(
-        _OAUTH_RETURN_COOKIE,
-        path="/",
-        samesite="lax",
-        secure=_should_use_secure_cookie(),
-    )
+    _clear_oauth_cookies(resp)
     return resp
 
 
@@ -283,6 +286,13 @@ def me(request: Request):
             route="/auth/me",
         )
         return JSONResponse({"logged_in": False})
+    except psycopg2.Error:
+        logger.exception("Failed to resolve /auth/me session")
+        log_security_event(
+            "auth_db_unavailable",
+            route="/auth/me",
+        )
+        return _db_unavailable_response()
 
 
 @router.get("/auth/logout")
@@ -296,6 +306,12 @@ def logout(request: Request, return_to: str | None = None):
             log_security_event(
                 "session_bad_signature",
                 client_ip=request.client.host if request.client else "unknown",
+                route="/auth/logout",
+            )
+        except psycopg2.Error:
+            logger.exception("Failed to revoke auth session during logout")
+            log_security_event(
+                "auth_db_unavailable",
                 route="/auth/logout",
             )
     resp = RedirectResponse(normalize_return_to(return_to))
@@ -318,6 +334,13 @@ def extract_user_id(request: Request) -> str | None:
         log_security_event(
             "session_bad_signature",
             client_ip=request.client.host if request.client else "unknown",
+            route="middleware",
+        )
+        return None
+    except psycopg2.Error:
+        logger.exception("Failed to extract user id from auth session")
+        log_security_event(
+            "auth_db_unavailable",
             route="middleware",
         )
         return None

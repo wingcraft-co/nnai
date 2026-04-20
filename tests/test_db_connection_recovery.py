@@ -47,6 +47,9 @@ class _ConnClosed:
     def cursor(self):
         return _CursorOk()
 
+    def commit(self):
+        return None
+
 
 def test_get_conn_reinitializes_closed_connection(monkeypatch):
     replacement = _ConnOk()
@@ -68,3 +71,41 @@ def test_get_conn_reinitializes_broken_connection(monkeypatch):
 
     assert conn is replacement
     assert db_mod._thread_local.conn is replacement
+
+
+def test_init_db_sets_default_connect_timeout(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _CursorNoop:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, query, params=None):
+            return None
+
+        def fetchall(self):
+            return []
+
+    class _ConnNoop:
+        closed = 0
+        autocommit = False
+
+        def cursor(self):
+            return _CursorNoop()
+
+        def commit(self):
+            return None
+
+    monkeypatch.setattr(
+        db_mod.psycopg2,
+        "connect",
+        lambda dsn, **kwargs: captured.update({"dsn": dsn, "kwargs": kwargs}) or _ConnNoop(),
+    )
+
+    db_mod.init_db("postgresql://example.test/db")
+
+    assert captured["dsn"] == "postgresql://example.test/db"
+    assert captured["kwargs"] == {"connect_timeout": 5}
