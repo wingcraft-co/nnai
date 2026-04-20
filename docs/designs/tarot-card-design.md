@@ -52,17 +52,22 @@
   - 카드 **바깥 우상단** × 버튼 (44×44 터치 타겟)
   - 키보드 ← → 이전/다음, ESC 닫기
   - 외부 dim 영역 클릭으로 닫기
-- **Content order (공개 카드):**
-  1. Flag + `city_kr` (serif) + `City, Country` (mono, muted)
-  2. Metrics 3×3 grid (MONTHLY / VISA / INTERNET)
-  3. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` (Primary 3 ↔ Secondary 3 대응)
-  4. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
+- **Content order (공개 카드)** — 실무 → 감성 → 지표 요약 → 전환 흐름:
+  1. Flag + `city_kr` (serif) + `City, Country` (mono, muted) — Header
+  2. Metrics 3×3 grid (MONTHLY / VISA / INTERNET) — Primary
+  3. **비자 섹션** — "추천 비자" serif 헤딩 + 정규화된 visa_type + 조건 라인 `최대 체류 {n}개월 · 연장 가능/불가 · 비자 확인하기 →` (visa_url을 조건 라인에 dot-joined로 통합)
+  4. **External links** — 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기 (inline flex-wrap, text-[11px] primary). `visa_url`은 비자 섹션으로 이관되어 제거됨
   5. **city_insight** — 도시 한 줄 slogan (border-left `--primary` 2px + italic)
-  6. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
-  7. **비자 섹션** — "추천 비자" serif 헤딩 + 정규화된 visa_type + `최대 체류 {n}개월 · 연장 가능/불가`
-  8. **External links** — 비자 확인하기 / 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기 (inline flex-wrap, text-[11px] primary)
+  6. Personalized insight (`✦` prefix, 유저 맥락, ko 전용, 조건부)
+  7. **city_description** — 2–3줄 도시 소개 (leading-relaxed, `--muted-foreground`)
+  8. **Scores pill row** — `치안 N/10` `영어 N/10` `{기후} 기후` — Primary 3 ↔ Secondary 3 대응, 객관 지표로 카드 마감
   9. Spacer (flex-1) — 하단 CTA까지 공간 채움
   10. **Primary login CTA** (ko + logged-out) — `--primary` 배경, serif 헤딩, Google 로고 row
+
+**Flow 근거**:
+- **실무 먼저(비자+링크)**: 노마드 decision funnel의 첫 관문은 "이 비자로 갈 수 있는가?". Visa 정보 + 직후 실행 링크로 실무 블록 응집
+- **감성 중간(도시 slogan → 유저 맞춤 → 도시 설명)**: city_insight(도시 입장) → ✦(유저 맞춤) → city_description(더 긴 도시 소개)로 타인(도시) ↔ 나 ↔ 타인 왕복하며 관점 다양화
+- **지표 요약 마지막(Scores)**: Header 밑 Primary metrics grid와 시각적 거리 확보로 숫자 중복 피로 해소. 카드 마감에 pill 형태 요약 지표가 "엔드 마크" 역할
 - **Drop된 항목** (Pro 가이드로 이관):
   - `data_verified_date` (데이터 출처 일자)
 - **Lightbox에 유지한 이유**
@@ -70,16 +75,17 @@
   - **External links**: `flatio_search_url` / `anyplace_search_url`은 **유통 BM의 affiliate 수익 경로**. `nomad_meetup_url` / `visa_url`은 engagement + reference. Lightbox가 핵심 전환 깔때기라 이 링크들은 반드시 Lightbox에 있어야 유통 수익 + 유저 탐색이 한 화면에서 완결.
 
 **External links 워딩 규칙 (ko/en):**
-| 링크 | ko | en |
-|---|---|---|
-| `visa_url` | `비자 확인하기 →` | `Check visa →` |
-| `flatio_search_url` | `숙소 찾기 (Flatio) →` | `Find stay (Flatio) →` |
-| `anyplace_search_url` | `숙소 찾기 (Anyplace) →` | `Find stay (Anyplace) →` |
-| `nomad_meetup_url` | `노마드 모임 찾기 →` | `Find meetup →` |
+| 링크 | 위치 | ko | en |
+|---|---|---|---|
+| `visa_url` | **비자 섹션 조건 라인** | `비자 확인하기 →` | `Check visa →` |
+| `flatio_search_url` | External links | `숙소 찾기 (Flatio) →` | `Find stay (Flatio) →` |
+| `anyplace_search_url` | External links | `숙소 찾기 (Anyplace) →` | `Find stay (Anyplace) →` |
+| `nomad_meetup_url` | External links | `노마드 모임 찾기 →` | `Find meetup →` |
 
 - **포맷 원칙**: `{기능} [({브랜드})] →`. 기능이 주 라벨, 브랜드는 동일 기능의 다른 옵션을 구분할 때만 괄호로 부기.
+- **visa_url 배치**: 비자 섹션 조건 라인에 dot-joined로 통합 (`최대 체류 12개월 · 연장 가능 · 비자 확인하기 →`) — 비자 관련 정보를 섹션 하나로 응집. External links는 **action/유통 성격 3개**(숙소 × 2 + 모임)로 정제되어 역할 일관성 확보.
 - Flatio/Anyplace가 동일 "숙소 찾기" 라벨을 공유 — 동일 기능의 **두 옵션을 동시 노출**하는 패턴 (분기 큐레이션 대신 유저 선택권 제공).
-- `visa_url` / `nomad_meetup_url`은 단일 소스이므로 브랜드 표기 불필요.
+- `nomad_meetup_url`은 단일 소스이므로 브랜드 표기 불필요.
 - **도시 쿼리**: 모든 URL은 이미 도시별 쿼리를 포함 — 예: `flatio.com/s?destination=kuala-lumpur`, `anyplace.com/rent/kuala-lumpur`, `meetup.com/digital-nomads-kuala-lumpur/`. 빈 페이지 이동 없음.
 - **결측 처리**: `nomad_meetup_url`은 52개 중 11개 도시에서 null/빈값 — 해당 링크만 조건부 생략. 숙소 2개와 visa_url은 52/52 모두 채워져 있음.
 - **잠금 카드(state=locked):** **정보 완전 은닉 skeleton** (아래 Locked Teaser 규칙)
@@ -271,14 +277,20 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 - UI: `font-serif text-sm`, `color: var(--primary)` (amber), `✦` prefix, border/배경 없음, 기존 `space-y-4` separator 공유 (추가 divider 금지)
 - localStorage 읽기 실패/JSON.parse 실패 시 silent null
 
-**Login CTA (CityLightbox 외부 링크 위):**
+**Login CTA (Lightbox 하단 전환 지점):**
 - 렌더 조건: `locale === "ko"` AND `fetch("/auth/me")` 결과 `logged_in === false`
 - auth 체크는 쿠키 세션 기반 (프로젝트 실제 메커니즘). 네트워크 실패 시 기본 "로그아웃"으로 처리 (CTA 표시)
-- 구성: divider (`--border 40%` alpha) → 타이틀 "{city_kr} 맞춤 이민 가이드 받기" (`font-serif text-sm font-medium`, `--foreground`) → 서브카피 `font-sans text-xs`, `--muted-foreground` → 전체 너비 버튼 (border `--border`, transparent bg, `--foreground` text, `hover:bg-primary/10`) + Google 브랜드 SVG 인라인(16×16)
+- 스타일: `--primary` 배경 블록 + `border-radius: 6px` + `hover:opacity-90`
+- 구성:
+  - **타이틀**: `{city_kr} 맞춤 노마드 로드맵 받기` (font-serif 13px bold)
+  - **서브카피**: `당신에게 맞는 검증된 데이터를 제공해드려요.` (11px, `opacity-90`)
+  - **Action row**: Google 브랜드 SVG(16×16) + `Google로 계속하기 →` (11px medium)
 - 클릭 액션: `buildGoogleLoginUrl(API_BASE, window.location.href)` 헬퍼로 `/auth/google?return_to=...` 리다이렉트 (기존 `GoogleLoginPanel.tsx`와 동일 메커니즘 재사용)
 - Google 로고 브랜드 컬러(#EA4335/#4285F4/#FBBC05/#34A853)는 HEX 금지 규칙의 예외 — 상표권 준수
-- `✦` prefix는 Personalized Insight와 겹쳐서 CTA 타이틀엔 미사용
-- divider는 **CTA 블록 위에만** 1개. 블록 내부 타이틀/서브카피/버튼은 `space-y-2`로 묶음
+
+**카피 원칙:**
+- **"이민 가이드" → "노마드 로드맵"**: 서비스 타겟의 실제 유스케이스는 원격근무/프리랜서/장기여행/은퇴거주 등 다양 — "이민"은 영구 이주 뉘앙스라 부적합. "노마드 로드맵"이 브랜드 포지셔닝(자기 발견 경험 입구)과 일치.
+- **"AI가 생성해드려요" → "검증된 데이터를 제공해드려요"**: 생성형 AI 할루시네이션 우려 + AI 피싱 증가 시대에 "AI가 창작한다"는 프레이밍은 신뢰도 저하. 실제 NNAI는 `visa_db.json`/`city_scores.json` 등 **공식 소스**(Numbeo, NomadList 등 `source_refs`)를 LLM이 "개인 조건에 맞춰 정리"하는 구조 — 창작이 아닌 큐레이션. 카피가 이 사실을 정직하게 반영. AI 단어는 브랜드명(NNAI)에 내재하므로 서브카피에서 명시 불필요.
 
 ## Decisions Log
 | Date | Decision | Rationale |
@@ -313,3 +325,5 @@ Lightbox 컴포넌트는 `showCityKr` / `showCityInsight` / `showCityDescription
 | 2026-04-20 | **External links 복원** (유통 BM 반영) | `flatio_search_url`/`anyplace_search_url`은 서비스의 **유통 수익 모델 핵심 접점**. Lightbox는 유저가 도시별로 머무는 단일 전환 깔때기이므로 여기서 숙소 affiliate 링크가 빠지면 수익 구조 자체가 작동하지 않음. `nomad_meetup_url`(커뮤니티 engagement), `visa_url`(공식 reference)도 함께 복원. 스타일: Visa section 아래 `flex-wrap`, `text-[11px]` `--primary`, 영어 locale 라벨 매핑(Visa info / Flatio / Anyplace / Meetup). spacer가 자동 흡수하므로 CTA 레이아웃 영향 없음. `data_verified_date`만 drop 유지 — 실무 수익 vs 데이터 reference의 가치 차이. |
 | 2026-04-20 | External links 워딩 통일 — `{기능} [(브랜드)] →` 포맷 | 초기 워딩(`비자 정보 / 숙소 찾기 / Anyplace / 밋업`)은 축이 혼재(카테고리·action·브랜드·장르)되어 유저 파악 실패. 특히 한국 유저에겐 Flatio/Anyplace 브랜드 생소 + Meetup만 브랜드 생략되어 일관성도 깨졌음. 원칙 재수립: **기능이 주 라벨, 브랜드는 동일 기능 옵션 구분용 괄호로만**. Flatio vs Anyplace 분기 큐레이션(stay_months 기반) 대신 **둘 다 같은 "숙소 찾기" 라벨 + 브랜드 괄호로 동시 노출** — 분기 로직 자의성 회피 + 파트너십 공정성 + 유저 선택권. 최종 4개: 비자 확인하기 / 숙소 찾기 (Flatio) / 숙소 찾기 (Anyplace) / 노마드 모임 찾기. |
 | 2026-04-20 | **i18n 정책 — defaultLocale ko + localeDetection off + 영어 locale 방어막** | **엣지케이스 발견**: 한국인 유저의 시스템 언어가 영어라 브라우저 `Accept-Language: en-US`로 자동 `/en/`로 redirect됨. 결과: UI 라벨은 영어, 일부 데이터(city_kr/city_insight/city_description/한글 visa_type)는 한국어로 혼재 노출. **해결**: (T1) 서비스 타겟이 한국이므로 `defaultLocale: ko` + `localeDetection: false`로 자동 redirect 차단, 유저의 명시적 선택으로만 locale 전환. (T2a) 영어 locale에서 한국어 전용 데이터 4종(`city_kr`, `city_insight`, `city_description`, 한글 `visa_type`) 생략 가드 추가. (T2b) `normalizeVisaType`에 한글 제거 로직 확장 — 모든 locale에서 영문 비자명 원칙. T3(영어 번역 데이터 pipeline)은 별도 로드맵. |
+| 2026-04-20 | Lightbox body 순서 재배열 + visa_url을 비자 섹션 조건 라인에 통합 | 기존 순서(Scores → ✦ → insight → description → Visa → Links)는 "감성→실무" 흐름이었으나, 실제 노마드 decision funnel은 "이 비자로 갈 수 있는가?"가 첫 관문이라 Visa를 상단에 배치하는 것이 더 natural. 새 순서: Visa → External links → city_insight → ✦ → city_description → Scores → CTA. 부가 효과 — Header 밑 Primary metrics grid와 Scores pills가 시각적 거리를 확보해 숫자 중복 피로 해소, Scores가 pill 형태로 카드 마감 "엔드 마크" 역할. visa_url은 External links에서 제거하고 비자 섹션 조건 라인에 dot-joined로 통합(`최대 체류 12개월 · 연장 가능 · 비자 확인하기 →`) — 비자 관련 정보 응집 + External links가 action/유통 3개(숙소×2 + 모임)로 정제되어 역할 일관성 확보. |
+| 2026-04-20 | Login CTA 카피 재작성 — "이민 가이드/AI 생성" → "노마드 로드맵/검증된 데이터" | PM 관점 재검토로 기존 카피의 2가지 문제 확인. (1) "**이민 가이드**"는 서비스 타겟 유스케이스(원격근무/프리랜서/장기여행/은퇴거주)와 불일치 — "이민"은 영구 이주 뉘앙스. → "**노마드 로드맵**"으로 교체, 브랜드(NNAI = Nomad Navigator)와 일관. (2) "**AI가 생성해드려요**"는 생성형 AI 할루시네이션 우려 + AI 피싱 증가 시대에 유저 불안을 오히려 자극. 실제 NNAI 파이프라인은 공식 데이터(Numbeo/NomadList 등 `source_refs`) + LLM 개인화 조합이지 "창작"이 아님. → "**당신에게 맞는 검증된 데이터를 제공해드려요**"로 교체. "검증된 데이터"가 신뢰 신호, "당신에게 맞는"이 개인화 가치. AI 단어는 NNAI 브랜드명에 내재하므로 서브카피에서 삭제. |
