@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocale } from "next-intl";
-import { Banknote, Stamp, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Banknote, Stamp, Wifi, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import TarotCard from "./TarotCard";
 import type { CityData } from "./types";
 import {
@@ -352,7 +352,7 @@ function LightboxFrontContent({
 
       {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
       <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
-        {/* 1. 비자 section — heading + {name | link} + 조건 라인 */}
+        {/* 1. 비자 section — heading + 비자명(링크 통합) + 조건 라인 */}
         {showVisaSection && (
           <div className="flex flex-col gap-1">
             <h3
@@ -361,26 +361,26 @@ function LightboxFrontContent({
             >
               {isEn ? "Recommended Visa" : "추천 비자"}
             </h3>
-            <div className="flex items-baseline justify-between gap-2">
+            {city.visa_url ? (
+              <a
+                href={city.visa_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 leading-tight w-fit"
+                style={{
+                  color: "var(--foreground)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "2px",
+                }}
+              >
+                {normalizedVisaType}
+                <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
+              </a>
+            ) : (
               <p className="leading-tight" style={{ color: "var(--foreground)" }}>
                 {normalizedVisaType}
               </p>
-              {city.visa_url && (
-                <a
-                  href={city.visa_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 text-[11px]"
-                  style={{
-                    color: "var(--muted-foreground)",
-                    textDecoration: "underline",
-                    textUnderlineOffset: "2px",
-                  }}
-                >
-                  {isEn ? "Check visa →" : "비자 확인하기 →"}
-                </a>
-              )}
-            </div>
+            )}
             {(city.stay_months != null || city.renewable != null) && (
               <p
                 className="font-mono text-[11px]"
@@ -464,29 +464,59 @@ function LightboxFrontContent({
           </div>
         )}
 
-        {/* 6. External links — 브랜드만 dot-joined 한 줄 (Flatio · Anyplace · Meetup) */}
+        {/* 6. External links — 3줄 양쪽 정렬, 카테고리 링크 + 브랜드 라벨 */}
         {(() => {
-          const links: { url: string; label: string }[] = [];
-          if (city.flatio_search_url) links.push({ url: city.flatio_search_url, label: "Flatio" });
-          if (city.anyplace_search_url) links.push({ url: city.anyplace_search_url, label: "Anyplace" });
-          if (city.nomad_meetup_url) links.push({ url: city.nomad_meetup_url, label: "Meetup" });
+          const links: { url: string; category: string; brand: string }[] = [];
+          if (city.flatio_search_url) {
+            links.push({
+              url: city.flatio_search_url,
+              category: isEn ? "Monthly stay" : "월세 숙소 찾기",
+              brand: "Flatio",
+            });
+          }
+          if (city.anyplace_search_url) {
+            links.push({
+              url: city.anyplace_search_url,
+              category: isEn ? "Short-term stay" : "단기 숙소 찾기",
+              brand: "Anyplace",
+            });
+          }
+          if (city.nomad_meetup_url) {
+            links.push({
+              url: city.nomad_meetup_url,
+              category: isEn ? "Nomad meetup" : "노마드 모임 찾기",
+              brand: "Meetup",
+            });
+          }
           if (links.length === 0) return null;
           return (
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-              {links.map((l, i) => (
-                <Fragment key={l.url}>
-                  {i > 0 && " · "}
+            <div className="flex flex-col gap-1">
+              {links.map((l) => (
+                <div
+                  key={l.url}
+                  className="flex items-baseline justify-between gap-2 text-[11px]"
+                >
                   <a
                     href={l.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "var(--primary)" }}
+                    style={{
+                      color: "var(--primary)",
+                      textDecoration: "underline",
+                      textUnderlineOffset: "2px",
+                    }}
                   >
-                    {l.label}
+                    {l.category}
                   </a>
-                </Fragment>
+                  <span
+                    className="shrink-0"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    ({l.brand})
+                  </span>
+                </div>
               ))}
-            </p>
+            </div>
           );
         })()}
 
@@ -500,7 +530,7 @@ function LightboxFrontContent({
               className="font-serif text-[13px] font-bold leading-tight"
               style={{ color: "var(--foreground)" }}
             >
-              로그인하고 맞춤 노마드 로드맵 받기
+              {city.city_kr} 맞춤 가이드를 검증된 데이터로 받아보세요
             </h3>
             {/* Google Sign-In 공식 Dark Theme — HEX 직접 사용 (상표권 예외) */}
             <button
