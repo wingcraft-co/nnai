@@ -1,5 +1,77 @@
 # CHANGELOG
 
+## [2026-04-20 KST 세션 6] — Lightbox 3단 정보 계층 재설계 + i18n 혼재 해결 + Google 공식 버튼 준수
+
+### 변경 파일
+- `frontend/src/components/tarot/TarotCard.tsx` : Card 앞면 3-B/B5 재구성 (수치 metric 제거, compass mini + city 이름 + NNAI 3-section 구조), readingText/locale/krwRate/lucide/format imports 전부 dead code 정리, SIZE_CONFIG에 compassMiniD/nnaiFs 추가
+- `frontend/src/components/tarot/TarotDeck.tsx` : CityLightbox 10단계 body 재설계 (감성 intro → 실무 → 감성·지표 순환 → 외부 action → CTA), locale 가드 4종(showCityKr/Insight/Description/VisaSection), 비자명 자체가 ExternalLink 링크, External links 1줄 dot-joined, Login CTA 정보/버튼 분리, Google 공식 material button 구조
+- `frontend/src/components/tarot/format.ts` : `normalizeVisaType(visaType, country)` 추가 (국가 prefix 제거 + 한글 제거 양방향 패턴), `formatClimate(climate, locale)` 추가 (9개 매핑 + "기후" 접미사)
+- `frontend/src/i18n/routing.ts` : `defaultLocale "en" → "ko"`, `localeDetection: false`
+- `frontend/src/app/globals.css` : Google Sign-In 공식 `.gsi-material-button` Dark Theme CSS 전체 블록 원본 복제
+- `frontend/src/app/layout.tsx` : Roboto Medium 500 `next/font/google` self-host 로드 (variable `--font-roboto`)
+- `frontend/src/components/analytics/AnalyticsConsentBanner.tsx` : `자세히 보기` 링크 위치 이동 + primary 색상
+- `docs/designs/tarot-card-design.md` : Card Dimensions 4:7 정정, Lightbox Card 섹션 신설, Information Hierarchy 3-tier 원칙 명문화, External links 워딩 규칙 6회 iteration 반영, i18n 정책 섹션 신설, 텍스트 줄바꿈 정책 섹션 신설, Decision log 2026-04-20 엔트리 10+ 추가
+
+### 작업 요약
+
+**무엇을** (9개 커밋, 414c0e9 → dd3de7f):
+1. **타로 카드 3단 정보 계층 재설계** (df44344):
+   - Result Card = 식별 (얼굴) / Lightbox = 요약 + 전환 / Pro 가이드 = 상세 문서
+   - Card 앞면 metric 3×3 grid 완전 제거 → 전통 타로 3-section (compass mini 상단 + 도시 이름 중앙 + NNAI 하단) 채택. 뒷면 compass rose의 "echo" 관계
+   - Lightbox는 metrics + Secondary 배지 + city_insight + description + visa + CTA + external links를 응집
+2. **i18n 혼재 엣지케이스 해결** (56eb828):
+   - 한국 유저 + 영어 시스템 → 자동 `/en/` redirect 발생 + 일부 데이터 한국어만 존재(city_insight/description/일부 visa_type)로 혼재 노출
+   - `defaultLocale: ko` + `localeDetection: false`로 자동 redirect 차단, 영어 locale 방어막(4가지 가드 변수) 추가
+   - `normalizeVisaType`에 한글 제거 로직 확장 — 모든 locale에서 영문 비자명 원칙
+3. **Lightbox 콘텐츠 6차 iteration** (9c874c2 → dd3de7f):
+   - Secondary 배지 2→3개 (치안/영어/기후) — Primary 3 metric과 1:1 대응. `formatClimate`로 9개 climate 한국어 매핑
+   - 비자 섹션: 헤더 "비자 → 추천 비자", "{n}개월 → 최대 체류 {n}개월", renewable 양방향 노출, 비자명 자체가 `ExternalLink` 아이콘 링크
+   - city_insight/city_description 복원 (Pro 가이드에서 Lightbox로 되가져옴) — 서비스 "자기 발견 경험 입구" 포지셔닝의 감성 축 담당
+   - External links: `(Flatio)`/`(Anyplace)`/`(Meetup)` 괄호 브랜드 → 카테고리만 한 줄 dot-joined (`월세 숙소 찾기 · 단기 숙소 찾기 · 노마드 모임 찾기`)
+   - CTA 제목: "{city_kr} 맞춤 이민 가이드 받기" → "로그인하고 {city_kr} 맞춤 가이드 받기" (CTA best practices 반영, font-medium + center)
+   - city_insight 블록을 body 최상단으로 이동 → "감성 intro 먼저" 흐름
+4. **Google Sign-In 공식 준수** (3339607, e64df86):
+   - amber primary 배경은 Google 브랜드 가이드 위반 → Dark Theme(#131314 bg, #E3E3E3 text, 1px #8E918F border) 공식 CSS `.gsi-material-button` 전체 블록 `globals.css`에 원본 복제
+   - pill shape(radius 20), height 40, logo 20×20, justify-content space-between, state overlay 상호작용 완전 준수
+   - Roboto Medium 500 `next/font/google`로 self-host 로드
+   - 서버사이드 OAuth redirect 방식이라 deprecated `gapi.auth2` / FedCM migration과 무관
+5. **한국어 어절 단위 줄바꿈** — Lightbox 루트에 `word-break: keep-all + overflow-wrap: break-word` 적용
+
+**왜**:
+- 기존 lightbox가 Card의 단순 확대라 존재 이유 불분명 → 3단 계층으로 각 레이어 독립 가치 확보
+- 엣지케이스 i18n 혼재는 한국 타겟 서비스로서 치명적 UX 실패 → 근본 해결
+- 6차에 걸친 iteration은 실제 Vercel dev 렌더링 피드백 기반 세부 조정. 카드 4:7 비율 유지 + CTA 잘림 방지 + Google 공식 가이드 동시 달성 목표 수렴
+- Google 공식 준수는 브랜드 가이드 위반 방지 + 유저 OAuth 신뢰 확보
+
+**영향 범위**:
+- `/ko/result` `/en/result` 라이트박스 전면
+- 모든 public URL의 default locale이 `/ko/`로 고정
+- Result 카드 앞면 metric 제거로 시각 정체성 대폭 변경
+- `city_scores.json` / `visa_db.json` 데이터는 그대로, 프론트엔드 표기 로직만 변경
+
+### 주요 결정사항
+- **Information Hierarchy 3-tier 원칙 명문화**: 각 레이어가 상위를 반복하지 않고 확장. Card/Lightbox/Guide 역할 엄격 분리.
+- **Card 비율 확정**: 디자인 문서 2:3 → 실제 코드 4:7 (Rider-Waite 실측 11:19과 오차 1%). 문서 정정.
+- **Lightbox 스크롤 절대 금지**: 카드 시각 정체성 유지. 콘텐츠 다이어트로 overflow 해결 (사용자 재확인: "누가 카드를 스크롤해")
+- **visa_type 영문 원칙**: 모든 locale에서 영문 비자명. 양방향 괄호 패턴(`한국어 (English)` / `English (한국어)`) 모두 영문 추출.
+- **External links 한 줄 카테고리만**: 브랜드명(Flatio/Anyplace/Meetup) 괄호 생략 수용 — 한국 유저에게 브랜드가 의미 불명확
+- **city_insight body 최상단**: 실무(비자) 전에 "도시의 첫인상 한 줄"이 reading flow 진입점. 타로 카드 메타포 강화.
+- **Google 공식 CSS 복제 원칙**: 수기 inline style 대신 원본 CSS 블록 `globals.css` 복제 → 추후 가이드 업데이트 시 블록 교체만으로 대응
+- **CTA best practices 반영**: 2-6단어 + specific action verb + benefit-led + medium weight (bold는 과함)
+- **Two-step 모달 분리 백로그**: Google 버튼과 프로젝트 amber 팔레트 구조적 부조화 → 장기 과제로 디자인 문서 "미래 과제" 섹션 등록
+
+### 다음 세션 참고사항
+- **CTA 제목 한 줄 fit 확인**: "로그인하고 쿠알라룸푸르 맞춤 가이드 받기" 18자 — 280px body 폭에서 여유 예상이지만 긴 city_kr일 때 재검증 필요
+- **External links 한 줄 fit**: 카테고리 3개 합계 275-305px vs 280px → 폰트 렌더링 편차로 wrap 가능. 문제 시 `text-[10px]` 또는 "찾기" 제거 대응
+- **Google 로고 렌더링**: Dark Theme 배경 위 4색 로고 표시 여부 재확인 (이전 렌더 이슈 해결됐는지)
+- **Roboto 폰트 체감**: `next/font/google` self-host 로드 확인 — Network 탭에 Roboto woff2 요청 여부
+- **i18n T3 (영어 번역 데이터)**: `city_insights.en.json` / `city_descriptions.en.json` + `visa_db` 한/영 분리 필드 추가 = 별도 이니셔티브. Gemini 일괄 번역 pipeline 필요 시 검토.
+- **Two-step 모달 분리 (Q4 백로그)**: Google 버튼 + 프로젝트 팔레트 구조적 부조화 해결 방향. 즉시 아님.
+- **Card Dimensions 문서 정정 완료**: 4:7 (Rider-Waite). 다른 문서에서 2:3 참조 남아있는지 검색 권장.
+- `.claude/settings.json`, `.claude/commands/`, `.claude/session/scp.sh` 여전히 unstaged (세션 1부터 보류 지속)
+
+---
+
 ## [2026-04-17 KST 세션 5] — CityLightbox 개인화 강화 + 가이드 데모 페이지
 
 ### 변경 파일
