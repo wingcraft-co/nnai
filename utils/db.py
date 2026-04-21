@@ -640,9 +640,18 @@ def get_conn() -> psycopg2.extensions.connection:
         try:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
-        except psycopg2.OperationalError:
-            conn = init_db()
-            _thread_local.conn = conn
+        except psycopg2.Error:
+            try:
+                conn.rollback()
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+            except Exception:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                conn = init_db()
+                _thread_local.conn = conn
     return conn
 
 
