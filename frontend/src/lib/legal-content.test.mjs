@@ -19,6 +19,11 @@ test("returns Korean legal footer labels", () => {
   assert.equal(labels.footer.privacySettings, "분석 설정");
 });
 
+test("returns account menu labels", () => {
+  assert.equal(getLegalLabels("ko").account.logout, "로그아웃");
+  assert.equal(getLegalLabels("en").account.logout, "Log out");
+});
+
 test("builds Google login URL with encoded return_to", () => {
   const url = buildGoogleLoginUrl(
     "https://api.nnai.app",

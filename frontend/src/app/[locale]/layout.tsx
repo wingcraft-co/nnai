@@ -4,6 +4,7 @@ import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import { routing } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/onboarding/locale-switcher";
 import { LegalFooter } from "@/components/legal/LegalFooter";
+import { UserAccountMenu } from "@/components/legal/UserAccountMenu";
 
 type Props = {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="flex min-h-screen flex-col">
         <PageViewTracker locale={locale} />
+        <UserAccountMenu locale={locale} />
         <LocaleSwitcher />
         <div className="flex-1">
           {children}

@@ -21,6 +21,11 @@ const legalLabels = {
       loggedIn: "현재 로그인됨",
       loggedOut: "현재 로그아웃됨",
     },
+    account: {
+      fallbackName: "NNAI user",
+      menuLabel: "계정 메뉴",
+      logout: "로그아웃",
+    },
     legal: {
       back: "홈으로",
       termsTitle: "이용약관",
@@ -44,6 +49,11 @@ const legalLabels = {
       loading: "Checking session...",
       loggedIn: "Signed in",
       loggedOut: "Signed out",
+    },
+    account: {
+      fallbackName: "NNAI user",
+      menuLabel: "Account menu",
+      logout: "Log out",
     },
     legal: {
       back: "Back home",
