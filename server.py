@@ -28,6 +28,7 @@ from utils.db import (
     consume_rate_limit_token,
     get_billing_entitlement,
     init_db,
+    release_thread_connection_transaction,
     release_usage_reservation,
     reserve_payg_usage,
 )
@@ -132,12 +133,15 @@ Google의 광고 개인정보 설정은
 class AuthMiddleware(BaseHTTPMiddleware):
     """쿠키에서 user_id를 꺼내 request.state.user_id에 주입."""
     async def dispatch(self, request: Request, call_next):
-        if request.url.path == "/ads.txt":
-            return PlainTextResponse(_ADS_TXT_CONTENT)
-        if request.url.path in ("/privacy", "/privacy-policy"):
-            return HTMLResponse(_PRIVACY_HTML)
-        request.state.user_id = extract_user_id(request)
-        return await call_next(request)
+        try:
+            if request.url.path == "/ads.txt":
+                return PlainTextResponse(_ADS_TXT_CONTENT)
+            if request.url.path in ("/privacy", "/privacy-policy"):
+                return HTMLResponse(_PRIVACY_HTML)
+            request.state.user_id = extract_user_id(request)
+            return await call_next(request)
+        finally:
+            release_thread_connection_transaction()
 
 
 app.add_middleware(AuthMiddleware)

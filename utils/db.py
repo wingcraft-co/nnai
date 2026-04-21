@@ -628,6 +628,22 @@ _rate_limit_lock = threading.Lock()
 _thread_local = threading.local()
 
 
+def release_thread_connection_transaction() -> None:
+    """요청 종료 후 스레드 로컬 연결에 남은 트랜잭션을 정리한다."""
+    conn = getattr(_thread_local, "conn", None)
+    if conn is None or conn.closed:
+        return
+
+    try:
+        if conn.get_transaction_status() != psycopg2.extensions.TRANSACTION_STATUS_IDLE:
+            conn.rollback()
+    except Exception:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 def get_conn() -> psycopg2.extensions.connection:
     """현재 스레드에서 재사용할 DB 연결 반환."""
     with _lock:

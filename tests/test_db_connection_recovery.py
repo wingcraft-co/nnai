@@ -81,6 +81,19 @@ class _ConnAborted:
         self.aborted = False
 
 
+class _ConnInTransaction:
+    closed = 0
+
+    def __init__(self):
+        self.rollback_count = 0
+
+    def get_transaction_status(self):
+        return psycopg2.extensions.TRANSACTION_STATUS_INTRANS
+
+    def rollback(self):
+        self.rollback_count += 1
+
+
 def test_get_conn_reinitializes_closed_connection(monkeypatch):
     replacement = _ConnOk()
     db_mod._thread_local.conn = _ConnClosed()
@@ -116,6 +129,15 @@ def test_get_conn_rolls_back_aborted_transaction(monkeypatch):
 
     assert conn is existing
     assert db_mod._thread_local.conn is existing
+    assert existing.rollback_count == 1
+
+
+def test_release_thread_connection_transaction_rolls_back_open_transaction():
+    existing = _ConnInTransaction()
+    db_mod._thread_local.conn = existing
+
+    db_mod.release_thread_connection_transaction()
+
     assert existing.rollback_count == 1
 
 

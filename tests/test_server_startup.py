@@ -25,3 +25,24 @@ def test_server_import_does_not_initialize_db_until_startup(monkeypatch):
         pass
 
     assert len(init_calls) == 1
+
+
+def test_auth_middleware_releases_db_transaction_after_request(monkeypatch):
+    import utils.db as db_mod
+
+    monkeypatch.setattr(db_mod, "init_db", lambda url=None: object())
+    sys.modules.pop("server", None)
+
+    server = importlib.import_module("server")
+    release_calls: list[bool] = []
+    monkeypatch.setattr(
+        server,
+        "release_thread_connection_transaction",
+        lambda: release_calls.append(True),
+    )
+
+    with TestClient(server.app) as client:
+        response = client.get("/ads.txt")
+
+    assert response.status_code == 200
+    assert release_calls == [True]
