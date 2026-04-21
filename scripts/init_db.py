@@ -8,9 +8,8 @@ from utils import db as db_mod
 
 def main() -> None:
     load_dotenv()
-    conn = db_mod.init_db()
-    conn.close()
-    print("DB schema initialized")
+    db_mod.ensure_database_ready()
+    print("DB schema ready")
 
 
 if __name__ == "__main__":

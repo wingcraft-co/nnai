@@ -259,17 +259,17 @@ def test_ensure_database_ready_initializes_missing_schema(monkeypatch):
     assert initialized.closed_count == 1
 
 
-def test_init_db_script_initializes_schema_and_closes_connection(monkeypatch, capsys):
+def test_init_db_script_uses_readiness_initialization(monkeypatch, capsys):
     script = importlib.import_module("scripts.init_db")
-    closed = []
-
-    class _Conn:
-        def close(self):
-            closed.append(True)
-
-    monkeypatch.setattr(script.db_mod, "init_db", lambda: _Conn())
+    calls = []
+    monkeypatch.setattr(script.db_mod, "ensure_database_ready", lambda: calls.append(True))
+    monkeypatch.setattr(
+        script.db_mod,
+        "init_db",
+        lambda: (_ for _ in ()).throw(AssertionError("script must use readiness initialization")),
+    )
 
     script.main()
 
-    assert closed == [True]
-    assert "DB schema initialized" in capsys.readouterr().out
+    assert calls == [True]
+    assert "DB schema ready" in capsys.readouterr().out
