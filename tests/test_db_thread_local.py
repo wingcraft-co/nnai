@@ -29,12 +29,12 @@ class _CursorStub:
 def test_get_conn_returns_different_connections_per_thread(monkeypatch):
     created: list[_ConnStub] = []
 
-    def _init_db(url=None):
+    def _connect_db(url=None):
         conn = _ConnStub(name=f"conn-{len(created)}")
         created.append(conn)
         return conn
 
-    monkeypatch.setattr(db_mod, "init_db", _init_db)
+    monkeypatch.setattr(db_mod, "connect_db", _connect_db)
     db_mod._thread_local = threading.local()
 
     main_conn = db_mod.get_conn()

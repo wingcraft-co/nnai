@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib
+
 import psycopg2
 
 import utils.db as db_mod
@@ -94,10 +96,42 @@ class _ConnInTransaction:
         self.rollback_count += 1
 
 
+class _CursorAdvisoryLock:
+    def __init__(self, conn):
+        self.conn = conn
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, query: str, params=None):
+        self.conn.executed.append((query, params))
+
+
+class _ConnSchemaCheck:
+    closed = 0
+
+    def __init__(self):
+        self.commits = 0
+        self.closed_count = 0
+        self.executed = []
+
+    def cursor(self):
+        return _CursorAdvisoryLock(self)
+
+    def commit(self):
+        self.commits += 1
+
+    def close(self):
+        self.closed_count += 1
+
+
 def test_get_conn_reinitializes_closed_connection(monkeypatch):
     replacement = _ConnOk()
     db_mod._thread_local.conn = _ConnClosed()
-    monkeypatch.setattr(db_mod, "init_db", lambda url=None: replacement)
+    monkeypatch.setattr(db_mod, "connect_db", lambda url=None: replacement)
 
     conn = db_mod.get_conn()
 
@@ -108,7 +142,7 @@ def test_get_conn_reinitializes_closed_connection(monkeypatch):
 def test_get_conn_reinitializes_broken_connection(monkeypatch):
     replacement = _ConnOk()
     db_mod._thread_local.conn = _ConnBroken()
-    monkeypatch.setattr(db_mod, "init_db", lambda url=None: replacement)
+    monkeypatch.setattr(db_mod, "connect_db", lambda url=None: replacement)
 
     conn = db_mod.get_conn()
 
@@ -121,7 +155,7 @@ def test_get_conn_rolls_back_aborted_transaction(monkeypatch):
     db_mod._thread_local.conn = existing
     monkeypatch.setattr(
         db_mod,
-        "init_db",
+        "connect_db",
         lambda url=None: (_ for _ in ()).throw(AssertionError("should not reconnect")),
     )
 
@@ -177,3 +211,65 @@ def test_init_db_sets_default_connect_timeout(monkeypatch):
 
     assert captured["dsn"] == "postgresql://example.test/db"
     assert captured["kwargs"] == {"connect_timeout": 5}
+
+
+def test_get_conn_uses_connection_only_path(monkeypatch):
+    replacement = _ConnOk()
+    db_mod._thread_local.conn = None
+    monkeypatch.setattr(db_mod, "connect_db", lambda url=None: replacement)
+    monkeypatch.setattr(
+        db_mod,
+        "init_db",
+        lambda url=None: (_ for _ in ()).throw(AssertionError("get_conn must not run schema DDL")),
+    )
+
+    conn = db_mod.get_conn()
+
+    assert conn is replacement
+    assert db_mod._thread_local.conn is replacement
+
+
+def test_ensure_database_ready_skips_schema_init_when_schema_is_ready(monkeypatch):
+    conn = _ConnSchemaCheck()
+    monkeypatch.setattr(db_mod, "connect_db", lambda url=None: conn)
+    monkeypatch.setattr(db_mod, "_schema_is_ready", lambda existing_conn: existing_conn is conn)
+    monkeypatch.setattr(
+        db_mod,
+        "init_db",
+        lambda url=None: (_ for _ in ()).throw(AssertionError("ready schema must not run DDL")),
+    )
+
+    db_mod.ensure_database_ready()
+
+    assert conn.commits == 1
+    assert conn.closed_count == 1
+    assert "pg_advisory_lock" in conn.executed[0][0]
+
+
+def test_ensure_database_ready_initializes_missing_schema(monkeypatch):
+    conn = _ConnSchemaCheck()
+    initialized = _ConnSchemaCheck()
+    monkeypatch.setattr(db_mod, "connect_db", lambda url=None: conn)
+    monkeypatch.setattr(db_mod, "_schema_is_ready", lambda existing_conn: False)
+    monkeypatch.setattr(db_mod, "init_db", lambda url=None: initialized)
+
+    db_mod.ensure_database_ready()
+
+    assert conn.closed_count == 1
+    assert initialized.closed_count == 1
+
+
+def test_init_db_script_initializes_schema_and_closes_connection(monkeypatch, capsys):
+    script = importlib.import_module("scripts.init_db")
+    closed = []
+
+    class _Conn:
+        def close(self):
+            closed.append(True)
+
+    monkeypatch.setattr(script.db_mod, "init_db", lambda: _Conn())
+
+    script.main()
+
+    assert closed == [True]
+    assert "DB schema initialized" in capsys.readouterr().out

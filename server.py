@@ -26,8 +26,8 @@ from api.pins import router as pins_router
 from api.visits import router as visits_router
 from utils.db import (
     consume_rate_limit_token,
+    ensure_database_ready,
     get_billing_entitlement,
-    init_db,
     release_thread_connection_transaction,
     release_usage_reservation,
     reserve_payg_usage,
@@ -44,8 +44,8 @@ from utils.security_events import log_security_event
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """앱 시작 시 DB 스키마를 보장한다."""
-    init_db()
+    """앱 시작 시 DB 스키마를 필요한 경우에만 초기화한다."""
+    ensure_database_ready()
     yield
 
 

@@ -9,13 +9,13 @@ from fastapi.testclient import TestClient
 def test_server_import_does_not_initialize_db_until_startup(monkeypatch):
     import utils.db as db_mod
 
-    init_calls: list[str | None] = []
+    init_calls: list[bool] = []
 
-    def _fake_init_db(url=None):
-        init_calls.append(url)
+    def _fake_ensure_database_ready():
+        init_calls.append(True)
         return object()
 
-    monkeypatch.setattr(db_mod, "init_db", _fake_init_db)
+    monkeypatch.setattr(db_mod, "ensure_database_ready", _fake_ensure_database_ready)
     sys.modules.pop("server", None)
 
     server = importlib.import_module("server")
@@ -27,10 +27,30 @@ def test_server_import_does_not_initialize_db_until_startup(monkeypatch):
     assert len(init_calls) == 1
 
 
+def test_startup_uses_readiness_check_not_unconditional_schema_init(monkeypatch):
+    import utils.db as db_mod
+
+    ready_calls: list[bool] = []
+    monkeypatch.setattr(db_mod, "ensure_database_ready", lambda: ready_calls.append(True))
+    monkeypatch.setattr(
+        db_mod,
+        "init_db",
+        lambda url=None: (_ for _ in ()).throw(AssertionError("startup must not always run DDL")),
+    )
+    sys.modules.pop("server", None)
+
+    server = importlib.import_module("server")
+
+    with TestClient(server.app):
+        pass
+
+    assert ready_calls == [True]
+
+
 def test_auth_middleware_releases_db_transaction_after_request(monkeypatch):
     import utils.db as db_mod
 
-    monkeypatch.setattr(db_mod, "init_db", lambda url=None: object())
+    monkeypatch.setattr(db_mod, "ensure_database_ready", lambda: None)
     sys.modules.pop("server", None)
 
     server = importlib.import_module("server")

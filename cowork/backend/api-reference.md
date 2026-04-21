@@ -3,11 +3,13 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-21
+> 최종 업데이트: 2026-04-22
 
 운영 메모:
-- FastAPI 앱은 startup lifecycle에서 `utils.db.init_db()`를 호출해 DB 스키마를 보장합니다.
+- FastAPI 앱은 startup lifecycle에서 `utils.db.ensure_database_ready()`를 호출합니다.
+- 이미 준비된 DB에서는 읽기 전용 readiness check만 수행하고, 핵심 테이블/컬럼이 없을 때만 `utils.db.init_db()`로 스키마를 초기화합니다.
 - 모듈 import 시점에는 DB 초기화를 수행하지 않으므로, 테스트/스크립트에서 `server` import 부작용이 없습니다.
+- DB를 완전히 비운 직후 수동 초기화가 필요하면 `python scripts/init_db.py`를 실행합니다.
 
 ---
 

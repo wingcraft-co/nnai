@@ -20,8 +20,8 @@ def _connect_timeout_seconds() -> int:
         return 5
 
 
-def init_db(url: str | None = None) -> psycopg2.extensions.connection:
-    """DB 연결 + 테이블 생성."""
+def connect_db(url: str | None = None) -> psycopg2.extensions.connection:
+    """DB 연결만 생성한다. 스키마 DDL은 실행하지 않는다."""
     db_url = url or _database_url()
     if not db_url:
         raise RuntimeError("DATABASE_URL 환경변수가 설정되지 않았습니다.")
@@ -30,6 +30,139 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         connect_timeout=_connect_timeout_seconds(),
     )
     conn.autocommit = False
+    return conn
+
+
+_REQUIRED_SCHEMA_TABLES = {
+    "auth_sessions",
+    "billing_checkout_sessions",
+    "billing_entitlements",
+    "billing_provider_events",
+    "billing_usage_ledger",
+    "circle_members",
+    "circles",
+    "city_stays",
+    "free_spirit_spins",
+    "local_saved_events",
+    "move_checklist_items",
+    "move_plans",
+    "pins",
+    "pioneer_milestones",
+    "planner_boards",
+    "planner_tasks",
+    "post_comments",
+    "post_likes",
+    "posts",
+    "rate_limit_hits",
+    "user_badges",
+    "users",
+    "verification_logs",
+    "verified_cities",
+    "verified_city_external_metrics",
+    "verified_city_sources",
+    "verified_countries",
+    "verified_sources",
+    "visits",
+    "wanderer_hops",
+}
+
+_REQUIRED_SCHEMA_COLUMNS = {
+    "users": {
+        "id",
+        "email",
+        "name",
+        "picture",
+        "persona_type",
+        "created_at",
+        "email_enc",
+        "email_sha256",
+        "name_enc",
+    },
+    "billing_entitlements": {
+        "user_id",
+        "provider",
+        "provider_customer_id",
+        "provider_subscription_id",
+        "plan_code",
+        "cancel_at_period_end",
+        "grace_until",
+        "last_webhook_at",
+    },
+    "posts": {"image_url"},
+    "city_stays": {"country"},
+    "wanderer_hops": {"conditions", "is_focus", "from_country", "to_country", "note", "target_month"},
+    "planner_boards": {"country", "city"},
+    "planner_tasks": {"text", "due_date", "sort_order"},
+    "free_spirit_spins": {"selected", "candidates_count"},
+    "local_saved_events": {
+        "source",
+        "source_event_id",
+        "venue_name",
+        "address",
+        "country",
+        "city",
+        "starts_at",
+        "ends_at",
+        "lat",
+        "lng",
+        "radius_m",
+    },
+    "pioneer_milestones": {"country", "city", "category", "status", "target_date", "note"},
+}
+
+
+def _schema_is_ready(conn: psycopg2.extensions.connection) -> bool:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            """
+        )
+        tables = {row[0] for row in cur.fetchall()}
+        if not _REQUIRED_SCHEMA_TABLES.issubset(tables):
+            conn.rollback()
+            return False
+
+        for table, required_columns in _REQUIRED_SCHEMA_COLUMNS.items():
+            cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = %s
+                """,
+                (table,),
+            )
+            columns = {row[0] for row in cur.fetchall()}
+            if not required_columns.issubset(columns):
+                conn.rollback()
+                return False
+
+    conn.rollback()
+    return True
+
+
+def ensure_database_ready(url: str | None = None) -> None:
+    """서버 시작 시 DB가 비어 있거나 구버전일 때만 스키마를 초기화한다."""
+    conn = connect_db(url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_lock(hashtext(%s))", ("nnai:schema:init",))
+        conn.commit()
+        if _schema_is_ready(conn):
+            return
+
+        initialized = init_db(url)
+        initialized.close()
+    finally:
+        conn.close()
+
+
+def init_db(url: str | None = None) -> psycopg2.extensions.connection:
+    """DB 연결 + 테이블 생성."""
+    conn = connect_db(url)
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -649,7 +782,7 @@ def get_conn() -> psycopg2.extensions.connection:
     with _lock:
         conn = getattr(_thread_local, "conn", None)
         if conn is None or conn.closed:
-            conn = init_db()
+            conn = connect_db()
             _thread_local.conn = conn
             return conn
 
@@ -666,7 +799,7 @@ def get_conn() -> psycopg2.extensions.connection:
                     conn.close()
                 except Exception:
                     pass
-                conn = init_db()
+                conn = connect_db()
                 _thread_local.conn = conn
     return conn
 

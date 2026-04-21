@@ -3,11 +3,14 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-04-16
+> 최종 업데이트: 2026-04-22
 
 운영 메모:
 - 스키마 보장 시점은 FastAPI startup (`server.py`) 입니다.
+- startup은 `utils.db.ensure_database_ready()`로 핵심 테이블/컬럼 존재 여부를 먼저 확인합니다.
+- 이미 준비된 DB에서는 DDL을 실행하지 않고, 비어 있거나 구버전인 DB에서만 advisory lock 후 `utils.db.init_db()`를 실행합니다.
 - `server` 모듈 import만으로는 DB 연결/DDL이 실행되지 않습니다.
+- DB를 완전히 비운 직후 수동 초기화가 필요하면 `python scripts/init_db.py`를 실행합니다.
 
 ---
 
@@ -748,5 +751,5 @@ verification_logs — 독립 로그 테이블 (외래키 없음)
 |------|-----|
 | 호스트 | Railway PostgreSQL |
 | 환경변수 | `DATABASE_URL` |
-| 연결 방식 | 스레드별 재사용 연결 (`utils/db.get_conn()`) |
+| 연결 방식 | 스레드별 재사용 연결 (`utils.db.get_conn()`); 일반 요청 경로는 `connect_db()`로 연결만 생성하고 DDL을 실행하지 않음 |
 | autocommit | `False` — 모든 쓰기 후 `conn.commit()` 필요 |
