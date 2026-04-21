@@ -9,7 +9,7 @@ from utils.crypto import decrypt_text, encrypt_text, has_pii_encryption_key, pii
 
 
 def _database_url() -> str | None:
-    return os.environ.get("DATABASE_URL")
+    return os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PUBLIC_URL")
 
 
 def _connect_timeout_seconds() -> int:
@@ -24,7 +24,7 @@ def connect_db(url: str | None = None) -> psycopg2.extensions.connection:
     """DB 연결만 생성한다. 스키마 DDL은 실행하지 않는다."""
     db_url = url or _database_url()
     if not db_url:
-        raise RuntimeError("DATABASE_URL 환경변수가 설정되지 않았습니다.")
+        raise RuntimeError("DATABASE_URL 또는 DATABASE_PUBLIC_URL 환경변수가 설정되지 않았습니다.")
     conn = psycopg2.connect(
         db_url,
         connect_timeout=_connect_timeout_seconds(),

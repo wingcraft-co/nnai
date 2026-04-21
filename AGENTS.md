@@ -136,7 +136,8 @@ cd frontend && npm run build                       # 프로덕션 빌드
 ```bash
 # Backend (Railway)
 GEMINI_API_KEY          # LLM + Context Caching
-DATABASE_URL            # PostgreSQL
+DATABASE_URL            # PostgreSQL (Railway 내부/서버용 기본값)
+DATABASE_PUBLIC_URL     # PostgreSQL public URL (로컬 접속용 fallback)
 APP_PII_ENCRYPTION_KEY  # 사용자 email/name 암복호화용 Fernet 키 (같은 DB를 쓰는 모든 서버에서 동일해야 함)
 GOOGLE_CLIENT_ID        # OAuth
 GOOGLE_CLIENT_SECRET    # OAuth

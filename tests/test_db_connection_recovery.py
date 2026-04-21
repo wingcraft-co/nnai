@@ -213,6 +213,27 @@ def test_init_db_sets_default_connect_timeout(monkeypatch):
     assert captured["kwargs"] == {"connect_timeout": 5}
 
 
+def test_connect_db_falls_back_to_database_public_url(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _ConnNoop:
+        autocommit = True
+
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("DATABASE_PUBLIC_URL", "postgresql://public.example.test/db")
+    monkeypatch.setattr(
+        db_mod.psycopg2,
+        "connect",
+        lambda dsn, **kwargs: captured.update({"dsn": dsn, "kwargs": kwargs}) or _ConnNoop(),
+    )
+
+    conn = db_mod.connect_db()
+
+    assert captured["dsn"] == "postgresql://public.example.test/db"
+    assert captured["kwargs"] == {"connect_timeout": 5}
+    assert conn.autocommit is False
+
+
 def test_get_conn_uses_connection_only_path(monkeypatch):
     replacement = _ConnOk()
     db_mod._thread_local.conn = None

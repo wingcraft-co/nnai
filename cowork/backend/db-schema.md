@@ -750,6 +750,6 @@ verification_logs — 독립 로그 테이블 (외래키 없음)
 | 항목 | 값 |
 |------|-----|
 | 호스트 | Railway PostgreSQL |
-| 환경변수 | `DATABASE_URL` |
+| 환경변수 | `DATABASE_URL` 우선 사용; 없으면 `DATABASE_PUBLIC_URL` fallback |
 | 연결 방식 | 스레드별 재사용 연결 (`utils.db.get_conn()`); 일반 요청 경로는 `connect_db()`로 연결만 생성하고 DDL을 실행하지 않음 |
 | autocommit | `False` — 모든 쓰기 후 `conn.commit()` 필요 |
