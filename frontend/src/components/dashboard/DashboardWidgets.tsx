@@ -22,6 +22,7 @@ import {
 } from "@/lib/dashboard-content.mjs";
 import { WidgetCard } from "./WidgetCard";
 import type { DashboardPlan } from "./types";
+import { LOCKED_WIDGET_IDS } from "@/lib/dashboard-content.mjs";
 
 type PlanPatch = {
   arrived_at?: string | null;
@@ -45,8 +46,20 @@ function DashboardInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary ${props.className ?? ""}`}
+      className={`h-11 w-full rounded-xl border border-black/10 bg-white/50 px-4 text-sm outline-none transition-all focus:border-primary focus:bg-white ${props.className ?? ""}`}
     />
+  );
+}
+
+function SaveButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg bg-[#0071E3] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#0077ED] active:scale-95"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -54,10 +67,12 @@ export function DashboardWidgets({
   plan,
   orderedWidgetIds,
   onPatchPlan,
+  onRemoveWidget,
 }: {
   plan: DashboardPlan;
   orderedWidgetIds: string[];
   onPatchPlan: (patch: PlanPatch) => Promise<void>;
+  onRemoveWidget: (widgetId: string) => void;
 }) {
   const [localAmount, setLocalAmount] = useState(1000);
   const [krwPerUsd] = useState(1400);
@@ -87,72 +102,85 @@ export function DashboardWidgets({
   );
 
   function renderWidget(widgetId: string) {
+    const isLocked = LOCKED_WIDGET_IDS.includes(widgetId);
+    const handleRemove = () => onRemoveWidget(widgetId);
+
     switch (widgetId) {
       case "weather":
         return (
-          <WidgetCard key={widgetId} title="날씨" subtitle="도시 기후 기반 요약">
-            <div className="flex items-center gap-3">
-              <CloudSun className="size-9 text-primary" />
+          <WidgetCard key={widgetId} title="날씨" subtitle="도시 기후 기반 요약" locked={isLocked} onRemove={handleRemove}>
+            <div className="flex items-center gap-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-500 shadow-inner">
+                <CloudSun className="size-8" />
+              </div>
               <div>
-                <p className="text-2xl font-semibold">{plan.city_payload.climate === "tropical" ? "덥고 습함" : "온화"}</p>
-                <p className="text-xs text-muted-foreground">실시간 날씨 API 연결 전까지 도시 기후 데이터로 표시됩니다.</p>
+                <p className="text-3xl font-bold tracking-tight">{plan.city_payload.climate === "tropical" ? "덥고 습함" : "온화"}</p>
+                <p className="text-[11px] font-medium text-muted-foreground/70">도시 기후 데이터를 표시 중입니다</p>
               </div>
             </div>
           </WidgetCard>
         );
       case "exchange":
         return (
-          <WidgetCard key={widgetId} title="환율 변환" subtitle={`${currencyCode} → KRW`}>
-            <div className="space-y-3">
+          <WidgetCard key={widgetId} title="환율 변환" subtitle={`${currencyCode} → KRW`} locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
               <DashboardInput
                 type="number"
                 value={localAmount}
                 onChange={(event) => setLocalAmount(Number(event.target.value))}
               />
-              <p className="text-lg font-semibold">{formatCurrencyAmount(krwConverted, "KRW", "ko-KR")}</p>
-              <p className="text-xs text-muted-foreground">현재는 USD/KRW 기준 보수적 환산값입니다.</p>
+              <div className="rounded-xl bg-emerald-50/50 p-4 border border-emerald-100/50">
+                <p className="text-sm font-semibold text-emerald-700 mb-1">변환 금액</p>
+                <p className="text-2xl font-bold text-emerald-900">{formatCurrencyAmount(krwConverted, "KRW", "ko-KR")}</p>
+              </div>
             </div>
           </WidgetCard>
         );
       case "stay":
         return (
-          <WidgetCard key={widgetId} title="체류 일자" subtitle={`${stayDay}일차`}>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <CalendarDays className="size-8 text-primary" />
-                <p className="text-3xl font-semibold">{stayDay}일차</p>
+          <WidgetCard key={widgetId} title="체류 일자" subtitle={`${stayDay}일차`} locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 shadow-inner">
+                  <CalendarDays className="size-8" />
+                </div>
+                <p className="text-4xl font-bold tracking-tight">{stayDay}<span className="text-lg font-semibold">일차</span></p>
               </div>
-              <DashboardInput type="date" value={arrivedAt} onChange={(event) => setArrivedAt(event.target.value)} />
-              <button
-                type="button"
-                onClick={() => onPatchPlan({ arrived_at: arrivedAt })}
-                className="text-xs text-primary"
-              >
-                입국일 저장
-              </button>
+              <div className="flex flex-col gap-3">
+                <DashboardInput type="date" value={arrivedAt} onChange={(event) => setArrivedAt(event.target.value)} />
+                <div className="flex justify-end">
+                  <SaveButton onClick={() => onPatchPlan({ arrived_at: arrivedAt })}>
+                    입국일 저장
+                  </SaveButton>
+                </div>
+              </div>
             </div>
           </WidgetCard>
         );
       case "visa":
         return (
-          <WidgetCard key={widgetId} title="비자 정보" subtitle="관광비자 기본값, 수령 후 업데이트">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Plane className="size-4 text-primary" />
+          <WidgetCard key={widgetId} title="비자 정보" subtitle="현재 비자 상태" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700">
+                <Plane className="size-3.5" />
                 <span>{visaType}</span>
               </div>
-              <DashboardInput value={visaType} onChange={(event) => setVisaType(event.target.value)} />
-              <DashboardInput type="date" value={visaExpiresAt} onChange={(event) => setVisaExpiresAt(event.target.value)} />
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => onPatchPlan({ visa_type: visaType, visa_expires_at: visaExpiresAt || null })}
-                  className="text-xs text-primary"
-                >
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 ml-1">비자 종류</p>
+                  <DashboardInput value={visaType} onChange={(event) => setVisaType(event.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 ml-1">만료 예정일</p>
+                  <DashboardInput type="date" value={visaExpiresAt} onChange={(event) => setVisaExpiresAt(event.target.value)} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <SaveButton onClick={() => onPatchPlan({ visa_type: visaType, visa_expires_at: visaExpiresAt || null })}>
                   비자 상태 저장
-                </button>
+                </SaveButton>
                 {visaUrl && (
-                  <a href={String(visaUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary">
+                  <a href={String(visaUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071E3] hover:underline">
                     공식 신청 페이지 <ExternalLink className="size-3" />
                   </a>
                 )}
@@ -162,12 +190,12 @@ export function DashboardWidgets({
         );
       case "action_plan":
         return (
-          <WidgetCard key={widgetId} title="이번 주 실행 플랜" subtitle="확정 도시 기준 기본 체크리스트" className="lg:col-span-2">
-            <div className="grid gap-2 sm:grid-cols-2">
+          <WidgetCard key={widgetId} title="이번 주 실행 플랜" subtitle="체크리스트" className="lg:col-span-2" locked={isLocked} onRemove={handleRemove}>
+            <div className="grid gap-3 sm:grid-cols-2">
               {actions.map((action) => (
-                <label key={action} className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-3 text-sm">
-                  <input type="checkbox" className="size-4 accent-primary" />
-                  {action}
+                <label key={action} className="flex cursor-pointer items-center gap-3 rounded-2xl border border-black/5 bg-white/40 p-4 transition-all hover:bg-white/60">
+                  <input type="checkbox" className="size-5 accent-[#0071E3] rounded-lg" />
+                  <span className="text-sm font-medium text-[#1D1D1F]">{action}</span>
                 </label>
               ))}
             </div>
@@ -175,87 +203,117 @@ export function DashboardWidgets({
         );
       case "coworking":
         return (
-          <WidgetCard key={widgetId} title="공유오피스" subtitle="위치와 월 비용">
-            <div className="space-y-3">
-              <Building2 className="size-7 text-primary" />
-              <DashboardInput placeholder="공유오피스 이름" value={coworkName} onChange={(event) => setCoworkName(event.target.value)} />
-              <DashboardInput type="number" placeholder="월 비용 USD" value={coworkCost} onChange={(event) => setCoworkCost(event.target.value)} />
-              <button
-                type="button"
-                onClick={() => onPatchPlan({ coworking_space: { name: coworkName, monthly_cost_usd: Number(coworkCost || 0) } })}
-                className="text-xs text-primary"
-              >
-                공유오피스 저장
-              </button>
+          <WidgetCard key={widgetId} title="공유오피스" subtitle="업무 환경 정보" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-500 shadow-inner">
+                <Building2 className="size-8" />
+              </div>
+              <div className="space-y-3">
+                <DashboardInput placeholder="공유오피스 이름" value={coworkName} onChange={(event) => setCoworkName(event.target.value)} />
+                <DashboardInput type="number" placeholder="월 비용 USD" value={coworkCost} onChange={(event) => setCoworkCost(event.target.value)} />
+              </div>
+              <div className="flex justify-end">
+                <SaveButton onClick={() => onPatchPlan({ coworking_space: { name: coworkName, monthly_cost_usd: Number(coworkCost || 0) } })}>
+                  공유오피스 저장
+                </SaveButton>
+              </div>
             </div>
           </WidgetCard>
         );
       case "tax":
         return (
-          <WidgetCard key={widgetId} title="세금 관리" subtitle="현지/본국 거주자 리스크">
-            <div className="space-y-3">
-              <Landmark className="size-7 text-primary" />
-              <p className="text-sm">세금 거주 기준: {taxDays ? `${taxDays}일` : "국가별 확인 필요"}</p>
-              <DashboardInput type="number" placeholder="이번 달 해외소득 USD" value={monthlyIncome} onChange={(event) => setMonthlyIncome(event.target.value)} />
-              <button
-                type="button"
-                onClick={() => onPatchPlan({ tax_profile: { monthly_income_usd: Number(monthlyIncome || 0), home_country: "KR" } })}
-                className="text-xs text-primary"
-              >
-                소득 입력 저장
-              </button>
+          <WidgetCard key={widgetId} title="세금 관리" subtitle="거주자 리스크 추적" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 shadow-inner">
+                <Landmark className="size-8" />
+              </div>
+              <div className="rounded-xl bg-black/5 p-4">
+                <p className="text-xs font-medium text-muted-foreground/80 mb-1">세금 거주 기준</p>
+                <p className="text-sm font-bold">{taxDays ? `${taxDays}일` : "국가별 확인 필요"}</p>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 ml-1">이번 달 해외소득 USD</p>
+                  <DashboardInput type="number" placeholder="금액 입력" value={monthlyIncome} onChange={(event) => setMonthlyIncome(event.target.value)} />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <SaveButton onClick={() => onPatchPlan({ tax_profile: { monthly_income_usd: Number(monthlyIncome || 0), home_country: "KR" } })}>
+                  소득 입력 저장
+                </SaveButton>
+              </div>
             </div>
           </WidgetCard>
         );
       case "disaster":
         return (
-          <WidgetCard key={widgetId} title="재난 현황" subtitle="기상 · 지진 · 안전 공지">
-            <div className="flex items-center gap-3">
-              <ShieldAlert className="size-8 text-primary" />
+          <WidgetCard key={widgetId} title="재난 현황" subtitle="안전 알림" locked={isLocked} onRemove={handleRemove}>
+            <div className="flex items-center gap-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 shadow-inner">
+                <ShieldAlert className="size-8" />
+              </div>
               <div>
-                <p className="font-semibold text-emerald-400">현재 등록된 특보 없음</p>
-                <p className="text-xs text-muted-foreground">공식 재난 API 연동 전까지 수동 확인용 상태로 표시됩니다.</p>
+                <p className="font-bold text-emerald-600">현재 특보 없음</p>
+                <p className="text-[11px] font-medium text-muted-foreground/70 leading-relaxed">공식 재난 API 대기 중</p>
               </div>
             </div>
           </WidgetCard>
         );
       case "budget":
         return (
-          <WidgetCard key={widgetId} title="월 예산" subtitle="도시 예상 생활비">
-            <WalletCards className="mb-3 size-7 text-primary" />
-            <p className="text-2xl font-semibold">${monthlyCost.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">중기 숙소와 생활비를 포함한 기준값입니다.</p>
+          <WidgetCard key={widgetId} title="월 예산" subtitle="예상 생활비" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 shadow-inner">
+                <WalletCards className="size-8" />
+              </div>
+              <div>
+                <p className="text-4xl font-bold tracking-tight">${monthlyCost.toLocaleString()}</p>
+                <p className="mt-2 text-[11px] font-medium text-muted-foreground/70 leading-relaxed">중기 숙소와 생활비를 포함한 기준값입니다</p>
+              </div>
+            </div>
           </WidgetCard>
         );
       case "housing":
         return (
-          <WidgetCard key={widgetId} title="숙소 갱신" subtitle="중기 숙소 후보 관리">
-            <Home className="mb-3 size-7 text-primary" />
-            <p className="text-sm">다음 숙소 갱신일을 추가하고 후보 링크를 저장하세요.</p>
-            {plan.city_payload.flatio_search_url && (
-              <a href={String(plan.city_payload.flatio_search_url)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
-                Flatio 후보 보기 <ExternalLink className="size-3" />
-              </a>
-            )}
+          <WidgetCard key={widgetId} title="숙소 갱신" subtitle="다음 숙소 관리" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-500 shadow-inner">
+                <Home className="size-8" />
+              </div>
+              <p className="text-sm font-medium leading-relaxed text-[#1D1D1F]">다음 숙소 갱신일을 추가하고 후보 링크를 저장하세요</p>
+              {plan.city_payload.flatio_search_url && (
+                <a href={String(plan.city_payload.flatio_search_url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071E3] hover:underline">
+                  Flatio 후보 보기 <ExternalLink className="size-3" />
+                </a>
+              )}
+            </div>
           </WidgetCard>
         );
       case "insurance":
         return (
-          <WidgetCard key={widgetId} title="보험/의료" subtitle="긴급 상황 대비">
-            <HeartPulse className="mb-3 size-7 text-primary" />
-            <p className="text-sm">해외 보험 증권, 병원, 긴급 연락처를 이 위젯에 저장하도록 확장할 수 있습니다.</p>
+          <WidgetCard key={widgetId} title="보험/의료" subtitle="긴급 상황 대비" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-red-50 text-red-500 shadow-inner">
+                <HeartPulse className="size-8" />
+              </div>
+              <p className="text-sm font-medium leading-relaxed text-[#1D1D1F]">해외 보험 증권과 긴급 연락처를 저장하도록 확장할 수 있습니다</p>
+            </div>
           </WidgetCard>
         );
       case "local_events":
         return (
-          <WidgetCard key={widgetId} title="로컬 이벤트" subtitle="노마드 커뮤니티">
-            <MapPin className="mb-3 size-7 text-primary" />
-            <p className="text-sm">저장한 현지 이벤트와 노마드 밋업을 모아볼 수 있습니다.</p>
-            {plan.city_payload.nomad_meetup_url && (
-              <a href={String(plan.city_payload.nomad_meetup_url)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
-                Meetup 보기 <ExternalLink className="size-3" />
-              </a>
-            )}
+          <WidgetCard key={widgetId} title="로컬 이벤트" subtitle="노마드 커뮤니티" locked={isLocked} onRemove={handleRemove}>
+            <div className="space-y-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-500 shadow-inner">
+                <MapPin className="size-8" />
+              </div>
+              <p className="text-sm font-medium leading-relaxed text-[#1D1D1F]">저장한 현지 이벤트와 노마드 밋업을 모아볼 수 있습니다</p>
+              {plan.city_payload.nomad_meetup_url && (
+                <a href={String(plan.city_payload.nomad_meetup_url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071E3] hover:underline">
+                  Meetup 보기 <ExternalLink className="size-3" />
+                </a>
+              )}
+            </div>
           </WidgetCard>
         );
       default:
@@ -264,26 +322,29 @@ export function DashboardWidgets({
   }
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-lg border border-primary/40 bg-primary/10 p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-8">
+      <section className="relative overflow-hidden rounded-3xl border border-white/50 bg-white/40 p-8 shadow-sm backdrop-blur-md">
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="font-serif text-xl font-bold">체류 타임라인</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h2 className="font-serif text-2xl font-bold tracking-tight">체류 타임라인</h2>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
               {plan.city_kr || plan.city} {stayDay}일차 · 현재 비자: {plan.visa_type}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <BadgeDollarSign className="size-4 text-primary" />
-            {currencyCode} 기준 환율/예산 관리
+          <div className="flex items-center gap-3 rounded-2xl bg-black/5 px-4 py-2 text-sm font-semibold">
+            <BadgeDollarSign className="size-4 text-[#1D1D1F]" />
+            {currencyCode} 기준 예산 관리 중
           </div>
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-background">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, stayDay)}%` }} />
+        <div className="mt-8 relative h-3 overflow-hidden rounded-full bg-black/5">
+          <div 
+            className="h-full rounded-full bg-[#0071E3] transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(0,113,227,0.4)]" 
+            style={{ width: `${Math.min(100, stayDay)}%` }} 
+          />
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {orderedWidgetIds.map((widgetId) => renderWidget(widgetId))}
       </div>
     </div>

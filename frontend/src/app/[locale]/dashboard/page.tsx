@@ -33,12 +33,19 @@ export default function DashboardPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [accessError, setAccessError] = useState<"login" | "pro" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [personaType, setPersonaType] = useState<string | null>(null);
 
   const orderedWidgetIds = useMemo(() => {
     return coerceDashboardWidgets(widgets).widget_order;
   }, [widgets]);
 
   useEffect(() => {
+    // Try to get persona from localStorage first
+    const localPersona = localStorage.getItem("persona_type");
+    if (localPersona) {
+      setPersonaType(localPersona);
+    }
+
     async function loadDashboard() {
       setLoading(true);
       setError(null);
@@ -60,6 +67,11 @@ export default function DashboardPage() {
         setPlan(payload.plan);
         setWidgets(coerceDashboardWidgets(payload.widgets));
         setCatalog(payload.catalog);
+
+        // If persona not in localStorage, try plan.user_profile
+        if (!localPersona && payload.plan?.user_profile?.persona_type) {
+          setPersonaType(String(payload.plan.user_profile.persona_type));
+        }
       } catch {
         setError("대시보드를 불러오지 못했습니다.");
       } finally {
@@ -107,20 +119,40 @@ export default function DashboardPage() {
 
   function toggleWidget(widgetId: string) {
     if (!widgets || LOCKED_WIDGET_IDS.includes(widgetId)) return;
-    const enabled = widgets.enabled_widgets.includes(widgetId)
+    const isEnabled = widgets.enabled_widgets.includes(widgetId);
+    const enabled = isEnabled
       ? widgets.enabled_widgets.filter((id) => id !== widgetId)
       : [...widgets.enabled_widgets, widgetId];
+    
+    const nextOrder = isEnabled 
+      ? widgets.widget_order.filter((id) => id !== widgetId)
+      : [...widgets.widget_order, widgetId];
+
     const next = coerceDashboardWidgets({
       ...widgets,
       enabled_widgets: enabled,
-      widget_order: widgets.widget_order.filter((id) => enabled.includes(id)).concat(enabled.filter((id) => !widgets.widget_order.includes(id))),
+      widget_order: nextOrder,
     });
     saveWidgets(next);
   }
 
+  function removeWidget(widgetId: string) {
+    if (!widgets || LOCKED_WIDGET_IDS.includes(widgetId)) return;
+    const enabled = widgets.enabled_widgets.filter((id) => id !== widgetId);
+    const nextOrder = widgets.widget_order.filter((id) => id !== widgetId);
+    const next = coerceDashboardWidgets({
+      ...widgets,
+      enabled_widgets: enabled,
+      widget_order: nextOrder,
+    });
+    saveWidgets(next);
+  }
+
+  const personaGif = personaType ? `/${personaType}.gif` : null;
+
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-6xl px-5 py-8">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
+      <div className="mx-auto max-w-6xl px-5 py-12">
         {loading && (
           <div className="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
@@ -129,27 +161,27 @@ export default function DashboardPage() {
         )}
 
         {!loading && accessError && (
-          <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-6">
+          <div className="mx-auto max-w-lg rounded-2xl border border-border bg-white/80 p-8 shadow-sm backdrop-blur-md">
             <h1 className="font-serif text-2xl font-bold">Pro 대시보드</h1>
             <p className="mt-3 text-sm text-muted-foreground">
               {accessError === "login"
                 ? "도시 확정 대시보드는 로그인 후 사용할 수 있습니다."
                 : "도시 확정 대시보드는 Pro 플랜에서 사용할 수 있습니다."}
             </p>
-            <div className="mt-5">
+            <div className="mt-6">
               <PolarCheckoutButton
                 locale={locale}
                 returnPath={`/${locale}/dashboard`}
                 idleLabel="Pro로 시작하기"
                 loadingLabel="결제 페이지 여는 중..."
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#0071E3] px-6 text-sm font-semibold text-white transition-all hover:bg-[#0077ED] disabled:opacity-50"
               />
             </div>
           </div>
         )}
 
         {!loading && !accessError && !plan && (
-          <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-6">
+          <div className="mx-auto max-w-lg rounded-2xl border border-border bg-white/80 p-8 shadow-sm backdrop-blur-md">
             <h1 className="font-serif text-2xl font-bold">아직 확정된 도시가 없습니다</h1>
             <p className="mt-3 text-sm text-muted-foreground">
               상세 가이드에서 Pro 도시 확정을 완료하면 이곳에 개인 대시보드가 생성됩니다.
@@ -158,19 +190,27 @@ export default function DashboardPage() {
         )}
 
         {!loading && !accessError && plan && widgets && (
-          <div className="space-y-6">
-            <header className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="mb-2 text-xs text-muted-foreground">Pro City Dashboard</p>
-                <h1 className="font-serif text-3xl font-bold">{plan.city_kr || plan.city} 노마드 플랜</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {plan.country} · {plan.status === "active" ? "활성 플랜" : "보관됨"} · 설정은 계정에 저장됩니다
-                </p>
+          <div className="space-y-10">
+            <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex items-start gap-5">
+                {personaGif && (
+                  <div className="relative shrink-0 rounded-2xl bg-white p-2 shadow-sm border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={personaGif} alt="Persona" className="size-16 object-contain" />
+                  </div>
+                )}
+                <div>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pro City Dashboard</p>
+                  <h1 className="font-serif text-4xl font-bold tracking-tight">{plan.city_kr || plan.city} 노마드 플랜</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {plan.country} · {plan.status === "active" ? "활성 플랜" : "보관됨"}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditorOpen((value) => !value)}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm hover:bg-muted"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-5 text-sm font-medium shadow-sm transition-all hover:bg-[#F5F5F7]"
               >
                 <Settings2 className="size-4" />
                 위젯 편집
@@ -178,25 +218,29 @@ export default function DashboardPage() {
             </header>
 
             {error && (
-              <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
                 {error}
               </div>
             )}
 
             {editorOpen && (
-              <section className="rounded-lg border border-border bg-card p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-serif text-lg font-bold">위젯 설정</h2>
-                  {saving && <span className="text-xs text-muted-foreground">저장 중...</span>}
+              <section className="rounded-2xl border border-border bg-white/50 p-6 backdrop-blur-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="font-serif text-xl font-bold">위젯 라이브러리</h2>
+                  {saving && <span className="text-xs text-muted-foreground animate-pulse">설정 적용 중...</span>}
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {catalog.map((item) => {
                     const enabled = widgets.enabled_widgets.includes(item.id);
                     const locked = item.locked || LOCKED_WIDGET_IDS.includes(item.id);
                     return (
                       <label
                         key={item.id}
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/60 p-3 text-sm"
+                        className={`flex cursor-pointer items-start gap-4 rounded-xl border p-4 transition-all ${
+                          enabled 
+                            ? "border-primary/20 bg-primary/5 shadow-sm" 
+                            : "border-border bg-white/40 hover:bg-white/60"
+                        }`}
                       >
                         <input
                           type="checkbox"
@@ -207,7 +251,7 @@ export default function DashboardPage() {
                         />
                         <span>
                           <span className="block font-semibold">{item.title} {locked ? "· 고정" : ""}</span>
-                          <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground leading-relaxed">{item.description}</span>
                         </span>
                       </label>
                     );
@@ -216,10 +260,16 @@ export default function DashboardPage() {
               </section>
             )}
 
-            <DashboardWidgets plan={plan} orderedWidgetIds={orderedWidgetIds} onPatchPlan={patchPlan} />
+            <DashboardWidgets 
+              plan={plan} 
+              orderedWidgetIds={orderedWidgetIds} 
+              onPatchPlan={patchPlan}
+              onRemoveWidget={removeWidget}
+            />
           </div>
         )}
       </div>
     </div>
   );
 }
+
