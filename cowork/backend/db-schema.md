@@ -424,6 +424,72 @@ CREATE TABLE IF NOT EXISTS city_stays (
 
 ---
 
+## user_city_plans
+
+Pro 사용자가 상세 가이드 이후 확정한 활성 도시 대시보드 플랜입니다. 사용자당 하나의 active 플랜만 유지하고, 새 도시 확정 시 기존 active row는 `archived`로 전환됩니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS user_city_plans (
+    id               BIGSERIAL PRIMARY KEY,
+    user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    city_id          TEXT,
+    city             TEXT NOT NULL,
+    city_kr          TEXT,
+    country          TEXT,
+    country_id       TEXT,
+    city_payload     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    user_profile     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    arrived_at       TEXT,
+    visa_type        TEXT NOT NULL DEFAULT '관광비자',
+    visa_expires_at  TEXT,
+    coworking_space  JSONB NOT NULL DEFAULT '{}'::jsonb,
+    tax_profile      JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status           TEXT NOT NULL DEFAULT 'active'
+                     CHECK (status IN ('active', 'archived')),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_city_plans_one_active
+ON user_city_plans(user_id)
+WHERE status = 'active';
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `city_payload` | JSONB | 추천/상세 가이드에서 넘겨받은 도시 원본 데이터 |
+| `user_profile` | JSONB | 추천 시점 사용자 프로필 스냅샷 |
+| `arrived_at` | TEXT | 체류 시작일 (`YYYY-MM-DD`) |
+| `visa_type` | TEXT | 현재 적용 비자. 기본값은 `관광비자` |
+| `visa_expires_at` | TEXT | 비자 만료일 |
+| `coworking_space` | JSONB | 공유오피스 이름, 주소, 월 비용 등 사용자 입력값 |
+| `tax_profile` | JSONB | 월 소득, 본국 등 세금 관리 입력값 |
+| `status` | TEXT | `active` 또는 `archived` |
+
+---
+
+## dashboard_widget_settings
+
+Pro 대시보드 위젯 표시 설정을 사용자별로 저장합니다. 어느 기기에서 접속해도 동일한 위젯 enable/order/settings를 사용합니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS dashboard_widget_settings (
+    user_id          TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    enabled_widgets  JSONB NOT NULL DEFAULT '[]'::jsonb,
+    widget_order     JSONB NOT NULL DEFAULT '[]'::jsonb,
+    widget_settings  JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `enabled_widgets` | JSONB | 표시할 위젯 ID 배열 |
+| `widget_order` | JSONB | 표시 순서 위젯 ID 배열 |
+| `widget_settings` | JSONB | 위젯별 사용자 설정값 |
+
+---
+
 ## wanderer_hops
 
 모바일 Wanderer 계약(`planned|booked`, `conditions`, `is_focus`)을 따릅니다.
@@ -720,6 +786,8 @@ users (id)
       └── move_checklist_items (plan_id) — 1:N
   └── user_badges (user_id) — 1:N
   └── city_stays (user_id) — 1:N
+  └── user_city_plans (user_id) — 1:N (active는 사용자당 1개)
+  └── dashboard_widget_settings (user_id) — 1:1
   └── wanderer_hops (user_id) — 1:N
   └── planner_boards (user_id) — 1:N
       └── planner_tasks (board_id) — 1:N

@@ -473,6 +473,99 @@ POST /api/billing/restore
 
 ---
 
+## Pro 도시 대시보드 API
+
+상세 가이드 이후 Pro 사용자가 도시를 확정하고 개인 위젯 대시보드를 저장하는 API입니다. 모든 쓰기/조회는 `billing_entitlements.plan_tier='pro'` 및 `status IN ('active', 'grace')` 권한이 필요합니다.
+
+### GET /api/dashboard
+
+현재 로그인 사용자의 활성 도시 플랜, 위젯 설정, 위젯 catalog를 반환합니다.
+
+```http
+GET /api/dashboard
+Cookie: nnai_session=...
+```
+
+응답:
+
+```json
+{
+  "plan": {
+    "id": 7,
+    "city": "Bangkok",
+    "city_kr": "방콕",
+    "country": "Thailand",
+    "country_id": "TH",
+    "arrived_at": "2026-04-26",
+    "visa_type": "관광비자",
+    "visa_expires_at": null,
+    "city_payload": { "...": "추천 도시 원본" },
+    "coworking_space": {},
+    "tax_profile": {},
+    "status": "active"
+  },
+  "widgets": {
+    "enabled_widgets": ["weather", "exchange", "stay", "visa", "tax"],
+    "widget_order": ["weather", "exchange", "stay", "visa", "tax"],
+    "widget_settings": {}
+  },
+  "catalog": [{ "id": "weather", "title": "날씨", "locked": true }]
+}
+```
+
+### POST /api/dashboard/confirm
+
+상세 가이드에서 선택한 도시를 활성 Pro 대시보드 도시로 확정합니다. 기존 active 플랜은 `archived` 처리되고 새 active 플랜이 생성됩니다.
+
+```http
+POST /api/dashboard/confirm
+Content-Type: application/json
+Cookie: nnai_session=...
+```
+
+요청:
+
+```json
+{
+  "city": { "city": "Bangkok", "city_kr": "방콕", "country_id": "TH", "visa_url": "https://www.thaievisa.go.th/" },
+  "user_profile": { "nationality": "Korean" },
+  "arrived_at": "2026-04-26"
+}
+```
+
+### PATCH /api/dashboard/widgets
+
+사용자별 위젯 enable/disable, 표시 순서, 위젯별 설정값을 저장합니다. `weather`, `exchange`, `stay`, `visa`는 고정 위젯이라 서버가 항상 enabled/order 선두에 복원합니다.
+
+```json
+{
+  "enabled_widgets": ["tax", "budget"],
+  "widget_order": ["budget", "tax"],
+  "widget_settings": { "budget": { "monthlyTarget": 2200 } }
+}
+```
+
+### PATCH /api/dashboard/plan
+
+활성 플랜의 사용자 입력값을 갱신합니다.
+
+```json
+{
+  "arrived_at": "2026-04-10",
+  "visa_type": "DTV",
+  "visa_expires_at": "2027-04-10",
+  "coworking_space": { "name": "The Hive", "monthly_cost_usd": 120 },
+  "tax_profile": { "monthly_income_usd": 4000, "home_country": "KR" }
+}
+```
+
+에러:
+- `401`: 로그인 필요
+- `403`: Pro 플랜 필요
+- `404`: 활성 대시보드 플랜 없음 (`PATCH /api/dashboard/plan`)
+
+---
+
 ## 핀 API
 
 저장된 관심 도시를 관리합니다. **로그인 필요** (community 조회 제외).

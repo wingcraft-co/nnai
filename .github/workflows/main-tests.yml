@@ -48,6 +48,7 @@ jobs:
             tests/test_builder.py \
             tests/test_city_scores.py \
             tests/test_currency.py \
+            tests/test_dashboard_api.py \
             tests/test_data_schema.py \
             tests/test_db.py \
             tests/test_db_connection_recovery.py \
@@ -78,4 +79,4 @@ jobs:
 
       - name: Frontend regression tests
         run: |
-          node --test --experimental-strip-types frontend/src/lib/analytics/consent.test.mjs frontend/src/lib/analytics/posthog-config.test.mjs frontend/src/lib/pricing-content.test.mjs frontend/src/lib/legal-content.test.mjs frontend/src/lib/billing-return.test.mjs
+          node --test --experimental-strip-types frontend/src/lib/analytics/consent.test.mjs frontend/src/lib/analytics/posthog-config.test.mjs frontend/src/lib/pricing-content.test.mjs frontend/src/lib/legal-content.test.mjs frontend/src/lib/billing-return.test.mjs frontend/src/lib/dashboard-content.test.mjs

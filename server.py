@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from api.auth import router as auth_router, extract_user_id
 from api.billing import router as billing_router
+from api.dashboard import router as dashboard_router
 from api.mobile_auth import router as mobile_auth_router
 from api.mobile_discover import router as mobile_discover_router
 from api.mobile_feed import router as mobile_feed_router
@@ -147,6 +148,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 app.include_router(billing_router)
+app.include_router(dashboard_router)
 app.include_router(pins_router, prefix="/api")
 app.include_router(visits_router, prefix="/api")
 app.include_router(mobile_auth_router)

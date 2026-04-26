@@ -11,11 +11,6 @@ export function useKrwRate(): number {
   const [rate, setRate] = useState<number>(cachedRate ?? FALLBACK_KRW_RATE);
 
   useEffect(() => {
-    if (cachedRate !== null) {
-      setRate(cachedRate);
-      return;
-    }
-
     if (!pendingPromise) {
       pendingPromise = fetch("/api/currency")
         .then((r) => (r.ok ? r.json() : null))

@@ -24,6 +24,7 @@ export interface CityData {
   community_size: string | null;
   korean_community_size: string | null;
   mid_term_rent_usd: number | null;
+  tax_residency_days?: number | null;
   flatio_search_url: string | null;
   anyplace_search_url: string | null;
   nomad_meetup_url: string | null;

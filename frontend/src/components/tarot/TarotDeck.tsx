@@ -247,25 +247,32 @@ function LightboxFrontContent({
   // Personalized insight (ko only)
   const [personalInsight, setPersonalInsight] = useState<string | null>(null);
   useEffect(() => {
-    if (locale !== "ko") {
-      setPersonalInsight(null);
-      return;
-    }
-    try {
-      const persona = localStorage.getItem("persona_type");
-      const sessionRaw = localStorage.getItem("result_session_v2");
-      let travelType: string | null = null;
-      let timeline: string | null = null;
-      if (sessionRaw) {
-        const session = JSON.parse(sessionRaw);
-        const profile = session?.parsedData?._user_profile ?? {};
-        travelType = typeof profile.travel_type === "string" ? profile.travel_type : null;
-        timeline = typeof profile.timeline === "string" ? profile.timeline : null;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (locale !== "ko") {
+        setPersonalInsight(null);
+        return;
       }
-      setPersonalInsight(getPersonalizedInsight(persona, travelType, timeline, city));
-    } catch {
-      setPersonalInsight(null);
-    }
+      try {
+        const persona = localStorage.getItem("persona_type");
+        const sessionRaw = localStorage.getItem("result_session_v2");
+        let travelType: string | null = null;
+        let timeline: string | null = null;
+        if (sessionRaw) {
+          const session = JSON.parse(sessionRaw);
+          const profile = session?.parsedData?._user_profile ?? {};
+          travelType = typeof profile.travel_type === "string" ? profile.travel_type : null;
+          timeline = typeof profile.timeline === "string" ? profile.timeline : null;
+        }
+        setPersonalInsight(getPersonalizedInsight(persona, travelType, timeline, city));
+      } catch {
+        setPersonalInsight(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [city, locale]);
 
   // Auth check — /auth/me 쿠키 세션

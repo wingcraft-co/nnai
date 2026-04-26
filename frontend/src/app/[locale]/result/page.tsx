@@ -292,9 +292,13 @@ export default function ResultPage() {
   // ── Guide / retry ──────────────────────────────────────────────
 
   function handleGuideClick() {
-    const cityId = revealedCities?.[0]?.id;
+    const city = revealedCities?.[0];
+    const cityId = city?.id ?? city?.city?.toLowerCase().replace(/\s+/g, "-");
     if (cityId) {
       trackGuideClick(cityId);
+      localStorage.setItem("selected_guide_city_id", cityId);
+      router.push(`/guide/${cityId}`);
+      return;
     }
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2500);

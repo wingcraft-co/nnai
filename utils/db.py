@@ -4,6 +4,7 @@ import secrets
 import threading
 from datetime import datetime, timedelta, timezone
 import psycopg2
+from psycopg2.extras import Json
 
 from utils.crypto import decrypt_text, encrypt_text, has_pii_encryption_key, pii_hash
 
@@ -43,6 +44,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "circles",
     "city_stays",
     "free_spirit_spins",
+    "dashboard_widget_settings",
     "local_saved_events",
     "move_checklist_items",
     "move_plans",
@@ -55,6 +57,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "posts",
     "rate_limit_hits",
     "user_badges",
+    "user_city_plans",
     "users",
     "verification_logs",
     "verified_cities",
@@ -90,6 +93,18 @@ _REQUIRED_SCHEMA_COLUMNS = {
     },
     "posts": {"image_url"},
     "city_stays": {"country"},
+    "user_city_plans": {
+        "city_id",
+        "city_kr",
+        "city_payload",
+        "user_profile",
+        "visa_type",
+        "visa_expires_at",
+        "coworking_space",
+        "tax_profile",
+        "status",
+    },
+    "dashboard_widget_settings": {"enabled_widgets", "widget_order", "widget_settings"},
     "wanderer_hops": {"conditions", "is_focus", "from_country", "to_country", "note", "target_month"},
     "planner_boards": {"country", "city"},
     "planner_tasks": {"text", "due_date", "sort_order"},
@@ -418,6 +433,78 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         cur.execute("""
             ALTER TABLE city_stays
             ALTER COLUMN country DROP NOT NULL;
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_city_plans (
+                id               BIGSERIAL PRIMARY KEY,
+                user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                city_id          TEXT,
+                city             TEXT NOT NULL,
+                city_kr          TEXT,
+                country          TEXT,
+                country_id       TEXT,
+                city_payload     JSONB NOT NULL DEFAULT '{}'::jsonb,
+                user_profile     JSONB NOT NULL DEFAULT '{}'::jsonb,
+                arrived_at       TEXT,
+                visa_type        TEXT NOT NULL DEFAULT '관광비자',
+                visa_expires_at  TEXT,
+                coworking_space  JSONB NOT NULL DEFAULT '{}'::jsonb,
+                tax_profile      JSONB NOT NULL DEFAULT '{}'::jsonb,
+                status           TEXT NOT NULL DEFAULT 'active'
+                                 CHECK (status IN ('active', 'archived')),
+                created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS city_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS city_kr TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS city_payload JSONB NOT NULL DEFAULT '{}'::jsonb;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS user_profile JSONB NOT NULL DEFAULT '{}'::jsonb;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS visa_type TEXT NOT NULL DEFAULT '관광비자';
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS visa_expires_at TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS coworking_space JSONB NOT NULL DEFAULT '{}'::jsonb;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS tax_profile JSONB NOT NULL DEFAULT '{}'::jsonb;
+        """)
+        cur.execute("""
+            ALTER TABLE user_city_plans
+            ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+        """)
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_user_city_plans_one_active
+            ON user_city_plans(user_id)
+            WHERE status = 'active';
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dashboard_widget_settings (
+                user_id          TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                enabled_widgets  JSONB NOT NULL DEFAULT '[]'::jsonb,
+                widget_order     JSONB NOT NULL DEFAULT '[]'::jsonb,
+                widget_settings  JSONB NOT NULL DEFAULT '{}'::jsonb,
+                updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS wanderer_hops (
@@ -881,6 +968,237 @@ def get_billing_entitlement(user_id: str) -> dict | None:
         "grace_until": row[11],
         "last_webhook_at": row[12],
     }
+
+
+_DEFAULT_DASHBOARD_WIDGETS = [
+    "weather",
+    "exchange",
+    "stay",
+    "visa",
+    "action_plan",
+    "coworking",
+    "tax",
+    "disaster",
+    "budget",
+    "housing",
+    "insurance",
+    "local_events",
+]
+
+
+def _serialize_city_plan(row: tuple | None) -> dict | None:
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "city_id": row[1],
+        "city": row[2],
+        "city_kr": row[3],
+        "country": row[4],
+        "country_id": row[5],
+        "city_payload": row[6] or {},
+        "user_profile": row[7] or {},
+        "arrived_at": row[8],
+        "visa_type": row[9],
+        "visa_expires_at": row[10],
+        "coworking_space": row[11] or {},
+        "tax_profile": row[12] or {},
+        "status": row[13],
+        "created_at": str(row[14]),
+        "updated_at": str(row[15]),
+    }
+
+
+def _serialize_dashboard_widgets(row: tuple | None) -> dict:
+    if row is None:
+        return {
+            "enabled_widgets": _DEFAULT_DASHBOARD_WIDGETS,
+            "widget_order": _DEFAULT_DASHBOARD_WIDGETS,
+            "widget_settings": {},
+            "updated_at": None,
+        }
+    return {
+        "enabled_widgets": row[0] or _DEFAULT_DASHBOARD_WIDGETS,
+        "widget_order": row[1] or _DEFAULT_DASHBOARD_WIDGETS,
+        "widget_settings": row[2] or {},
+        "updated_at": str(row[3]),
+    }
+
+
+def get_active_user_city_plan(user_id: str) -> dict | None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, city_id, city, city_kr, country, country_id,
+                   city_payload, user_profile, arrived_at, visa_type, visa_expires_at,
+                   coworking_space, tax_profile, status, created_at, updated_at
+            FROM user_city_plans
+            WHERE user_id = %s AND status = 'active'
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+    return _serialize_city_plan(row)
+
+
+def confirm_user_city_plan(
+    *,
+    user_id: str,
+    city_payload: dict,
+    user_profile: dict | None = None,
+    arrived_at: str | None = None,
+) -> dict:
+    conn = get_conn()
+    city = str(city_payload.get("city") or city_payload.get("city_kr") or "Unknown city")
+    city_kr = city_payload.get("city_kr")
+    country = city_payload.get("country")
+    country_id = city_payload.get("country_id")
+    city_id = city_payload.get("id") or city_payload.get("city_id")
+    visa_type = "관광비자"
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE user_city_plans
+            SET status = 'archived',
+                updated_at = NOW()
+            WHERE user_id = %s AND status = 'active'
+            """,
+            (user_id,),
+        )
+        cur.execute(
+            """
+            INSERT INTO user_city_plans (
+                user_id, city_id, city, city_kr, country, country_id,
+                city_payload, user_profile, arrived_at, visa_type
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s
+            )
+            RETURNING id, city_id, city, city_kr, country, country_id,
+                      city_payload, user_profile, arrived_at, visa_type, visa_expires_at,
+                      coworking_space, tax_profile, status, created_at, updated_at
+            """,
+            (
+                user_id,
+                city_id,
+                city,
+                city_kr,
+                country,
+                country_id,
+                Json(city_payload),
+                Json(user_profile or {}),
+                arrived_at,
+                visa_type,
+            ),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return _serialize_city_plan(row)
+
+
+def update_user_city_plan(
+    *,
+    user_id: str,
+    arrived_at: str | None = None,
+    visa_type: str | None = None,
+    visa_expires_at: str | None = None,
+    coworking_space: dict | None = None,
+    tax_profile: dict | None = None,
+) -> dict | None:
+    assignments = []
+    values = []
+    if arrived_at is not None:
+        assignments.append("arrived_at = %s")
+        values.append(arrived_at)
+    if visa_type is not None:
+        assignments.append("visa_type = %s")
+        values.append(visa_type)
+    if visa_expires_at is not None:
+        assignments.append("visa_expires_at = %s")
+        values.append(visa_expires_at)
+    if coworking_space is not None:
+        assignments.append("coworking_space = %s")
+        values.append(Json(coworking_space))
+    if tax_profile is not None:
+        assignments.append("tax_profile = %s")
+        values.append(Json(tax_profile))
+    if not assignments:
+        return get_active_user_city_plan(user_id)
+
+    values.append(user_id)
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE user_city_plans
+            SET {", ".join(assignments)},
+                updated_at = NOW()
+            WHERE user_id = %s AND status = 'active'
+            RETURNING id, city_id, city, city_kr, country, country_id,
+                      city_payload, user_profile, arrived_at, visa_type, visa_expires_at,
+                      coworking_space, tax_profile, status, created_at, updated_at
+            """,
+            tuple(values),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return _serialize_city_plan(row)
+
+
+def get_or_create_dashboard_widget_settings(user_id: str) -> dict:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO dashboard_widget_settings (
+                user_id, enabled_widgets, widget_order, widget_settings
+            ) VALUES (%s, %s, %s, '{}'::jsonb)
+            ON CONFLICT (user_id) DO NOTHING
+            """,
+            (user_id, Json(_DEFAULT_DASHBOARD_WIDGETS), Json(_DEFAULT_DASHBOARD_WIDGETS)),
+        )
+        cur.execute(
+            """
+            SELECT enabled_widgets, widget_order, widget_settings, updated_at
+            FROM dashboard_widget_settings
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return _serialize_dashboard_widgets(row)
+
+
+def update_dashboard_widget_settings(
+    *,
+    user_id: str,
+    enabled_widgets: list[str],
+    widget_order: list[str],
+    widget_settings: dict,
+) -> dict:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO dashboard_widget_settings (
+                user_id, enabled_widgets, widget_order, widget_settings, updated_at
+            ) VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (user_id) DO UPDATE SET
+                enabled_widgets = EXCLUDED.enabled_widgets,
+                widget_order = EXCLUDED.widget_order,
+                widget_settings = EXCLUDED.widget_settings,
+                updated_at = NOW()
+            RETURNING enabled_widgets, widget_order, widget_settings, updated_at
+            """,
+            (user_id, Json(enabled_widgets), Json(widget_order), Json(widget_settings)),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return _serialize_dashboard_widgets(row)
 
 
 def upsert_billing_entitlement(

@@ -19,7 +19,7 @@ export default function QuizPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<PersonaType[]>([]);
   const previousStepRef = useRef<number | null>(null);
-  const stepEnteredAtRef = useRef(Date.now());
+  const stepEnteredAtRef = useRef<number | null>(null);
   const currentStepRef = useRef(1);
   const completedRef = useRef(false);
 
@@ -29,6 +29,10 @@ export default function QuizPage() {
     const stepNumber = currentIndex + 1;
     const now = Date.now();
     const previousStep = previousStepRef.current;
+
+    if (stepEnteredAtRef.current === null) {
+      stepEnteredAtRef.current = now;
+    }
 
     if (previousStep !== null && previousStep !== stepNumber) {
       trackOnboardingStepDwell({
@@ -50,7 +54,7 @@ export default function QuizPage() {
       trackOnboardingStepDwell({
         flow: "quiz",
         stepNumber: currentStepRef.current,
-        durationMs: Date.now() - stepEnteredAtRef.current,
+        durationMs: Date.now() - (stepEnteredAtRef.current ?? Date.now()),
       });
       trackFormAbandon({
         flow: "quiz",
