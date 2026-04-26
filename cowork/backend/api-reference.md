@@ -348,21 +348,38 @@ Content-Type: application/json
 **응답 (200 OK):**
 ```json
 {
-  "markdown": "## 🏙 리스본 상세 이민 가이드\n### 출국 전 준비사항\n..."
+  "markdown": "## 🏙 리스본 상세 이민 가이드\n### 출국 전 준비사항\n...",
+  "cached": false,
+  "quota": {
+    "is_unlimited": false,
+    "limit": 2,
+    "used": 1,
+    "remaining": 1
+  }
 }
 ```
 
-> 현재 `/api/detail`은 인증 없이 호출 가능합니다.
+로그인 사용자의 경우 `user_id + onboarding _user_profile + 선택 도시` 기준으로 상세 가이드 markdown을 캐시합니다. 같은 온보딩 값과 같은 도시로 다시 요청하면 LLM을 재호출하지 않고 `cached: true`로 캐시된 markdown을 반환합니다.
+
+무료 플랜은 캐시 miss 기준 상세 가이드 생성 2회까지 허용합니다. 캐시 hit은 추가 차감하지 않습니다. Pro 플랜은 quota가 무제한입니다.
+
+> 인증 없이 호출하는 레거시 요청은 캐시/무료 quota 없이 기존처럼 markdown만 반환합니다.
 > `/api/recommend`와 minute bucket을 공유하지 않습니다. endpoint별/등급별 정책이 각각 적용됩니다.
 
 **에러 (402):**
 ```json
 {
-  "detail": "Monthly pay-as-you-go cap reached.",
-  "cap_usd": 50.0,
-  "current_usage_usd": 49.9
+  "detail": "Free detail guide quota reached.",
+  "quota": {
+    "is_unlimited": false,
+    "limit": 2,
+    "used": 2,
+    "remaining": 0
+  }
 }
 ```
+
+pay-as-you-go 월 한도 도달 시에도 `402`를 반환합니다.
 
 **에러 (429):**
 ```json

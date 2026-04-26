@@ -18,6 +18,13 @@ type BillingStatus = {
   };
 };
 
+type DetailQuota = {
+  is_unlimited: boolean;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+};
+
 type SessionV2 = {
   revealedCities?: CityData[];
   parsedData?: Record<string, unknown> | null;
@@ -78,6 +85,8 @@ export default function GuidePage() {
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(null);
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
+  const [detailQuota, setDetailQuota] = useState<DetailQuota | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,20 +126,34 @@ export default function GuidePage() {
         }
 
         const selectedCityIndex = findCityIndex(session.parsedData, selected);
-        const detailResponse = await fetch("/api/detail", {
+        const detailResponse = await fetch(`${API_BASE}/api/detail`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             parsed_data: session.parsedData,
             city_index: selectedCityIndex,
           }),
         });
+        const detail = (await detailResponse.json().catch(() => ({}))) as {
+          markdown?: string;
+          quota?: DetailQuota;
+        };
+        if (detailResponse.status === 402 && detail.quota) {
+          if (!cancelled) {
+            setDetailQuota(detail.quota);
+            setQuotaExceeded(true);
+            setMarkdown(null);
+          }
+          return;
+        }
         if (!detailResponse.ok) throw new Error(`detail ${detailResponse.status}`);
-        const detail = (await detailResponse.json()) as { markdown?: string };
         if (!detail.markdown) throw new Error("empty detail");
 
         if (!cancelled) {
           setMarkdown(detail.markdown);
+          setDetailQuota(detail.quota ?? null);
+          setQuotaExceeded(false);
           localStorage.setItem(
             SESSION_V2_KEY,
             JSON.stringify({ ...session, readingMarkdown: detail.markdown, readingCityIndex: selectedCityIndex })
@@ -204,6 +227,37 @@ export default function GuidePage() {
           </div>
         )}
 
+        {!loading && !error && city && quotaExceeded && (
+          <div className="space-y-6">
+            <header className="border-b border-border pb-6">
+              <p className="mb-2 text-xs text-muted-foreground">Step 2 상세 가이드</p>
+              <h1 className="font-serif text-3xl font-bold">
+                {city.city_kr || city.city} 맞춤 가이드
+              </h1>
+            </header>
+            <section className="rounded-lg border border-primary/40 bg-primary/10 p-5">
+              <div className="flex items-start gap-3">
+                <LockKeyhole className="mt-0.5 size-5 text-primary" />
+                <div>
+                  <h2 className="font-serif text-lg font-bold">무료 상세 가이드 횟수를 모두 사용했습니다.</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    무료 플랜은 상세 가이드를 {detailQuota?.limit ?? 2}회까지 받을 수 있습니다. 현재 남은 횟수는 0회입니다.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <PolarCheckoutButton
+                  locale={locale}
+                  returnPath={`/${locale}/guide/${cityId}?checkout=return`}
+                  idleLabel="Pro로 무제한 상세 가이드 받기"
+                  loadingLabel="결제 페이지 여는 중..."
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                />
+              </div>
+            </section>
+          </div>
+        )}
+
         {!loading && !error && city && markdown && (
           <div className="space-y-6">
             <header className="border-b border-border pb-6">
@@ -219,6 +273,14 @@ export default function GuidePage() {
             <article className="rounded-lg border border-border bg-card p-5">
               <MarkdownBlock markdown={markdown} />
             </article>
+
+            {detailQuota && (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                {detailQuota.is_unlimited
+                  ? "Pro 플랜: 상세 가이드 횟수 제한 없이 사용할 수 있습니다."
+                  : `무료 플랜 상세 가이드: ${detailQuota.used}/${detailQuota.limit}회 사용, ${detailQuota.remaining}회 남음`}
+              </div>
+            )}
 
             <section className="rounded-lg border border-primary/40 bg-primary/10 p-5">
               {isPro(billingStatus) ? (

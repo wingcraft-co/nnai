@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from api.auth import router as auth_router, extract_user_id
 from api.billing import router as billing_router
 from api.dashboard import router as dashboard_router
+from api.detail_cache import build_detail_cache_key, build_detail_quota
 from api.mobile_auth import router as mobile_auth_router
 from api.mobile_discover import router as mobile_discover_router
 from api.mobile_feed import router as mobile_feed_router
@@ -29,9 +30,12 @@ from utils.db import (
     consume_rate_limit_token,
     ensure_database_ready,
     get_billing_entitlement,
+    count_detail_guide_cache_entries,
     release_thread_connection_transaction,
     release_usage_reservation,
     reserve_payg_usage,
+    get_detail_guide_cache,
+    save_detail_guide_cache,
 )
 from utils.persona import persist_user_persona_type
 from utils.rate_limit import (
@@ -355,6 +359,30 @@ async def api_reveal(req: RevealRequest):
 @app.post("/api/detail")
 async def api_detail(req: DetailRequest, request: Request):
     user_id, entitlement, access_mode = enforce_endpoint_rate_limit(request, "detail")
+    effective_plan_tier = (
+        "pro"
+        if user_id
+        and entitlement.get("plan_tier") == "pro"
+        and entitlement.get("status") in {"active", "grace"}
+        else "free"
+    )
+    cache_key = build_detail_cache_key(req.parsed_data, req.city_index)
+
+    if user_id:
+        cached = get_detail_guide_cache(user_id, cache_key)
+        used_count = count_detail_guide_cache_entries(user_id)
+        quota = build_detail_quota(effective_plan_tier, used_count)
+        if cached:
+            return {"markdown": cached["markdown"], "cached": True, "quota": quota}
+        if not quota["is_unlimited"] and quota["remaining"] <= 0:
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "detail": "Free detail guide quota reached.",
+                    "quota": quota,
+                },
+            )
+
     reservation_key, cap_response = reserve_payg_budget_if_needed(
         user_id,
         "detail",
@@ -369,6 +397,20 @@ async def api_detail(req: DetailRequest, request: Request):
             parsed_data=req.parsed_data,
             city_index=req.city_index,
         )
+        if user_id:
+            save_detail_guide_cache(
+                user_id=user_id,
+                cache_key=cache_key,
+                markdown=markdown,
+                parsed_data=req.parsed_data,
+                city_index=req.city_index,
+            )
+            used_count = count_detail_guide_cache_entries(user_id)
+            return {
+                "markdown": markdown,
+                "cached": False,
+                "quota": build_detail_quota(effective_plan_tier, used_count),
+            }
         return {"markdown": markdown}
     except Exception:
         if reservation_key:

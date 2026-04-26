@@ -45,6 +45,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "city_stays",
     "free_spirit_spins",
     "dashboard_widget_settings",
+    "detail_guide_cache",
     "local_saved_events",
     "move_checklist_items",
     "move_plans",
@@ -105,6 +106,7 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "status",
     },
     "dashboard_widget_settings": {"enabled_widgets", "widget_order", "widget_settings"},
+    "detail_guide_cache": {"cache_key", "markdown", "parsed_snapshot", "city_snapshot"},
     "wanderer_hops": {"conditions", "is_focus", "from_country", "to_country", "note", "target_month"},
     "planner_boards": {"country", "city"},
     "planner_tasks": {"text", "due_date", "sort_order"},
@@ -504,6 +506,19 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 widget_order     JSONB NOT NULL DEFAULT '[]'::jsonb,
                 widget_settings  JSONB NOT NULL DEFAULT '{}'::jsonb,
                 updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS detail_guide_cache (
+                id              BIGSERIAL PRIMARY KEY,
+                user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                cache_key       TEXT NOT NULL,
+                markdown        TEXT NOT NULL,
+                parsed_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+                city_snapshot   JSONB NOT NULL DEFAULT '{}'::jsonb,
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (user_id, cache_key)
             );
         """)
         cur.execute("""
@@ -1199,6 +1214,98 @@ def update_dashboard_widget_settings(
         row = cur.fetchone()
     conn.commit()
     return _serialize_dashboard_widgets(row)
+
+
+def _selected_city_snapshot(parsed_data: dict, city_index: int) -> dict:
+    top_cities = parsed_data.get("top_cities")
+    if not isinstance(top_cities, list) or not top_cities:
+        return {}
+    if city_index < 0 or city_index >= len(top_cities):
+        city_index = 0
+    city = top_cities[city_index]
+    return city if isinstance(city, dict) else {}
+
+
+def get_detail_guide_cache(user_id: str, cache_key: str) -> dict | None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, markdown, parsed_snapshot, city_snapshot, created_at, updated_at
+            FROM detail_guide_cache
+            WHERE user_id = %s AND cache_key = %s
+            """,
+            (user_id, cache_key),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "markdown": row[1],
+        "parsed_snapshot": row[2] or {},
+        "city_snapshot": row[3] or {},
+        "created_at": str(row[4]),
+        "updated_at": str(row[5]),
+    }
+
+
+def count_detail_guide_cache_entries(user_id: str) -> int:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM detail_guide_cache
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+    return int(row[0] or 0)
+
+
+def save_detail_guide_cache(
+    *,
+    user_id: str,
+    cache_key: str,
+    markdown: str,
+    parsed_data: dict,
+    city_index: int,
+) -> dict:
+    conn = get_conn()
+    city_snapshot = _selected_city_snapshot(parsed_data, city_index)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO detail_guide_cache (
+                user_id, cache_key, markdown, parsed_snapshot, city_snapshot, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (user_id, cache_key) DO UPDATE SET
+                markdown = EXCLUDED.markdown,
+                parsed_snapshot = EXCLUDED.parsed_snapshot,
+                city_snapshot = EXCLUDED.city_snapshot,
+                updated_at = NOW()
+            RETURNING id, markdown, parsed_snapshot, city_snapshot, created_at, updated_at
+            """,
+            (
+                user_id,
+                cache_key,
+                markdown,
+                Json(parsed_data),
+                Json(city_snapshot),
+            ),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return {
+        "id": row[0],
+        "markdown": row[1],
+        "parsed_snapshot": row[2] or {},
+        "city_snapshot": row[3] or {},
+        "created_at": str(row[4]),
+        "updated_at": str(row[5]),
+    }
 
 
 def upsert_billing_entitlement(

@@ -15,7 +15,7 @@ export type ErrorStage = "recommend" | "reveal";
 export type ErrorKind = "network" | "http" | "invalid_payload";
 export type Provider = "google" | "polar";
 export type OnboardingFlow = "quiz" | "form";
-export type ResultCardAction = "open_city" | "open_locked" | "unlock_click";
+export type ResultCardAction = "open_city" | "open_locked" | "unlock_click" | "guide_click";
 export type PricingSection = "free_plan" | "pro_plan" | "faq" | "pro_expansion";
 export type PageKey =
   | "home"

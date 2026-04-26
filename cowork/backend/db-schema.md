@@ -24,6 +24,7 @@
 | `billing_checkout_sessions` | Polar checkout 생성/완료 추적 |
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
+| `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 및 무료 quota 기준 |
 | `pins` | 유저가 저장한 관심 도시 |
 | `visits` | 경로별 방문자 수 집계 |
 | `posts` | 모바일 피드 게시글 |
@@ -240,6 +241,34 @@ CREATE TABLE IF NOT EXISTS billing_provider_events (
 | `event_id` | TEXT | provider event 고유 ID |
 | `payload_digest` | TEXT | payload hash/digest |
 | `processed_at` | TIMESTAMPTZ | 처리 시각 |
+
+---
+
+## detail_guide_cache
+
+Step 2 상세 가이드 markdown 캐시입니다. 같은 로그인 사용자, 같은 온보딩 프로필, 같은 선택 도시에 대해 LLM을 최초 1회만 호출하고 이후에는 캐시된 markdown을 반환합니다. 무료 플랜의 상세 가이드 2회 제한은 이 테이블의 사용자별 unique cache row 수를 기준으로 계산합니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS detail_guide_cache (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cache_key       TEXT NOT NULL,
+    markdown        TEXT NOT NULL,
+    parsed_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+    city_snapshot   JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, cache_key)
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `user_id` | TEXT FK | `users.id` 참조 |
+| `cache_key` | TEXT | `_user_profile + selected_city` canonical JSON의 SHA-256 |
+| `markdown` | TEXT | 캐시된 상세 가이드 markdown |
+| `parsed_snapshot` | JSONB | 요청 당시 Step 1 parsed 데이터 스냅샷 |
+| `city_snapshot` | JSONB | 선택 도시 스냅샷 |
 
 ---
 
@@ -777,6 +806,7 @@ CREATE TABLE IF NOT EXISTS verification_logs (
 
 ```
 users (id)
+  └── detail_guide_cache (user_id) — 1:N
   └── pins (user_id) — 1:N
   └── posts (user_id) — 1:N
       └── post_likes (post_id) — 1:N

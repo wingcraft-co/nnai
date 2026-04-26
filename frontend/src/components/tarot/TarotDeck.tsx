@@ -96,6 +96,12 @@ function getPersonalizedInsight(
   return null;
 }
 
+function guidePathForCity(city: CityData, locale: string): string {
+  const raw = city.id || city.city || city.city_kr || "city";
+  const cityId = String(raw).toLowerCase().trim().replace(/\s+/g, "-");
+  return `/${locale}/guide/${encodeURIComponent(cityId)}`;
+}
+
 // ── City Lightbox ─────────────────────────────────────────────────
 
 interface LightboxCard {
@@ -299,7 +305,22 @@ function LightboxFrontContent({
     window.location.assign(buildGoogleLoginUrl(API_BASE, returnTo));
   }
 
+  function handleDetailClick() {
+    const path = guidePathForCity(city, locale);
+    try {
+      localStorage.setItem("selected_guide_city_id", city.id || city.city);
+    } catch {
+      // ignore storage failures; navigation still works
+    }
+    trackResultCardInteraction({
+      action: "guide_click",
+      cityId: city.id ?? undefined,
+    });
+    window.location.assign(path);
+  }
+
   const showLoginCta = locale === "ko" && isLoggedIn === false;
+  const showDetailCta = locale === "ko" && isLoggedIn === true;
   const normalizedVisaType = normalizeVisaType(city.visa_type, city.country);
   const climateLabel = formatClimate(city.climate, locale);
   const isEn = locale === "en";
@@ -537,6 +558,30 @@ function LightboxFrontContent({
                 </span>
                 <span style={{ display: "none" }}>Google로 계속하기</span>
               </div>
+            </button>
+          </div>
+        )}
+
+        {showDetailCta && (
+          <div className="flex flex-col gap-2">
+            <h3
+              className="font-serif text-[13px] font-medium leading-tight text-center"
+              style={{ color: "var(--foreground)" }}
+            >
+              {city.city_kr || city.city} 상세 페이지 받기
+            </h3>
+            <button
+              type="button"
+              onClick={handleDetailClick}
+              className="w-full py-2.5 text-center font-mono text-xs font-medium"
+              style={{
+                background: "var(--primary)",
+                color: "var(--primary-foreground)",
+                borderRadius: 4,
+                letterSpacing: "0.03em",
+              }}
+            >
+              상세 페이지 받기
             </button>
           </div>
         )}
