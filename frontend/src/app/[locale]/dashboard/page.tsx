@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
-import { Loader2, Settings2 } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
+import { Loader2, Settings2, Map } from "lucide-react";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import { DashboardWidgets } from "@/components/dashboard/DashboardWidgets";
 import type {
@@ -25,6 +26,7 @@ type DashboardResponse = {
 
 export default function DashboardPage() {
   const locale = useLocale();
+  const router = useRouter();
   const [plan, setPlan] = useState<DashboardPlan | null>(null);
   const [widgets, setWidgets] = useState<DashboardWidgetSettings | null>(null);
   const [catalog, setCatalog] = useState<DashboardWidgetCatalogItem[]>([]);
@@ -207,14 +209,24 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setEditorOpen((value) => !value)}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-5 text-sm font-medium shadow-sm transition-all hover:bg-[#F5F5F7]"
-              >
-                <Settings2 className="size-4" />
-                위젯 편집
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/onboarding/quiz")}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-5 text-sm font-medium shadow-sm transition-all hover:bg-[#F5F5F7]"
+                >
+                  <Map className="size-4" />
+                  다른 도시로 이동하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorOpen((value) => !value)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-5 text-sm font-medium shadow-sm transition-all hover:bg-[#F5F5F7]"
+                >
+                  <Settings2 className="size-4" />
+                  위젯 편집
+                </button>
+              </div>
             </header>
 
             {error && (

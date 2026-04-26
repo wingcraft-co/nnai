@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useRouter } from "@/i18n/navigation";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 const fadeUp = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -10,6 +14,40 @@ const fadeUp = (delay: number) => ({
 });
 
 export default function Home() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    async function checkPlan() {
+      try {
+        const response = await fetch(`${API_BASE}/api/dashboard`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          if (payload.plan) {
+            router.replace("/dashboard");
+            return;
+          }
+        }
+      } catch {
+        // ignore errors, show landing
+      } finally {
+        setChecking(false);
+      }
+    }
+    checkPlan();
+  }, [router]);
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-8 animate-pulse rounded-full bg-primary/20" />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-sm w-full flex-col items-center justify-center px-4">
       {/* 지구본 */}
