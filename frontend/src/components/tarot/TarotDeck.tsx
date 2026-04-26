@@ -695,7 +695,6 @@ interface TarotDeckProps {
   onToggleSelect: (index: number) => void;
   onConfirm: () => void;
   onRetry: () => void;
-  onGuideClick: () => void;
   isLoading: boolean;
 }
 
@@ -710,7 +709,6 @@ export default function TarotDeck({
   onToggleSelect,
   onConfirm,
   onRetry,
-  onGuideClick,
   isLoading,
 }: TarotDeckProps) {
   const count = cities.length;
@@ -858,14 +856,6 @@ export default function TarotDeck({
           </p>
 
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={onGuideClick}
-              className="px-5 py-2 text-xs font-medium transition-colors"
-              style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
-            >
-              전체 가이드 받기
-            </button>
             <button
               type="button"
               onClick={onRetry}

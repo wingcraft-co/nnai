@@ -2,13 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import TarotDeck from "@/components/tarot/TarotDeck";
 import type { DeckStage } from "@/components/tarot/TarotDeck";
 import type { CityData, TarotSession } from "@/components/tarot/types";
 import { TAROT_SESSION_KEY } from "@/components/tarot/types";
 import {
-  trackGuideClick,
   trackRecommendFailure,
   trackRecommendSubmit,
   trackRecommendSuccess,
@@ -63,7 +61,6 @@ export default function ResultPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
-  const [toastVisible, setToastVisible] = useState(false);
 
   // ── Save session ────────────────────────────────────────────────
 
@@ -289,20 +286,7 @@ export default function ResultPage() {
     })();
   }
 
-  // ── Guide / retry ──────────────────────────────────────────────
-
-  function handleGuideClick() {
-    const city = revealedCities?.[0];
-    const cityId = city?.id ?? city?.city?.toLowerCase().replace(/\s+/g, "-");
-    if (cityId) {
-      trackGuideClick(cityId);
-      localStorage.setItem("selected_guide_city_id", cityId);
-      router.push(`/guide/${cityId}`);
-      return;
-    }
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2500);
-  }
+  // ── Retry ──────────────────────────────────────────────────────
 
   function handleRetry() {
     setStage("loading");
@@ -383,25 +367,10 @@ export default function ResultPage() {
             onToggleSelect={toggleSelect}
             onConfirm={handleConfirm}
             onRetry={handleRetry}
-            onGuideClick={handleGuideClick}
             isLoading={isLoading}
           />
         </div>
       )}
-
-      {/* Toast */}
-      <AnimatePresence>
-        {toastVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-3 bg-card border border-border text-sm text-foreground z-50"
-          >
-            곧 오픈될 예정이에요 🔜
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
