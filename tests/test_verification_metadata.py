@@ -49,3 +49,27 @@ def test_visa_db_has_source_and_verified_date():
     for c in countries:
         assert str(c.get("source", "")).startswith("http"), f"{c['id']} source must be URL"
         assert DATE_RE.match(str(c.get("data_verified_date", ""))), f"{c['id']} missing/invalid data_verified_date"
+
+
+def test_schengen_ees_copy_is_current_after_full_rollout():
+    countries = _load_visa_db()["countries"]
+    for c in countries:
+        text = json.dumps(c, ensure_ascii=False)
+        if "EES" in text:
+            assert "전면 시행 예정" not in text, f"{c['id']} EES copy must not describe 2026-04-10 as future"
+            assert "full implementation by 2026-04-10" not in text, f"{c['id']} EES copy must not describe 2026-04-10 as future"
+
+
+def test_spain_telework_visa_uses_current_smi_formula():
+    spain = next(c for c in _load_visa_db()["countries"] if c["id"] == "ES")
+    assert spain["name"] == "Spain"
+    assert spain["min_income_monthly_eur"] == 2442
+    assert "200% SMI" in spain.get("income_calculation_base", "")
+    assert "Canary Islands" not in spain["name"]
+    assert "2025년 12월 기준" not in json.dumps(spain, ensure_ascii=False)
+
+
+def test_thailand_dtv_notes_do_not_claim_unverified_border_run_cap():
+    thailand = next(c for c in _load_visa_db()["countries"] if c["id"] == "TH")
+    text = json.dumps(thailand, ensure_ascii=False)
+    assert "연 2회 비자런 제한" not in text

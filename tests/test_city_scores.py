@@ -55,6 +55,13 @@ def test_known_cities_present(city_db):
         assert expected in ids, f"{expected} 누락"
 
 
+def test_spain_city_country_label_is_country_not_region(city_db):
+    """스페인 본토 도시와 카나리아 제도 도시의 country 라벨은 국가명으로 통일."""
+    for city in city_db["cities"]:
+        if city["country_id"] == "ES":
+            assert city["country"] == "Spain"
+
+
 # ── entry_tips 필드 테스트 ────────────────────────────────────────────────────
 
 ENTRY_TIPS_CITIES = ["KL", "CNX", "BKK", "DPS", "CEU", "DAD"]

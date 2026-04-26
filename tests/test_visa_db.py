@@ -139,17 +139,19 @@ def test_pt_income_monthly_eur():
 
 
 def test_es_income_monthly_eur():
-    """ES: DNV 소득 기준 €2,849/월 업데이트."""
+    """ES: DNV 소득 기준은 2026년 SMI €1,221의 200%."""
     es = _country("ES")
-    assert es.get("min_income_monthly_eur") == 2849
+    assert es.get("min_income_monthly_eur") == 2442
+    assert es.get("min_wage_eur") == 1221
+    assert "200% SMI" in es.get("income_calculation_base", "")
 
 
 def test_es_family_income_addition():
     """ES: 가족 동반 소득 기준 필드 존재."""
     es = _country("ES")
     assert "family_income_addition" in es
-    assert es["family_income_addition"]["spouse_eur"] == 916
-    assert es["family_income_addition"]["per_child_eur"] == 305
+    assert es["family_income_addition"]["first_family_member_eur"] == 916
+    assert es["family_income_addition"]["additional_family_member_eur"] == 305
 
 
 def test_all_4_countries_have_data_verified_date():
