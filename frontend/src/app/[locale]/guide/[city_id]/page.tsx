@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 import { useParams } from "next/navigation";
-import { CheckCircle2, ChevronLeft, Loader2, LockKeyhole, MapPinned } from "lucide-react";
+import { CheckCircle2, ChevronLeft, FileText, Image as ImageIcon, Loader2, LockKeyhole, MapPinned } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
+import { buildGuideExportFilename, markdownToCanvasLines } from "@/lib/guide-export.mjs";
 
 const SESSION_V2_KEY = "result_session_v2";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -71,6 +72,125 @@ function MarkdownBlock({ markdown }: { markdown: string }) {
         }
         return <p key={index} className="text-sm leading-7 text-foreground/90">{text}</p>;
       })}
+    </div>
+  );
+}
+
+function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function renderGuidePngDataUrl(markdown: string, title: string, watermark: boolean): string {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  const width = 1080;
+  const padding = 72;
+  const maxWidth = width - padding * 2;
+  const sourceLines = markdownToCanvasLines(markdown);
+  ctx.font = "30px sans-serif";
+  const wrapped = sourceLines.flatMap((line) => {
+    if (line.length < 30) return [line];
+    return wrapCanvasText(ctx, line, maxWidth);
+  });
+  const height = Math.max(1280, padding * 2 + 72 + wrapped.length * 46);
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.fillStyle = "#fffdf7";
+  ctx.fillRect(0, 0, width, height);
+
+  if (watermark) {
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(-Math.PI / 6);
+    ctx.font = "700 72px sans-serif";
+    ctx.fillStyle = "rgba(26, 26, 46, 0.08)";
+    ctx.textAlign = "center";
+    for (let y = -height; y < height; y += 220) {
+      for (let x = -width; x < width; x += 520) {
+        ctx.fillText("Wingcraft", x, y);
+      }
+    }
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#1a1a2e";
+  ctx.font = "700 42px serif";
+  ctx.fillText(title || "NomadNavigator AI 상세 가이드", padding, padding);
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "22px sans-serif";
+  ctx.fillText("NomadNavigator AI", padding, padding + 42);
+
+  let y = padding + 108;
+  for (const line of wrapped) {
+    const isHeading = !line.startsWith("•") && sourceLines.includes(line) && line.length < 34;
+    ctx.fillStyle = isHeading ? "#1a1a2e" : "#303442";
+    ctx.font = isHeading ? "700 30px serif" : "26px sans-serif";
+    ctx.fillText(line, padding, y);
+    y += isHeading ? 52 : 42;
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
+function downloadUrl(url: string, filename: string) {
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
+function GuideImagePreview({
+  markdown,
+  title,
+  watermark,
+}: {
+  markdown: string;
+  title: string;
+  watermark: boolean;
+}) {
+  const [dataUrl, setDataUrl] = useState("");
+
+  useEffect(() => {
+    setDataUrl(renderGuidePngDataUrl(markdown, title, watermark));
+  }, [markdown, title, watermark]);
+
+  if (!dataUrl) {
+    return (
+      <div className="flex min-h-80 items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+        이미지 가이드를 생성하는 중...
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={dataUrl}
+        alt={title}
+        draggable={false}
+        className="w-full select-none rounded-md"
+        style={{ userSelect: "none" }}
+      />
     </div>
   );
 }
@@ -202,6 +322,24 @@ export default function GuidePage() {
     }
   }
 
+  function cityExportLabel(): string {
+    return city?.city || city?.city_kr || "guide";
+  }
+
+  function downloadMarkdown() {
+    if (!markdown) return;
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    downloadUrl(url, buildGuideExportFilename(cityExportLabel(), "md"));
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadPng() {
+    if (!markdown || !city) return;
+    const url = renderGuidePngDataUrl(markdown, `${city.city_kr || city.city} 맞춤 가이드`, false);
+    downloadUrl(url, buildGuideExportFilename(cityExportLabel(), "png"));
+  }
+
   return (
     <div className="dark min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-3xl px-5 py-8">
@@ -270,9 +408,43 @@ export default function GuidePage() {
               </p>
             </header>
 
-            <article className="rounded-lg border border-border bg-card p-5">
-              <MarkdownBlock markdown={markdown} />
-            </article>
+            {isPro(billingStatus) ? (
+              <article className="rounded-lg border border-border bg-card p-5">
+                <div className="mb-4 flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={downloadPng}
+                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs hover:bg-muted"
+                    >
+                      <ImageIcon className="size-4" />
+                      PNG로 저장
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadMarkdown}
+                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs hover:bg-muted"
+                    >
+                      <FileText className="size-4" />
+                      MD로 저장
+                    </button>
+                  </div>
+                </div>
+                <MarkdownBlock markdown={markdown} />
+              </article>
+            ) : (
+              <section className="space-y-3">
+                <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-muted-foreground">
+                  무료 플랜에서는 상세 가이드가 Wingcraft 워터마크가 포함된 PNG 이미지로 표시됩니다. Pro 플랜에서는 워터마크 없는 텍스트, PNG 저장, MD 저장을 사용할 수 있습니다.
+                </div>
+                <GuideImagePreview
+                  markdown={markdown}
+                  title={`${city.city_kr || city.city} 맞춤 가이드`}
+                  watermark
+                />
+              </section>
+            )}
 
             {detailQuota && (
               <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
