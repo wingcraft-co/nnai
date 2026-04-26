@@ -9,6 +9,7 @@ import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
 
 const SESSION_V2_KEY = "result_session_v2";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 type BillingStatus = {
   entitlement?: {
@@ -107,7 +108,10 @@ export default function GuidePage() {
         setCity(selected);
         setParsedData(session.parsedData);
 
-        const statusResponse = await fetch("/api/billing/status", { cache: "no-store" });
+        const statusResponse = await fetch(`${API_BASE}/api/billing/status`, {
+          cache: "no-store",
+          credentials: "include",
+        });
         if (!cancelled && statusResponse.ok) {
           setBillingStatus((await statusResponse.json()) as BillingStatus);
         }
@@ -150,9 +154,10 @@ export default function GuidePage() {
     setConfirming(true);
     setError(null);
     try {
-      const response = await fetch("/api/dashboard/confirm", {
+      const response = await fetch(`${API_BASE}/api/dashboard/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           city,
           user_profile: parsedData?._user_profile ?? {},

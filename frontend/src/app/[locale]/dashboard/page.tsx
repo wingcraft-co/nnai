@@ -15,6 +15,8 @@ import {
   coerceDashboardWidgets,
 } from "@/lib/dashboard-content.mjs";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
+
 type DashboardResponse = {
   plan: DashboardPlan | null;
   widgets: DashboardWidgetSettings;
@@ -41,7 +43,10 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/dashboard", { cache: "no-store" });
+        const response = await fetch(`${API_BASE}/api/dashboard`, {
+          cache: "no-store",
+          credentials: "include",
+        });
         if (response.status === 401) {
           setAccessError("login");
           return;
@@ -69,9 +74,10 @@ export default function DashboardPage() {
     setSaving(true);
     setWidgets(nextWidgets);
     try {
-      const response = await fetch("/api/dashboard/widgets", {
+      const response = await fetch(`${API_BASE}/api/dashboard/widgets`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(nextWidgets),
       });
       if (!response.ok) throw new Error(`widgets ${response.status}`);
@@ -85,9 +91,10 @@ export default function DashboardPage() {
   }
 
   async function patchPlan(patch: Record<string, unknown>) {
-    const response = await fetch("/api/dashboard/plan", {
+    const response = await fetch(`${API_BASE}/api/dashboard/plan`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(patch),
     });
     if (!response.ok) {
