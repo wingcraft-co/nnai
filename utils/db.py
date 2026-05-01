@@ -136,6 +136,13 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "note",
         "persona_type",
         "verified_method",
+        "supported_city_id",
+        "is_supported_city",
+        "location_source",
+        "line_style",
+        "geocode_place_id",
+        "geocode_confidence",
+        "geocoded_at",
         "created_at",
     },
 }
@@ -342,8 +349,51 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 note            TEXT NOT NULL CHECK (char_length(note) <= 10),
                 persona_type    TEXT,
                 verified_method TEXT NOT NULL DEFAULT 'gps_city_confirmed',
+                supported_city_id TEXT,
+                is_supported_city BOOLEAN NOT NULL DEFAULT FALSE,
+                location_source TEXT NOT NULL DEFAULT 'legacy',
+                line_style TEXT NOT NULL DEFAULT 'solid',
+                geocode_place_id TEXT,
+                geocode_confidence DOUBLE PRECISION,
+                geocoded_at TIMESTAMPTZ,
+                CHECK (lat BETWEEN -90 AND 90),
+                CHECK (lng BETWEEN -180 AND 180),
+                CHECK (line_style IN ('solid', 'dashed')),
                 created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        for column_sql in [
+            "ADD COLUMN IF NOT EXISTS supported_city_id TEXT",
+            "ADD COLUMN IF NOT EXISTS is_supported_city BOOLEAN NOT NULL DEFAULT FALSE",
+            "ADD COLUMN IF NOT EXISTS location_source TEXT NOT NULL DEFAULT 'legacy'",
+            "ADD COLUMN IF NOT EXISTS line_style TEXT NOT NULL DEFAULT 'solid'",
+            "ADD COLUMN IF NOT EXISTS geocode_place_id TEXT",
+            "ADD COLUMN IF NOT EXISTS geocode_confidence DOUBLE PRECISION",
+            "ADD COLUMN IF NOT EXISTS geocoded_at TIMESTAMPTZ",
+        ]:
+            cur.execute(f"ALTER TABLE nomad_journey_stops {column_sql};")
+        cur.execute("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'chk_nomad_journey_stops_lat_range'
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_lat_range CHECK (lat BETWEEN -90 AND 90);
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'chk_nomad_journey_stops_lng_range'
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_lng_range CHECK (lng BETWEEN -180 AND 180);
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'chk_nomad_journey_stops_line_style'
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_line_style CHECK (line_style IN ('solid', 'dashed'));
+                END IF;
+            END $$;
         """)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_user_created

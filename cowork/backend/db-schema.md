@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-04-22
+> 최종 업데이트: 2026-05-02
 
 운영 메모:
 - 스키마 보장 시점은 FastAPI startup (`server.py`) 입니다.
@@ -25,7 +25,7 @@
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
 | `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 및 무료 quota 기준 |
-| `nomad_journey_stops` | GPS+도시 확인으로 인증한 노마드 여정 stop |
+| `nomad_journey_stops` | 지원 도시 또는 검증된 여행 로그용 위치로 저장한 노마드 여정 stop |
 | `visits` | 경로별 방문자 수 집계 |
 | `posts` | 모바일 피드 게시글 |
 | `post_likes` | 게시글 좋아요 매핑 |
@@ -274,7 +274,7 @@ CREATE TABLE IF NOT EXISTS detail_guide_cache (
 
 ## nomad_journey_stops
 
-픽셀 지구본 이스터에그에서 사용자가 GPS 확인 후 확정한 도시 중심 좌표를 저장합니다. 기존 `pins` 테이블은 제거되며 데이터는 마이그레이션하지 않습니다.
+픽셀 지구본 이스터에그에서 사용자가 확정한 도시 중심 좌표를 저장합니다. 지원 도시는 `solid`, 미지원 검증 도시는 여행 로그용 위치로 저장되어 `dashed` 선 렌더링에 사용됩니다. 기존 `pins` 테이블은 제거되며 데이터는 마이그레이션하지 않습니다.
 
 ```sql
 DROP TABLE IF EXISTS pins;
@@ -290,6 +290,16 @@ CREATE TABLE IF NOT EXISTS nomad_journey_stops (
     note            TEXT NOT NULL CHECK (char_length(note) <= 10),
     persona_type    TEXT,
     verified_method TEXT NOT NULL DEFAULT 'gps_city_confirmed',
+    supported_city_id TEXT,
+    is_supported_city BOOLEAN NOT NULL DEFAULT FALSE,
+    location_source TEXT NOT NULL DEFAULT 'legacy',
+    line_style TEXT NOT NULL DEFAULT 'solid',
+    geocode_place_id TEXT,
+    geocode_confidence DOUBLE PRECISION,
+    geocoded_at TIMESTAMPTZ,
+    CHECK (lat BETWEEN -90 AND 90),
+    CHECK (lng BETWEEN -180 AND 180),
+    CHECK (line_style IN ('solid', 'dashed')),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -314,7 +324,14 @@ ON nomad_journey_stops(persona_type);
 | `lng` | DOUBLE PRECISION | NOT NULL | 도시 중심 경도 |
 | `note` | TEXT | NOT NULL | 10글자 이하 개인 방명록 |
 | `persona_type` | TEXT | NULL 가능 | 저장 시점의 NNAI 노마드 타입 |
-| `verified_method` | TEXT | NOT NULL | 기본값 `gps_city_confirmed` |
+| `verified_method` | TEXT | NOT NULL | `gps_city_confirmed`, `nnai_supported_city_selected`, `backend_geocoded_unsupported` |
+| `supported_city_id` | TEXT | NULL 가능 | NNAI 지원 도시 ID. 미지원/legacy는 `NULL` |
+| `is_supported_city` | BOOLEAN | NOT NULL | NNAI 지원 도시 여부 |
+| `location_source` | TEXT | NOT NULL | `legacy`, `nnai_supported`, `nominatim` |
+| `line_style` | TEXT | NOT NULL | 지도 연결선 스타일. `solid` 또는 `dashed` |
+| `geocode_place_id` | TEXT | NULL 가능 | 외부 geocoder place id |
+| `geocode_confidence` | DOUBLE PRECISION | NULL 가능 | 외부 geocoder confidence/importance |
+| `geocoded_at` | TIMESTAMPTZ | NULL 가능 | 백엔드 geocoding 검증 시각 |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 저장 시각 |
 
 ---

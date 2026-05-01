@@ -606,10 +606,17 @@ Cookie: nnai_session=...
     "country_code": "MY",
     "lat": 3.139,
     "lng": 101.6869,
-    "note": "KL좋아",
-    "persona_type": "planner",
-    "verified_method": "gps_city_confirmed",
-    "created_at": "2026-05-01T05:00:00+00:00"
+      "note": "KL좋아",
+      "persona_type": "planner",
+      "verified_method": "gps_city_confirmed",
+      "supported_city_id": null,
+      "is_supported_city": false,
+      "location_source": "legacy",
+      "line_style": "solid",
+      "geocode_place_id": null,
+      "geocode_confidence": null,
+      "geocoded_at": null,
+      "created_at": "2026-05-01T05:00:00+00:00"
   }
 ]
 ```
@@ -619,9 +626,58 @@ Cookie: nnai_session=...
 
 ---
 
+### POST /api/journey/geocode
+
+국가 선택 후 지원 목록에 없는 도시를 사용자가 명시적으로 검색할 때 호출합니다. **인증 불필요.** 자동완성 용도로 매 키 입력마다 호출하지 않습니다.
+
+```
+POST /api/journey/geocode
+Content-Type: application/json
+```
+
+**요청 바디:**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `query` | string | ✅ | 검색할 도시명. 2~80자 |
+| `country_code` | string | ✅ | ISO-2 국가 코드 |
+
+**응답 (200 OK):**
+```json
+{
+  "query": "Granada",
+  "country_code": "ES",
+  "results": [
+    {
+      "city": "Granada",
+      "country": "Spain",
+      "country_code": "ES",
+      "lat": 37.1773,
+      "lng": -3.5986,
+      "supported": false,
+      "supported_city_id": null,
+      "geocode_result_id": "geo_abc123",
+      "location_source": "nominatim",
+      "display_name": "Granada, Andalusia, Spain",
+      "geocode_place_id": "es-granada",
+      "geocode_confidence": 0.9
+    }
+  ],
+  "attribution": "Geocoding data from OpenStreetMap contributors"
+}
+```
+
+지원 도시와 매칭되는 경우 `supported: true`, `supported_city_id`, canonical 좌표를 반환하며 `geocode_result_id`는 `null`입니다. 미지원 도시는 여행 로그용 위치로만 사용하며 추천/비자/예산/세금 상세 데이터와 연결하지 않습니다.
+
+**에러:**
+- `422` — 검색어 길이 또는 국가 코드 형식 오류
+- `503` — 외부 geocoder 장애 또는 timeout
+
+---
+
 ### POST /api/journey/stops
 
-GPS 확인 후 사용자가 확정한 도시 중심 좌표를 저장합니다. **로그인 필요.** 원본 정밀 GPS 좌표는 저장하지 않습니다.
+사용자가 확정한 여정 도시를 저장합니다. **로그인 필요.** 신규 안전 경로는 지원 도시 `city_id` 또는 백엔드가 발급한 `geocode_result_id`를 사용합니다. 기존 프론트엔드 호환을 위해 legacy `city/country/lat/lng` 요청도 계속 허용합니다.
 
 ```
 POST /api/journey/stops
@@ -629,7 +685,23 @@ Content-Type: application/json
 Cookie: nnai_session=...
 ```
 
-**요청 바디:**
+**요청 바디 — 지원 도시:**
+```json
+{
+  "city_id": "LIS",
+  "note": "리스본"
+}
+```
+
+**요청 바디 — 미지원 검증 도시:**
+```json
+{
+  "geocode_result_id": "geo_abc123",
+  "note": "추억"
+}
+```
+
+**요청 바디 — legacy 호환:**
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
@@ -652,13 +724,22 @@ Cookie: nnai_session=...
   "note": "KL좋아",
   "persona_type": "planner",
   "verified_method": "gps_city_confirmed",
+  "supported_city_id": null,
+  "is_supported_city": false,
+  "location_source": "legacy",
+  "line_style": "solid",
+  "geocode_place_id": null,
+  "geocode_confidence": null,
+  "geocoded_at": null,
   "created_at": "2026-05-01T05:00:00+00:00"
 }
 ```
 
+`line_style`은 프론트엔드 여정 연결선 렌더링용입니다. 지원 도시는 `solid`, 미지원 검증 도시는 `dashed`입니다. 서버가 계산하므로 클라이언트 요청 바디로 받지 않습니다.
+
 **에러:**
 - `401` — 미로그인
-- `422` — 필수 필드 누락 또는 `note` 10글자 초과
+- `422` — 필수 필드 누락, `note` 10글자 초과, invalid 좌표, 알 수 없는 `city_id`, 만료/위조된 `geocode_result_id`, `city_id`와 `geocode_result_id` 동시 전달
 
 ---
 
@@ -686,12 +767,14 @@ GET /api/journey/community?persona_type=planner
     "country_code": "MY",
     "lat": 3.139,
     "lng": 101.6869,
-    "cnt": 12
+    "cnt": 12,
+    "supported_city_id": "KL",
+    "line_style": "solid"
   }
 ]
 ```
 
-> `cnt` — 해당 도시를 인증한 여정 stop 수. 내림차순 정렬, 최대 100개.
+> `cnt` — 해당 도시를 인증한 여정 stop 수. 내림차순 정렬, 최대 100개. 미지원 검증 도시는 privacy 보호를 위해 집계 수가 3개 이상일 때만 공개 응답에 포함됩니다.
 
 ---
 

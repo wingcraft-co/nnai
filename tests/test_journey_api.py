@@ -64,6 +64,86 @@ def _stop_payload(**overrides):
     return payload
 
 
+def test_geocode_supported_city_match_uses_canonical_data():
+    from utils.geocoding import geocode_city_candidates
+
+    body = geocode_city_candidates("Lisbon", "PT", provider=lambda *_args, **_kwargs: [])
+
+    assert body["country_code"] == "PT"
+    assert body["results"][0]["supported"] is True
+    assert body["results"][0]["supported_city_id"] == "LIS"
+    assert body["results"][0]["location_source"] == "nnai_supported"
+    assert body["results"][0]["geocode_result_id"] is None
+    assert body["results"][0]["lat"] == 38.7223
+    assert body["results"][0]["lng"] == -9.1393
+
+
+def test_geocode_filters_provider_results_to_selected_country():
+    from utils.geocoding import geocode_city_candidates
+
+    def provider(query, country_code):
+        return [
+            {
+                "city": "Granada",
+                "country": "Spain",
+                "country_code": "ES",
+                "lat": 37.1773,
+                "lng": -3.5986,
+                "display_name": "Granada, Andalusia, Spain",
+                "place_id": "es-granada",
+                "confidence": 0.9,
+            },
+            {
+                "city": "Granada",
+                "country": "Nicaragua",
+                "country_code": "NI",
+                "lat": 11.9344,
+                "lng": -85.956,
+                "display_name": "Granada, Nicaragua",
+                "place_id": "ni-granada",
+                "confidence": 0.8,
+            },
+        ]
+
+    body = geocode_city_candidates("Granada", "ES", provider=provider)
+
+    assert [row["country_code"] for row in body["results"]] == ["ES"]
+    assert body["results"][0]["supported"] is False
+    assert body["results"][0]["geocode_result_id"].startswith("geo_")
+
+
+def test_create_stop_rejects_invalid_coordinates_without_db():
+    from pydantic import ValidationError
+    from api.journey import JourneyStopIn
+
+    with pytest.raises(ValidationError):
+        JourneyStopIn(city="Bad", country="Nowhere", country_code="NO", lat=91, lng=0, note="")
+
+
+def test_create_stop_rejects_ambiguous_new_save_body_without_db():
+    from pydantic import ValidationError
+    from api.journey import JourneyStopIn
+
+    with pytest.raises(ValidationError):
+        JourneyStopIn(city_id="LIS", geocode_result_id="geo_fake", note="")
+
+
+def test_required_schema_includes_journey_metadata_columns():
+    from utils import db
+
+    required = db._REQUIRED_SCHEMA_COLUMNS["nomad_journey_stops"]
+
+    assert {
+        "supported_city_id",
+        "is_supported_city",
+        "location_source",
+        "line_style",
+        "geocode_place_id",
+        "geocode_confidence",
+        "geocoded_at",
+    }.issubset(required)
+
+
 @requires_db
 def test_create_stop_requires_auth():
     client = TestClient(_make_app(None))
@@ -87,6 +167,52 @@ def test_create_stop_saves_persona_and_returns_stop():
     assert body["persona_type"] == "planner"
     assert body["verified_method"] == "gps_city_confirmed"
     assert "id" in body
+
+
+@requires_db
+def test_create_supported_city_id_stop_sets_solid_metadata():
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json={"city_id": "LIS", "note": "리스본"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["city"] == "Lisbon"
+    assert body["country_code"] == "PT"
+    assert body["supported_city_id"] == "LIS"
+    assert body["is_supported_city"] is True
+    assert body["location_source"] == "nnai_supported"
+    assert body["line_style"] == "solid"
+
+
+@requires_db
+def test_create_unsupported_geocode_stop_sets_dashed_metadata():
+    from utils.geocoding import geocode_city_candidates
+
+    def provider(_query, _country_code):
+        return [{
+            "city": "Granada",
+            "country": "Spain",
+            "country_code": "ES",
+            "lat": 37.1773,
+            "lng": -3.5986,
+            "display_name": "Granada, Spain",
+            "place_id": "es-granada",
+            "confidence": 0.9,
+        }]
+
+    result_id = geocode_city_candidates("Granada", "ES", provider=provider)["results"][0]["geocode_result_id"]
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json={"geocode_result_id": result_id, "note": "그라나다"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["city"] == "Granada"
+    assert body["supported_city_id"] is None
+    assert body["is_supported_city"] is False
+    assert body["location_source"] == "nominatim"
+    assert body["line_style"] == "dashed"
 
 
 @requires_db
