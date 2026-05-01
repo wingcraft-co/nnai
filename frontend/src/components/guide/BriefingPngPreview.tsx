@@ -34,6 +34,18 @@ export function BriefingPngPreview({
           pixelRatio: 2,
           backgroundColor: "#FAF8F4",
           cacheBust: true,
+          // ⚠ 캡쳐 root에 적용된 hidden offscreen 스타일을 SVG foreignObject 안에서
+          // 무력화. position:absolute + left:-99999px 그대로 두면 clone이
+          // 캔버스 밖으로 밀려나 PNG가 빈 background만 남음.
+          style: {
+            position: "static",
+            left: "auto",
+            top: "auto",
+            transform: "none",
+            margin: "0",
+            opacity: "1",
+            visibility: "visible",
+          },
         });
         if (!cancelled) setPngUrl(url);
       } catch (e) {
