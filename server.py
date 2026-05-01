@@ -24,7 +24,7 @@ from api.mobile_profile import router as mobile_profile_router
 from api.mobile_recommend import router as mobile_recommend_router
 from api.mobile_type_actions import router as mobile_type_actions_router
 from api.mobile_uploads import router as mobile_uploads_router
-from api.pins import router as pins_router
+from api.journey import router as journey_router
 from api.visits import router as visits_router
 from utils.db import (
     consume_rate_limit_token,
@@ -153,7 +153,7 @@ app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 app.include_router(billing_router)
 app.include_router(dashboard_router)
-app.include_router(pins_router, prefix="/api")
+app.include_router(journey_router, prefix="/api")
 app.include_router(visits_router, prefix="/api")
 app.include_router(mobile_auth_router)
 app.include_router(mobile_feed_router)
