@@ -94,6 +94,43 @@ const ISO3_ALIAS = {
   VN: "vnm vietnam",
 };
 
+const COUNTRY_CONTINENTS = {
+  AR: "Americas",
+  AT: "Europe",
+  AE: "Middle East",
+  CO: "Americas",
+  CR: "Americas",
+  CY: "Europe",
+  CZ: "Europe",
+  DE: "Europe",
+  EE: "Europe",
+  ES: "Europe",
+  GE: "Europe",
+  GR: "Europe",
+  HR: "Europe",
+  HU: "Europe",
+  ID: "Asia",
+  IT: "Europe",
+  JP: "Asia",
+  MA: "Africa",
+  MK: "Europe",
+  MX: "Americas",
+  MY: "Asia",
+  NL: "Europe",
+  PE: "Americas",
+  PH: "Asia",
+  PL: "Europe",
+  PT: "Europe",
+  PY: "Americas",
+  QA: "Middle East",
+  RS: "Europe",
+  TH: "Asia",
+  TR: "Europe",
+  TW: "Asia",
+  US: "Americas",
+  VN: "Asia",
+};
+
 function normalizeSearch(value) {
   return String(value ?? "")
     .normalize("NFD")
@@ -159,6 +196,60 @@ export function buildJourneyCityOptions(cityScores) {
       ]),
     };
   });
+}
+
+export function buildJourneyCountryOptions(cityOptions) {
+  const byCountry = new Map();
+
+  for (const city of cityOptions ?? []) {
+    const countryCode = String(city.country_code ?? "").toUpperCase();
+    const continent = COUNTRY_CONTINENTS[countryCode];
+    if (!countryCode || !continent) continue;
+
+    const current = byCountry.get(countryCode) ?? {
+      country: city.country,
+      country_code: countryCode,
+      continent,
+      city_count: 0,
+      city_ids: [],
+      latTotal: 0,
+      lngTotal: 0,
+    };
+
+    current.city_count += 1;
+    current.city_ids.push(city.id);
+    current.latTotal += Number(city.lat);
+    current.lngTotal += Number(city.lng);
+    byCountry.set(countryCode, current);
+  }
+
+  return [...byCountry.values()]
+    .map((country) => ({
+      country: country.country,
+      country_code: country.country_code,
+      continent: country.continent,
+      city_count: country.city_count,
+      city_ids: country.city_ids,
+      lat: country.latTotal / country.city_count,
+      lng: country.lngTotal / country.city_count,
+    }))
+    .sort((a, b) => a.continent.localeCompare(b.continent) || a.country.localeCompare(b.country));
+}
+
+export function filterJourneyCountriesByContinent(countryOptions, continent) {
+  return (countryOptions ?? []).filter((country) => country.continent === continent);
+}
+
+export function filterJourneyCitiesByCountry(cityOptions, countryCode) {
+  const normalized = String(countryCode ?? "").toUpperCase();
+  return (cityOptions ?? []).filter((city) => city.country_code === normalized);
+}
+
+export function getJourneyContinentCounts(countryOptions) {
+  return (countryOptions ?? []).reduce((counts, country) => {
+    counts[country.continent] = (counts[country.continent] ?? 0) + 1;
+    return counts;
+  }, {});
 }
 
 export function filterJourneyCities(options, query, limit = 7) {

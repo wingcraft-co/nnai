@@ -4,8 +4,12 @@ import test from 'node:test';
 
 import {
   buildJourneyCityOptions,
+  buildJourneyCountryOptions,
   findJourneyCitySearchMatch,
   filterJourneyCities,
+  filterJourneyCitiesByCountry,
+  filterJourneyCountriesByContinent,
+  getJourneyContinentCounts,
   projectJourneyPoint,
   resolveJourneyLocation,
 } from './journey-map.mjs';
@@ -64,4 +68,38 @@ test('does not guess a city when gps is far from every provided city', () => {
   const options = buildJourneyCityOptions(cityScores);
 
   assert.equal(resolveJourneyLocation(options, 64.1466, -21.9426), null);
+});
+
+test('groups supported cities into journey country options', () => {
+  const cities = buildJourneyCityOptions(cityScores);
+  const countries = buildJourneyCountryOptions(cities);
+  const portugal = countries.find((country) => country.country_code === 'PT');
+
+  assert.equal(portugal.country, 'Portugal');
+  assert.equal(portugal.continent, 'Europe');
+  assert.equal(portugal.city_count, 2);
+  assert.deepEqual(portugal.city_ids, ['LIS', 'PTO']);
+  assert.equal(Number.isFinite(portugal.lat), true);
+  assert.equal(Number.isFinite(portugal.lng), true);
+});
+
+test('filters supported countries and cities by drilldown selection', () => {
+  const cities = buildJourneyCityOptions(cityScores);
+  const countries = buildJourneyCountryOptions(cities);
+
+  assert.equal(filterJourneyCountriesByContinent(countries, 'Europe').some((country) => country.country_code === 'PT'), true);
+  assert.equal(filterJourneyCountriesByContinent(countries, 'Asia').some((country) => country.country_code === 'PT'), false);
+  assert.deepEqual(filterJourneyCitiesByCountry(cities, 'PT').map((city) => city.id), ['LIS', 'PTO']);
+});
+
+test('counts active continents from supported countries only', () => {
+  const cities = buildJourneyCityOptions(cityScores);
+  const countries = buildJourneyCountryOptions(cities);
+  const counts = getJourneyContinentCounts(countries);
+
+  assert.equal(counts.Europe > 0, true);
+  assert.equal(counts.Asia > 0, true);
+  assert.equal(counts.Americas > 0, true);
+  assert.equal(counts.Africa > 0, true);
+  assert.equal(counts.Oceania, undefined);
 });
