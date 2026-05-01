@@ -142,38 +142,35 @@ function Paragraph({ children }: { children: React.ReactNode }) {
   );
 }
 
-// 항목 list — (a) (b) (c) 마커 + grid 정렬 (legal/academic 톤)
+// 항목 list — baseline hard-lock: marker와 텍스트 같은 폰트/크기/lineHeight
 function ItemList({ items }: { items: string[] }) {
   if (!items.length) return null;
   return (
-    <div
-      style={{
-        marginTop: "14px",
-        fontFamily: SANS,
-        fontSize: "13px",
-        lineHeight: 1.7,
-        color: COLOR_INK,
-      }}
-    >
+    <div style={{ marginTop: "10px" }}>
       {items.map((item, i) => (
         <div
           key={i}
           style={{
             display: "grid",
-            gridTemplateColumns: "30px 1fr",
-            columnGap: "10px",
-            marginBottom: "8px",
+            gridTemplateColumns: "22px 1fr",
+            columnGap: "6px",
+            marginBottom: "5px",
             alignItems: "baseline",
+            fontFamily: SANS,
+            fontSize: "13px",
+            lineHeight: 1.7,
+            color: COLOR_INK,
           }}
         >
           <span
             style={{
-              color: COLOR_MUTED,
-              fontWeight: 500,
-              fontSize: "12px",
-              fontFamily: SERIF,
-              fontVariantNumeric: "tabular-nums",
+              fontFamily: SANS,
+              fontSize: "13px",
+              lineHeight: 1.7,
               fontStyle: "italic",
+              fontWeight: 400,
+              color: COLOR_MUTED,
+              textAlign: "right",
             }}
           >
             ({String.fromCharCode(97 + (i % 26))})
@@ -336,30 +333,34 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
     );
   }
 
-  // Subsection (1.1, 1.2, ...) — 인라인 번호 + 더 작은 헤딩
+  // Subsection (절) — CAPS tracked 라벨 톤 (size로 hierarchy 만들지 않고 structural label로)
   return (
     <div style={{ marginTop: "26px" }}>
       <h3
         style={{
-          fontFamily: SERIF,
-          fontSize: "15px",
-          fontWeight: 600,
+          fontFamily: SANS,
+          fontSize: "11px",
+          fontWeight: 700,
           color: COLOR_INK,
           margin: 0,
+          paddingBottom: "8px",
+          borderBottom: `0.5px solid ${COLOR_MUTED}`,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
           lineHeight: 1.3,
           wordBreak: "keep-all",
           display: "flex",
           alignItems: "baseline",
-          gap: "10px",
+          gap: "12px",
         }}
       >
         <span
           style={{
             color: COLOR_MUTED,
-            fontWeight: 400,
-            fontSize: "13px",
+            fontWeight: 500,
+            fontSize: "11px",
             fontVariantNumeric: "tabular-nums",
-            letterSpacing: "0.02em",
+            letterSpacing: "0.04em",
           }}
         >
           {section.num}
@@ -539,7 +540,7 @@ export function CountryBriefingDocument({
           <SectionBlock key={sec.num} section={sec} />
         ))}
 
-        {/* Appendix */}
+        {/* References */}
         <hr
           style={{
             margin: "48px 0 0",
@@ -550,15 +551,18 @@ export function CountryBriefingDocument({
         <section style={{ marginTop: "24px" }}>
           <h2
             style={{
-              fontFamily: SERIF,
-              fontSize: "16px",
-              fontWeight: 600,
+              fontFamily: SANS,
+              fontSize: "11px",
+              fontWeight: 700,
               color: COLOR_INK,
               margin: 0,
-              letterSpacing: "0.02em",
+              paddingBottom: "8px",
+              borderBottom: `0.5px solid ${COLOR_MUTED}`,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
             }}
           >
-            Appendix A — References
+            References
           </h2>
           <ol
             style={{
@@ -576,18 +580,21 @@ export function CountryBriefingDocument({
                 key={r.num}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "32px 1fr",
-                  columnGap: "10px",
-                  marginBottom: "5px",
+                  gridTemplateColumns: "26px 1fr",
+                  columnGap: "8px",
+                  marginBottom: "8px",
                   alignItems: "baseline",
+                  fontFamily: SANS,
+                  fontSize: "12px",
+                  lineHeight: 1.7,
                 }}
               >
                 <span
                   style={{
-                    fontFamily: SERIF,
+                    fontFamily: SANS,
+                    fontSize: "12px",
                     fontWeight: 600,
                     color: COLOR_STAMP,
-                    fontSize: "12px",
                     fontVariantNumeric: "tabular-nums",
                     textAlign: "right",
                   }}
@@ -600,7 +607,12 @@ export function CountryBriefingDocument({
                     overflowWrap: "break-word",
                   }}
                 >
-                  {r.source}
+                  {r.issuer}.{" "}
+                  <span style={{ fontStyle: "italic" }}>{r.title}</span>
+                  {r.year ? `, ${r.year}` : ""}.{" "}
+                  <span style={{ color: COLOR_MUTED, fontSize: "11px" }}>
+                    ({r.url})
+                  </span>
                 </span>
               </li>
             ))}

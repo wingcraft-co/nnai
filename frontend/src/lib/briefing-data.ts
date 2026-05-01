@@ -25,7 +25,10 @@ export type BriefingSection = {
 
 export type BriefingReference = {
   num: number;
-  source: string; // 영문 통일
+  issuer: string; // 발행 주체 e.g. "Ministry of Foreign Affairs, Republic of Korea"
+  title: string;  // 문서/섹션 제목 e.g. "Consular Information & Visa Service"
+  url: string;    // 호스트 또는 path e.g. "overseas.mofa.go.kr"
+  year?: number;  // 발행/최종 갱신 연도
 };
 
 export type BriefingData = {
@@ -159,6 +162,15 @@ export async function buildMockBriefing(input: {
 
   const countryOfficial = COUNTRY_OFFICIAL[countryId] || cityName;
   const countryName = COUNTRY_NAME[countryId] || countryOfficial;
+  const mofaCountryUrl = `overseas.mofa.go.kr/${countryId.toLowerCase()}-ko`;
+  const numbeoSlug = cityName
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[()]/g, "")
+    .replace(/\s+/g, "-")
+    .trim();
+  const numbeoUrl = `numbeo.com/cost-of-living/in/${numbeoSlug}`;
+  const currentYear = new Date().getFullYear();
 
   return {
     documentId,
@@ -245,7 +257,7 @@ export async function buildMockBriefing(input: {
             num: "4.1",
             title: "First 30 Days",
             items: [
-              "건강보험 임의계속가입 신청 (퇴직 후 2개월 이내, 기한 초과 시 영구 불가)¹",
+              "건강보험 임의계속가입 신청 (퇴직 후 2개월 이내, 기한 초과 시 영구 불가)³",
               "Wise 또는 Revolut 국제 계좌 개설",
               "현지 SIM/eSIM 개통 및 결제 앱 설정",
               "단기 숙소 1개월 확보 + 장기 임대 탐색",
@@ -256,7 +268,7 @@ export async function buildMockBriefing(input: {
             title: "Days 31–60",
             items: [
               "코워킹 멤버십 1개월 (커뮤니티 합류)",
-              "현지 병원 1곳 방문 (보험 처리 절차 사전 검증)⁴",
+              "현지 병원 1곳 방문 (보험 처리 절차 사전 검증)⁵",
               "한인회 또는 노마드 모임 등록²",
               "은행 계좌 개설 (외국인 등록증 요건 확인)",
             ],
@@ -284,10 +296,41 @@ export async function buildMockBriefing(input: {
       },
     ],
     references: [
-      { num: 1, source: "Korean Ministry of Foreign Affairs (consulate.go.kr)" },
-      { num: 2, source: `Korean Embassy in ${countryName}` },
-      { num: 3, source: `Numbeo, Cost of Living — ${cityName} (numbeo.com)` },
-      { num: 4, source: "SafetyWing Nomad Insurance (safetywing.com)" },
+      {
+        num: 1,
+        issuer: "Ministry of Foreign Affairs, Republic of Korea",
+        title: "Consular Information & Visa Service",
+        url: "overseas.mofa.go.kr",
+        year: currentYear,
+      },
+      {
+        num: 2,
+        issuer: `Embassy of the Republic of Korea in ${countryName}`,
+        title: "Country Notices & Travel Advisory",
+        url: mofaCountryUrl,
+        year: currentYear,
+      },
+      {
+        num: 3,
+        issuer: "National Health Insurance Service of Korea",
+        title: "Voluntary Continuation Enrollment Guide",
+        url: "nhis.or.kr",
+        year: currentYear,
+      },
+      {
+        num: 4,
+        issuer: "Numbeo",
+        title: `Cost of Living in ${cityName}`,
+        url: numbeoUrl,
+        year: currentYear,
+      },
+      {
+        num: 5,
+        issuer: "SafetyWing",
+        title: "Nomad Insurance — Plan Specifications",
+        url: "safetywing.com/nomad-insurance",
+        year: currentYear,
+      },
     ],
   };
 }
