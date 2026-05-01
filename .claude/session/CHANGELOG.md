@@ -1,5 +1,106 @@
 # CHANGELOG
 
+## [2026-05-01 KST 세션 8] — dev preview 진입점 + RitualTransition + Country Briefing 양식
+
+> ⚠ 본 세션 작업은 `test/dev-preview-flow` 브랜치에 격리됨 (develop 미머지). 머지/삭제는 사용자 테스트 후 결정.
+
+### 변경 파일
+
+**dev preview 인프라 (신규)**:
+- `frontend/src/lib/dev-preview.ts` (신규) : `?dev_preview=1&plan=free|pro` URL flag reader + mock data factories(billing status / detail quota / dashboard plan/widgets/catalog) + DEV_PREVIEW_PAYLOAD seed
+- `frontend/src/lib/briefing-data.ts` (신규) : Country Briefing 데이터 타입(BriefingData/BriefingSection/BriefingReference) + buildDocumentId(SHA-256 prefix 6 hex) + buildMockBriefing + 32개국 COUNTRY_OFFICIAL/COUNTRY_NAME 매핑 + numbeoSlug/mofaCountryUrl 헬퍼
+- `frontend/src/components/transition/RitualTransition.tsx` (신규) : 페이지 mount 시 600ms black overlay fade-out (CSS @keyframes ritual-transition-fade)
+- `frontend/src/components/guide/CountryBriefingDocument.tsx` (신규) : 1080px Country Briefing HTML 양식 컴포넌트 (IMF 톤, bold serif, 가로선 0개)
+- `frontend/src/components/guide/BriefingPngPreview.tsx` (신규) : hidden DOM 렌더 + html-to-image toPng 캡쳐 → `<img>` 표시 (무료 플랜용)
+
+**기존 파일 hook**:
+- `frontend/src/app/[locale]/page.tsx` : 기존 미리보기 링크 아래에 [로그인 후 플로우] FREE / PRO 토글 추가
+- `frontend/src/components/tarot/TarotDeck.tsx` : `isLoggedIn` lazy init (dev preview면 강제 true) + `/auth/me` 우회 + handleDetailClick에서 guide 경로에 dev_preview flag propagate
+- `frontend/src/app/[locale]/guide/[city_id]/page.tsx` : dev preview면 `/api/billing/status`, `/api/detail` 우회 + mock briefing 주입, confirm은 free=정지/pro=대시보드. 외부 헤더 hide(briefing 자체 헤더와 중복 제거). 워딩 "맞춤"→"정착"
+- `frontend/src/app/[locale]/dashboard/page.tsx` : dev preview면 `/api/dashboard*` 우회 + mock plan/widgets/catalog. saveWidgets/patchPlan 로컬 state만. RitualTransition 마운트
+- `frontend/src/app/[locale]/result/page.tsx` : RitualTransition 마운트 (ritual zone 진입 신호)
+- `frontend/src/app/layout.tsx` : Source_Serif_4 / Inter `next/font/google` 추가 (`--font-briefing-serif` / `--font-briefing-sans` CSS 변수)
+- `frontend/src/app/globals.css` : `@keyframes ritual-transition-fade`
+- `frontend/package.json` / `package-lock.json` : `html-to-image ^1.11.13` 추가 (~30KB no transitive deps)
+
+**메모리 5건 신규** (`~/.claude/projects/.../memory/`):
+- `project_country_briefing.md`, `project_theme_zones.md`
+- `feedback_layout_reference_first.md`, `feedback_mock_data_no_specific.md`
+- `reference_dev_preview_flow.md`
+
+### 작업 요약
+
+**무엇을**:
+
+1. **세션 시작 — develop sync + 팀 작업 follow-up**
+   - 로컬 develop이 origin보다 16 commits 뒤처짐 → fast-forward pull
+   - 팀(rosie 27, case 1) 4-21~4-27 작업 정리: DB hardening 7건(connection recovery / auth flow / transaction release / readiness check / Railway public URL), Detail 가이드 캐시 + 무료 quota 2회, **Pro 도시 대시보드** 신규(api/dashboard.py + 4 BFF route + DashboardWidgets/WidgetCard + user_city_plans/dashboard_widget_settings 테이블), visa data refresh
+   - Python 3.11 .venv 재생성 후 SKIP_EXTERNAL_INIT pytest 통과 (375 passed / 36 skipped)
+
+2. **dev preview 진입점** (commits 651d09d → a06ecc6)
+   - 사용자 요청: 직접 구현 안 한 부분(Pro 흐름) 시각 검증용 진입점. 실제 OAuth 없이 mock으로
+   - 결정: Path A (frontend mock) — backend 무변경, deps 1개(html-to-image). Path B(backend dev override) 보안 surface area 부담으로 보류
+   - 4 hook 위치 — Lightbox isLoggedIn / guide 페이지 detail+billing+confirm / dashboard plan+widgets, mock 데이터 위치는 `dev-preview.ts` 한 곳
+
+3. **RitualTransition** (commits 651d09d 일부)
+   - 사용자 의논 결과: dark = ritual zone (/result+Lightbox+/guide) / light = 일상 zone (/dashboard) 분리가 의미적 정합성 있음
+   - 갑작스런 전환을 ritual marker로 만들기 — 600ms black overlay fade-out
+   - /result mount(light→dark 진입), /dashboard mount(dark→light 출구) 두 경계에 적용
+   - dev preview 조건 없이 전 유저 적용 — 의도 확인됨
+
+4. **Country Briefing 양식** (commits b396d6c → 6ba267f, 5번 iteration)
+   - 사용자 요청: 데모 프린트 양식 신뢰도 우선. "양식이 곧 신뢰도", "사람들 큰 돈 써서 떠날텐데 이런 식이면 망해"
+   - 양식 컨셉: WebSearch + WebFetch로 IMF Country Report / Australian DFAT Country Brief / UN Policy Brief / Tufte LaTeX / USWDS / Bringhurst 합성 → "Personal Briefing" 톤 (학술 vs 정부 vs 컨설팅 3 후보 중 사용자가 정부 Country Briefing 선택)
+   - 결정 5건 (사용자):
+     - 1./1.1./1.1.1. 숫자 체계 — § 기호 사용 금지
+     - Document №: NNAI-{cc}-{date}-{userhash6} (SHA-256 prefix)
+     - Classification: "Personal Briefing" 영문 통일
+     - References 영문 통일 (국제 노마드 서비스니까)
+     - Path A (HTML+html-to-image) 선택
+   - 5번 iteration 거치며 개선:
+     - v1 (b396d6c): 초기 Bangkok 하드코딩 mock + 격자 워터마크
+     - v2 (a06ecc6): html-to-image opacity:0 → 투명 PNG 버그. 제거
+     - v3 (baf7cf8): position:absolute left:-99999px도 SVG foreignObject에 그대로 적용되어 PNG가 캔버스 밖으로 → toPng `style` 옵션으로 root clone 위치 무력화
+     - v4 (9c8a3b4): 사용자 피드백 — 본문 마크다운 티 / Appendix A alignment 깨짐 / 워딩 미스매치 / TH 하드코딩으로 Barcelona briefing에 TH 정보 leak(공신력 붕괴) → 본문 country-agnostic + countryName 동적 plug-in + Quick Facts placeholder
+     - v5 (e2e4355): 사용자 피드백 — 항 정렬 여전히 안맞음 / 절-항 hierarchy 약함 / Appendix A 명칭 불필요 / "Korean Embassy in Spain"만 적힌 출처 무의미 → 절을 SANS 11/700 CAPS letter-spacing 라벨 톤으로 / References 4-field 학술 인용 구조(issuer/title/year/url) / 항 baseline lock(같은 폰트 같은 크기)
+     - v6 (6ba267f, 최종): 사용자 피드백 — 가로선으로 hierarchy 만든 거 자체가 amateur / Quick Facts에 "Refer to § 2" placeholder + § leak / 레퍼런스 없이 머리로 짠다 → reference 검색 후 IMF 스타일 bold serif + 가로선 0개 + 인쇄문서 paragraph indent + Quick Facts 실값(visa_type/visa_free_days/monthly_cost_usd/tax days)
+
+**왜**:
+- 사용자가 오랜만에 복귀 + Pro 동선이 직접 구현 부분 아니라서 시각 검증 도구 필요. dev preview는 일회성이 아니라 향후 모든 백엔드-게이트 흐름 시각 디버깅에 재사용 가능한 인프라
+- 데모 프린트의 양식 신뢰도가 서비스 핵심 신뢰 시그널 — 양식에서 amateur 신호 감지되면 콘텐츠 신뢰까지 무너짐. 학술지 작성자인 사용자에게 양식 디테일 매우 민감
+- 레이아웃을 reference 없이 머리로 짜다 5번 iteration에 사용자 피드백으로 잘못 인지. 정부/학술 문서의 실제 컨벤션은 가로선 안 씀
+
+**영향 범위**:
+- /result, /guide(테마 dark + RitualTransition), /dashboard(테마 light + RitualTransition) 진입 시각
+- 무료 플랜의 상세 가이드 PNG 출력 양식 (Pro는 동일 컴포넌트 직접 렌더, watermark 없음)
+- dev preview는 백엔드 무변경 — 실서비스 흐름은 그대로 동작
+- frontend deps 추가 (html-to-image 30KB)
+- 폰트 5종 next/font/google 동시 로드 (기존 3종 + Source_Serif_4 + Inter)
+
+### 주요 결정사항
+
+- **테마 zone 분리 명문화**: dark = ritual / light = 일상. dashboard light theme이 의미적 분리. 통일 시도 금지. RitualTransition으로 zone 경계 마킹
+- **Country Briefing 양식**: 학술 논문 / 컨설팅 / 정부 Country Brief 3안 중 정부 톤 선택. 콘텐츠와 자연 매핑 + 권위감 + 우리 서비스 정체성과 일치. IMF Editorial Style 합성
+- **레이아웃 작업 시 reference 우선**: 가로선으로 hierarchy 만드는 충동 = typography 약함의 신호 = amateur. Tufte/USWDS/IMF/Bringhurst spec 학습 후 진행
+- **References = 학술 인용 톤**: { issuer, title (italic), year, url } 4-field. "Korean Embassy in Spain"만 적기 금지. overseas.mofa.go.kr/{cc}-ko 같은 추적 가능 URL 필수
+- **Mock 데이터 country-agnostic body 원칙**: TH 하드코딩 사례로 Spain briefing에 TH 정보 leak → 공신력 즉시 붕괴. specific 정보는 동적 plug-in, 값 없으면 em-dash "—"
+- **§ 기호 사용 금지** (numbering은 1./1.1./1.1.1. 만)
+- **Path A (HTML + html-to-image) 선택**: 양식 fidelity가 캔버스 직접 그리기 한계 초과 — 1080px hidden DOM 렌더 후 toPng 캡쳐
+- **테스트 브랜치 컨벤션**: test/* 브랜치 머지+삭제 라이프사이클. 세션 문서는 develop merge 시점에 갱신
+
+### 다음 세션 참고사항
+
+- **양식 layout v6(6ba267f) 시각 검증 미완료**: 사용자가 Vercel preview 401 gated로 직접 봐야 함. "수정할 부분이 보이긴 하지만" 추가 피드백 대기 중. 가로선 0개 + IMF bold serif + paragraph indent + Quick Facts 실값이 실제로 양식 신뢰도를 만드는지 체감 확인
+- **city 매칭 fallback 버그** (별도 이슈): URL `/guide/mde`(메데인) 진입 시 `revealedCities.find(c => c.id === "MDE") === undefined`로 떨어져 `revealedCities[0]`(바르셀로나)로 fallback되는 케이스 점검 필요. enrichCities가 `id` 필드 정상 부여하는지 확인
+- **backend CORS 정책** (별도 backend 작업): Vercel preview 동적 URL `*.vercel.app` allowlist 추가 필요. 현재 dev preview 모드는 /auth/me 우회로 회피하지만, real flow에선 인증 동작 안 함. rosie와 합의 필요
+- **Pro 동선 미정의 항목**: Lightbox CTA → /pricing → 결제 → /dashboard confirm 의 단계별 카피/플로우 정리 미완. 본 세션은 데모프린트 우선 → 이번 세션 외 항목으로 보류
+- **Detail API quota UI 노출**: `/api/detail` 응답의 `cached`/`quota` 필드를 frontend에서 사용자에게 어떤 식으로 보여줄지 미정 (무료 1/2 사용 임박 알림 등)
+- **RitualTransition 세팅 검토 여지**: 현재 dev preview 조건 없이 전 유저 적용. develop merge 시 실서비스에서 ritual fade 보임 — 사용자 의도 재확인 필요
+- **html-to-image hidden wrapper 주의 — opacity:0 / left:-99999px / position:absolute 같은 hidden 스타일은 SVG foreignObject 클론에 그대로 전이됨**. toPng `style` 옵션으로 root clone에 무력화 필요. 코드 주석에 재발 방지 가이드 박아둠
+- **테스트 브랜치 머지 후 처리**: 사용자 시각 검증 완료 시 develop merge → test/dev-preview-flow 삭제. 세션 문서 갱신은 머지 시점에 (현 시점은 격리 브랜치 작업 기록)
+
+---
+
 ## [2026-04-20 KST 세션 7] — Lightbox 7차 + 뱃지 시스템 전환 (점수 → qualitative 태그)
 
 ### 변경 파일
