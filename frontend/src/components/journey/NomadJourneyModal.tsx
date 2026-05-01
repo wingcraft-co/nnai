@@ -200,35 +200,35 @@ export function NomadJourneyModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto bg-[#111827] text-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 px-4 py-6 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-sm overflow-y-auto border border-border bg-background text-foreground shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/70">Nomad Journey</p>
-            <h2 className="text-lg font-semibold">내 노마드 여정 지도</h2>
+            <p className="text-xs text-muted-foreground">Nomad Journey</p>
+            <h2 className="text-xl font-medium leading-relaxed text-foreground">내 노마드 여정 지도</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="border border-white/15 px-3 py-1.5 text-sm text-white/75 hover:bg-white/10"
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             닫기
           </button>
         </div>
 
-        <div className="grid gap-5 p-5 lg:grid-cols-[1.4fr_0.8fr]">
-          <div className="relative min-h-[330px] overflow-hidden border border-white/10 bg-[#07111f]">
-            <svg viewBox="0 0 100 52" className="h-full min-h-[330px] w-full">
-              <rect width="100" height="52" fill="#07111f" />
-              <path d="M9 16 L18 10 L29 12 L33 18 L28 24 L17 23 L10 28 L5 23 Z" fill="#1f6f5b" opacity="0.72" />
-              <path d="M25 29 L31 32 L34 40 L31 49 L25 45 L22 36 Z" fill="#1f6f5b" opacity="0.62" />
-              <path d="M43 13 L55 10 L67 13 L72 20 L66 27 L53 27 L44 23 Z" fill="#2c7a5f" opacity="0.76" />
-              <path d="M50 29 L62 30 L66 39 L59 48 L49 43 L45 35 Z" fill="#2c7a5f" opacity="0.68" />
-              <path d="M67 15 L82 12 L94 18 L91 29 L78 28 L68 23 Z" fill="#328668" opacity="0.72" />
-              <path d="M79 35 L91 37 L96 45 L88 50 L79 46 Z" fill="#328668" opacity="0.66" />
+        <div className="space-y-5 p-4">
+          <div className="relative overflow-hidden rounded-lg border border-border bg-muted">
+            <svg viewBox="0 0 100 52" className="aspect-[1.92/1] w-full">
+              <rect width="100" height="52" fill="currentColor" className="text-muted" />
+              <path d="M9 16 L18 10 L29 12 L33 18 L28 24 L17 23 L10 28 L5 23 Z" fill="currentColor" className="text-accent-foreground" opacity="0.34" />
+              <path d="M25 29 L31 32 L34 40 L31 49 L25 45 L22 36 Z" fill="currentColor" className="text-accent-foreground" opacity="0.26" />
+              <path d="M43 13 L55 10 L67 13 L72 20 L66 27 L53 27 L44 23 Z" fill="currentColor" className="text-accent-foreground" opacity="0.38" />
+              <path d="M50 29 L62 30 L66 39 L59 48 L49 43 L45 35 Z" fill="currentColor" className="text-accent-foreground" opacity="0.30" />
+              <path d="M67 15 L82 12 L94 18 L91 29 L78 28 L68 23 Z" fill="currentColor" className="text-accent-foreground" opacity="0.34" />
+              <path d="M79 35 L91 37 L96 45 L88 50 L79 46 Z" fill="currentColor" className="text-accent-foreground" opacity="0.28" />
 
               {myStops.length > 1 && (
-                <polyline points={routePoints(myStops)} fill="none" stroke="#fbbf24" strokeWidth="0.45" strokeLinecap="round" />
+                <polyline points={routePoints(myStops)} fill="none" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" className="text-primary" />
               )}
 
               {showCommunity &&
@@ -236,8 +236,8 @@ export function NomadJourneyModal({
                   const point = project(Number(stop.lat), Number(stop.lng));
                   return (
                     <g key={`${stop.city}-${stop.country}`} transform={`translate(${point.x} ${point.y})`}>
-                      <circle r={Math.min(2.8, 1 + stop.cnt * 0.25)} fill={showPersona ? "#a78bfa" : "#38bdf8"} opacity="0.75" />
-                      <text y="-2.6" textAnchor="middle" fontSize="2.2" fill="#e0f2fe">
+                      <circle r={Math.min(2.8, 1 + stop.cnt * 0.25)} fill="currentColor" className="text-primary" opacity={showPersona ? "0.72" : "0.42"} />
+                      <text y="-2.6" textAnchor="middle" fontSize="2.1" fill="currentColor" className="text-foreground">
                         {stop.city} {stop.cnt}
                       </text>
                     </g>
@@ -248,8 +248,8 @@ export function NomadJourneyModal({
                 const point = project(Number(stop.lat), Number(stop.lng));
                 return (
                   <g key={stop.id} transform={`translate(${point.x} ${point.y})`}>
-                    <path d="M0 0 L0 -5 L4 -3 L0 -1 Z" fill="#facc15" stroke="#111827" strokeWidth="0.35" />
-                    <circle r="0.8" fill="#facc15" />
+                    <path d="M0 0 L0 -5 L4 -3 L0 -1 Z" fill="currentColor" stroke="currentColor" strokeWidth="0.35" className="text-primary" />
+                    <circle r="0.8" fill="currentColor" className="text-primary" />
                   </g>
                 );
               })}
@@ -261,7 +261,7 @@ export function NomadJourneyModal({
               <button
                 type="button"
                 onClick={() => setShowCommunity((value) => !value)}
-                className={`border px-3 py-2 text-sm ${showCommunity ? "border-cyan-300 bg-cyan-300/15" : "border-white/15"}`}
+                className={`rounded-lg border px-3 py-3 text-sm font-medium transition-colors ${showCommunity ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-foreground hover:bg-accent"}`}
               >
                 전체 보기
               </button>
@@ -269,15 +269,15 @@ export function NomadJourneyModal({
                 type="button"
                 onClick={() => setShowPersona((value) => !value)}
                 disabled={!personaType}
-                className={`border px-3 py-2 text-sm disabled:opacity-35 ${showPersona ? "border-violet-300 bg-violet-300/15" : "border-white/15"}`}
+                className={`rounded-lg border px-3 py-3 text-sm font-medium transition-colors disabled:opacity-40 ${showPersona ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-foreground hover:bg-accent"}`}
               >
                 내 타입
               </button>
             </div>
 
-            <div className="border border-white/10 p-4">
-              <p className="mb-3 text-sm font-semibold">깃발 꽂기</p>
-              <button type="button" onClick={requestLocation} className="mb-3 w-full bg-white px-3 py-2 text-sm font-medium text-[#111827]">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="mb-3 text-sm font-medium text-foreground">깃발 꽂기</p>
+              <button type="button" onClick={requestLocation} className="mb-3 w-full rounded-lg bg-muted px-4 py-3.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent">
                 현재 위치 인증
               </button>
               <select
@@ -286,10 +286,10 @@ export function NomadJourneyModal({
                   const [city, country] = event.target.value.split("|");
                   setSelectedCity(CITY_OPTIONS.find((option) => option.city === city && option.country === country) ?? CITY_OPTIONS[0]);
                 }}
-                className="mb-2 w-full border border-white/15 bg-transparent px-3 py-2 text-sm"
+                className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground"
               >
                 {CITY_OPTIONS.map((city) => (
-                  <option key={`${city.city}-${city.country}`} value={`${city.city}|${city.country}`} className="bg-[#111827]">
+                  <option key={`${city.city}-${city.country}`} value={`${city.city}|${city.country}`}>
                     {city.city}, {city.country}
                   </option>
                 ))}
@@ -299,29 +299,29 @@ export function NomadJourneyModal({
                 maxLength={10}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="방명록 10글자"
-                className="mb-2 w-full border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/35"
+                className="mb-2 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground placeholder:text-muted-foreground"
               />
               <button
                 type="button"
                 onClick={saveStop}
                 disabled={loading || note.length > 10}
-                className="w-full bg-amber-300 px-3 py-2 text-sm font-semibold text-[#111827] disabled:opacity-45"
+                className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45"
               >
                 {auth.logged_in ? "깃발 꽂기" : "로그인하고 깃발 꽂기"}
               </button>
-              {status && <p className="mt-3 text-xs text-cyan-100/80">{status}</p>}
+              {status && <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{status}</p>}
             </div>
 
-            <div className="border border-white/10 p-4">
-              <p className="mb-2 text-sm font-semibold">내 여정</p>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="mb-2 text-sm font-medium text-foreground">내 여정</p>
               {myStops.length === 0 ? (
-                <p className="text-xs text-white/50">{auth.logged_in ? "아직 인증한 도시가 없습니다." : "로그인하면 내 이동선이 저장됩니다."}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{auth.logged_in ? "아직 인증한 도시가 없습니다." : "로그인하면 내 이동선이 저장됩니다."}</p>
               ) : (
                 <div className="space-y-2">
                   {myStops.map((stop, index) => (
-                    <div key={stop.id} className="flex items-center justify-between text-sm">
+                    <div key={stop.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
                       <span>{index + 1}. {stop.city}</span>
-                      <span className="text-amber-200">{stop.note}</span>
+                      <span className="text-primary">{stop.note}</span>
                     </div>
                   ))}
                 </div>
