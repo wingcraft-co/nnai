@@ -13,9 +13,9 @@ import {
   mockBillingStatus,
   mockDetailQuota,
   mockDetailMarkdown,
-  buildMockBriefing,
   type BriefingData,
 } from "@/lib/dev-preview";
+import { buildBriefing } from "@/lib/briefing-generator";
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
 import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
 
@@ -255,7 +255,7 @@ export default function GuidePage() {
           setDetailQuota(mockDetailQuota(devPreview.plan));
           setMarkdown(mockDetailMarkdown(selected.city_kr ?? "", selected.city ?? ""));
           setQuotaExceeded(false);
-          const mockBriefing = await buildMockBriefing({
+          const generated = await buildBriefing({
             cityName: selected.city,
             cityKr: selected.city_kr ?? null,
             countryId: selected.country_id,
@@ -269,7 +269,7 @@ export default function GuidePage() {
             stayMonths: typeof selected.stay_months === "number" ? selected.stay_months : null,
             monthlyCostUsd: typeof selected.monthly_cost_usd === "number" ? selected.monthly_cost_usd : null,
           });
-          if (!cancelled) setBriefing(mockBriefing);
+          if (!cancelled) setBriefing(generated);
           return;
         }
 
