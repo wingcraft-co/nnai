@@ -53,7 +53,12 @@ export function BriefingPngPreview({
 
   return (
     <>
-      {/* Hidden render for capture — viewport 밖에 배치 */}
+      {/*
+        Hidden render for capture — viewport 밖 배치.
+        ⚠ opacity:0 / visibility:hidden 사용 금지 — html-to-image는 노드를 clone해서
+        SVG foreignObject로 렌더하므로 opacity가 PNG에 그대로 적용되어 투명 결과를 만듦.
+        position:absolute + left:-99999px로 시각만 숨기고 layout/style은 정상 유지.
+      */}
       <div
         ref={captureRef}
         style={{
@@ -61,7 +66,6 @@ export function BriefingPngPreview({
           left: "-99999px",
           top: 0,
           pointerEvents: "none",
-          opacity: 0,
         }}
         aria-hidden
       >
