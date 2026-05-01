@@ -656,7 +656,7 @@ Content-Type: application/json
       "lng": -3.5986,
       "supported": false,
       "supported_city_id": null,
-      "geocode_result_id": "geo_abc123",
+      "geocode_result_id": "geo_<signed-result-token>",
       "location_source": "nominatim",
       "display_name": "Granada, Andalusia, Spain",
       "geocode_place_id": "es-granada",
@@ -667,7 +667,12 @@ Content-Type: application/json
 }
 ```
 
-지원 도시와 매칭되는 경우 `supported: true`, `supported_city_id`, canonical 좌표를 반환하며 `geocode_result_id`는 `null`입니다. 미지원 도시는 여행 로그용 위치로만 사용하며 추천/비자/예산/세금 상세 데이터와 연결하지 않습니다.
+지원 도시와 매칭되는 경우 `supported: true`, `supported_city_id`, canonical 좌표를 반환하며 `geocode_result_id`는 `null`입니다. 미지원 도시는 서명된 단기 `geocode_result_id`를 반환하며 여행 로그용 위치로만 사용합니다. 추천/비자/예산/세금 상세 데이터와 연결하지 않습니다.
+
+**운영/보안 제약:**
+- 서버에서 IP/사용자 기준 1분당 12회로 제한합니다.
+- provider 결과와 빈 결과는 bounded TTL cache에 저장됩니다.
+- 외부 geocoder 장애는 `503`으로 반환합니다.
 
 **에러:**
 - `422` — 검색어 길이 또는 국가 코드 형식 오류
@@ -696,7 +701,7 @@ Cookie: nnai_session=...
 **요청 바디 — 미지원 검증 도시:**
 ```json
 {
-  "geocode_result_id": "geo_abc123",
+  "geocode_result_id": "geo_<signed-result-token>",
   "note": "추억"
 }
 ```
@@ -774,7 +779,7 @@ GET /api/journey/community?persona_type=planner
 ]
 ```
 
-> `cnt` — 해당 도시를 인증한 여정 stop 수. 내림차순 정렬, 최대 100개. 미지원 검증 도시는 privacy 보호를 위해 집계 수가 3개 이상일 때만 공개 응답에 포함됩니다.
+> `cnt` — 해당 도시를 인증한 서로 다른 사용자 수. 내림차순 정렬, 최대 100개. 모든 community row는 privacy 보호를 위해 필터 적용 후 서로 다른 사용자 3명 이상일 때만 공개 응답에 포함됩니다. Legacy 좌표 직접 저장 row는 public community에서 제외됩니다.
 
 ---
 

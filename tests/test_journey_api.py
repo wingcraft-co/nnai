@@ -30,6 +30,8 @@ def _make_app(user_id: str | None):
     app.include_router(router, prefix="/api")
 
     db_mod._conn = init_db(TEST_DB_URL)
+    import api.journey as journey_mod
+    journey_mod.get_conn = lambda: db_mod._conn
     with db_mod._conn.cursor() as cur:
         cur.execute("DELETE FROM nomad_journey_stops")
         cur.execute("DELETE FROM users")
@@ -46,6 +48,13 @@ def _make_app(user_id: str | None):
             VALUES (%s, %s, %s, %s, %s, NOW()::text)
             """,
             ("uid2", "uid2@example.com", "Tester 2", "", "wanderer"),
+        )
+        cur.execute(
+            """
+            INSERT INTO users (id, email, name, picture, persona_type, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW()::text)
+            """,
+            ("uid3", "uid3@example.com", "Tester 3", "", "planner"),
         )
     db_mod._conn.commit()
     return app
@@ -110,6 +119,70 @@ def test_geocode_filters_provider_results_to_selected_country():
     assert [row["country_code"] for row in body["results"]] == ["ES"]
     assert body["results"][0]["supported"] is False
     assert body["results"][0]["geocode_result_id"].startswith("geo_")
+
+
+def test_geocode_result_id_survives_process_local_cache_clear():
+    from utils import geocoding
+
+    def provider(_query, _country_code):
+        return [{
+            "city": "Granada",
+            "country": "Spain",
+            "country_code": "ES",
+            "lat": 37.1773,
+            "lng": -3.5986,
+            "display_name": "Granada, Spain",
+            "place_id": "es-granada",
+            "confidence": 0.9,
+        }]
+
+    result_id = geocoding.geocode_city_candidates("Granada", "ES", provider=provider)["results"][0]["geocode_result_id"]
+    geocoding._RESULT_CACHE.clear()
+
+    assert geocoding.get_cached_geocode_result(result_id)["city"] == "Granada"
+
+
+def test_geocode_query_cache_is_bounded():
+    from utils import geocoding
+
+    geocoding._QUERY_CACHE.clear()
+    for i in range(geocoding.MAX_QUERY_CACHE_SIZE + 5):
+        geocoding.geocode_city_candidates(f"City {i}", "ES", provider=lambda *_args: [])
+
+    assert len(geocoding._QUERY_CACHE) <= geocoding.MAX_QUERY_CACHE_SIZE
+
+
+def test_geocode_route_returns_503_for_provider_failure(monkeypatch):
+    from api import journey
+
+    app = FastAPI()
+    app.include_router(journey.router, prefix="/api")
+    monkeypatch.setattr(journey, "geocode_city_candidates", lambda *_args: (_ for _ in ()).throw(OSError("boom")))
+
+    response = TestClient(app).post("/api/journey/geocode", json={"query": "Granada", "country_code": "ES"})
+
+    assert response.status_code == 503
+
+
+def test_geocode_route_rate_limits_repeated_public_requests(monkeypatch):
+    from api import journey
+
+    app = FastAPI()
+    app.include_router(journey.router, prefix="/api")
+    journey._GEOCODE_RATE_LIMIT.clear()
+    monkeypatch.setattr(
+        journey,
+        "geocode_city_candidates",
+        lambda query, country_code: {"query": query, "country_code": country_code, "results": [], "attribution": ""},
+    )
+    client = TestClient(app)
+
+    responses = [
+        client.post("/api/journey/geocode", json={"query": "Granada", "country_code": "ES"})
+        for _ in range(journey.GEOCODE_RATE_LIMIT + 1)
+    ]
+
+    assert responses[-1].status_code == 429
 
 
 def test_create_stop_rejects_invalid_coordinates_without_db():
@@ -247,7 +320,7 @@ def test_my_journey_returns_only_current_user_in_chronological_order():
 
 
 @requires_db
-def test_community_returns_city_level_counts_only():
+def test_community_excludes_legacy_rows_from_public_aggregate():
     client = TestClient(_make_app("uid1"))
     client.post("/api/journey/stops", json=_stop_payload(note="개인글"))
     client.post("/api/journey/stops", json=_stop_payload(note="또왔음"))
@@ -255,36 +328,40 @@ def test_community_returns_city_level_counts_only():
     response = client.get("/api/journey/community")
 
     assert response.status_code == 200
-    body = response.json()
-    assert body == [
-        {
-            "city": "Kuala Lumpur",
-            "country": "Malaysia",
-            "country_code": "MY",
-            "lat": 3.139,
-            "lng": 101.6869,
-            "cnt": 2,
-        }
-    ]
-    assert "note" not in body[0]
-    assert "user_id" not in body[0]
+    assert response.json() == []
 
 
 @requires_db
-def test_community_persona_filter_returns_aggregate_counts_only():
-    uid1 = TestClient(_make_app("uid1"))
-    uid1.post("/api/journey/stops", json=_stop_payload(note="플래너"))
+def test_community_supported_rows_require_three_distinct_users():
+    app = _make_app("uid1")
+    client = TestClient(app)
+    from utils import db as db_mod
 
-    uid2 = TestClient(_make_app("uid2"))
-    uid2.post("/api/journey/stops", json=_stop_payload(note="방랑자"))
+    with db_mod._conn.cursor() as cur:
+        for uid in ["uid1", "uid2", "uid3"]:
+            cur.execute(
+                """
+                INSERT INTO nomad_journey_stops(
+                    user_id, city, country, country_code, note, lat, lng,
+                    supported_city_id, is_supported_city, location_source, line_style
+                )
+                VALUES (%s, 'Lisbon', 'Portugal', 'PT', '', 38.7223, -9.1393,
+                        'LIS', TRUE, 'nnai_supported', 'solid')
+                """,
+                (uid,),
+            )
+    db_mod._conn.commit()
 
-    response = uid1.get("/api/journey/community?persona_type=planner")
+    response = client.get("/api/journey/community")
 
     assert response.status_code == 200
     body = response.json()
-    assert body[0]["city"] == "Kuala Lumpur"
-    assert body[0]["cnt"] == 1
-    assert set(body[0]) == {"city", "country", "country_code", "lat", "lng", "cnt"}
+    assert body[0]["city"] == "Lisbon"
+    assert body[0]["cnt"] == 3
+    assert body[0]["supported_city_id"] == "LIS"
+    assert body[0]["line_style"] == "solid"
+    assert "note" not in body[0]
+    assert "user_id" not in body[0]
 
 
 def test_legacy_pins_routes_are_not_mounted_on_server():

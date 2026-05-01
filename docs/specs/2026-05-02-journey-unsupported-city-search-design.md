@@ -128,7 +128,7 @@ Use a provider abstraction so the app is not locked to one external service:
   - filters to populated places/city-like results where provider metadata supports it
   - filters to the requested ISO-2 country code
   - caches query results in memory for the running process
-  - issues a short-lived `geocode_result_id` for unsupported provider results
+  - issues a signed short-lived `geocode_result_id` for unsupported provider results so save works across multiple backend workers
 
 Default provider can be OpenStreetMap Nominatim because it can verify global city existence and coordinates without exposing a browser-side key. Its public service policy requires no autocomplete, no heavy use, maximum 1 request per second, valid identifying User-Agent or Referer, attribution, and caching. The endpoint therefore must run only on explicit search submit, not on every keystroke.
 
@@ -243,8 +243,9 @@ Extend `GET /api/journey/community` rows with:
 
 Aggregation rule:
 
-- unsupported stops are excluded from public community aggregates until they meet a k-anonymity threshold of at least `cnt >= 3`
-- supported city groups return `solid`
+- all public community groups are excluded until they meet a k-anonymity threshold of at least 3 distinct users after filters
+- legacy coordinate-direct stops are excluded from public community aggregates
+- supported city groups that pass the threshold return `solid`
 - unsupported city groups that pass the threshold return `dashed`
 
 The community response must continue excluding user ids, notes, emails, and names.

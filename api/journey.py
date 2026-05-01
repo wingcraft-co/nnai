@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 import math
+import time
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
@@ -18,6 +20,9 @@ from utils.geocoding import (
 
 router = APIRouter()
 SESSION_KEY = "user_id"
+GEOCODE_RATE_LIMIT = 12
+GEOCODE_RATE_WINDOW_SECONDS = 60
+_GEOCODE_RATE_LIMIT: dict[str, list[float]] = {}
 
 
 class JourneyStopIn(BaseModel):
@@ -28,7 +33,7 @@ class JourneyStopIn(BaseModel):
     lng: float | None = None
     note: str = Field(default="", max_length=10)
     city_id: str | None = Field(default=None, max_length=20)
-    geocode_result_id: str | None = Field(default=None, max_length=80)
+    geocode_result_id: str | None = Field(default=None, max_length=1200)
 
     @model_validator(mode="after")
     def validate_shape(self):
@@ -69,6 +74,26 @@ def _current_persona_type(user_id: str) -> str | None:
         cur.execute("SELECT persona_type FROM users WHERE id = %s", (user_id,))
         row = cur.fetchone()
     return row[0] if row else None
+
+
+def _geocode_rate_subject(request: Request) -> str:
+    user_id = _user_id(request)
+    if user_id:
+        return f"user:{user_id}"
+    client = request.client.host if request.client else "unknown"
+    return f"ip:{client}"
+
+
+def _enforce_geocode_rate_limit(request: Request) -> None:
+    now = time.monotonic()
+    subject = _geocode_rate_subject(request)
+    window_start = now - GEOCODE_RATE_WINDOW_SECONDS
+    hits = [hit for hit in _GEOCODE_RATE_LIMIT.get(subject, []) if hit >= window_start]
+    if len(hits) >= GEOCODE_RATE_LIMIT:
+        _GEOCODE_RATE_LIMIT[subject] = hits
+        raise HTTPException(429, "geocode rate limit exceeded")
+    hits.append(now)
+    _GEOCODE_RATE_LIMIT[subject] = hits
 
 
 def _payload_from_stop(stop: JourneyStopIn) -> dict:
@@ -134,11 +159,14 @@ def _payload_from_stop(stop: JourneyStopIn) -> dict:
 
 
 @router.post("/journey/geocode")
-def geocode_journey_city(body: JourneyGeocodeIn):
+def geocode_journey_city(body: JourneyGeocodeIn, request: Request):
+    _enforce_geocode_rate_limit(request)
     try:
         return geocode_city_candidates(body.query, body.country_code)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    except (OSError, TimeoutError, json.JSONDecodeError) as exc:
+        raise HTTPException(503, "geocoder_unavailable") from exc
 
 
 @router.get("/journey/me")
@@ -226,10 +254,11 @@ def community_journey(
 ):
     conn = get_conn()
     params: tuple = ()
-    where = ""
+    where_parts = ["location_source <> 'legacy'"]
     if persona_type:
-        where = "WHERE persona_type = %s"
+        where_parts.append("persona_type = %s")
         params = (persona_type,)
+    where = "WHERE " + " AND ".join(where_parts)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -237,13 +266,13 @@ def community_journey(
             SELECT city, country, MIN(country_code) AS country_code,
                    ROUND(AVG(lat)::numeric, 4)::float AS lat,
                    ROUND(AVG(lng)::numeric, 4)::float AS lng,
-                   COUNT(*)::int AS cnt,
+                   COUNT(DISTINCT user_id)::int AS cnt,
                    MIN(supported_city_id) AS supported_city_id,
                    CASE WHEN BOOL_OR(is_supported_city) THEN 'solid' ELSE 'dashed' END AS line_style
             FROM nomad_journey_stops
             {where}
             GROUP BY city, country
-            HAVING BOOL_OR(is_supported_city) OR COUNT(*) >= 3
+            HAVING COUNT(DISTINCT user_id) >= 3
             ORDER BY cnt DESC, city ASC
             LIMIT 100
             """,

@@ -274,7 +274,7 @@ CREATE TABLE IF NOT EXISTS detail_guide_cache (
 
 ## nomad_journey_stops
 
-픽셀 지구본 이스터에그에서 사용자가 확정한 도시 중심 좌표를 저장합니다. 지원 도시는 `solid`, 미지원 검증 도시는 여행 로그용 위치로 저장되어 `dashed` 선 렌더링에 사용됩니다. 기존 `pins` 테이블은 제거되며 데이터는 마이그레이션하지 않습니다.
+픽셀 지구본 이스터에그에서 사용자가 확정한 도시 중심 좌표를 저장합니다. 지원 도시는 `solid`, 미지원 검증 도시는 여행 로그용 위치로 저장되어 `dashed` 선 렌더링에 사용됩니다. Legacy 좌표 직접 저장 row는 개인 여정에는 남지만 public community 집계에서는 제외됩니다. 기존 `pins` 테이블은 제거되며 데이터는 마이그레이션하지 않습니다.
 
 ```sql
 DROP TABLE IF EXISTS pins;

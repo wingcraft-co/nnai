@@ -35,7 +35,7 @@ jobs:
 
       - name: Syntax check
         run: |
-          python -m py_compile app.py server.py recommender.py api/parser.py api/detail_cache.py api/journey.py prompts/builder.py api/visits.py
+          python -m py_compile app.py server.py recommender.py api/parser.py api/detail_cache.py api/journey.py prompts/builder.py api/visits.py utils/geocoding.py
 
       - name: Backend regression tests
         run: |

@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import base64
+import hashlib
+import hmac
 import json
 import math
+import os
 import re
 import secrets
 import time
@@ -18,6 +22,8 @@ ATTRIBUTION = "Geocoding data from OpenStreetMap contributors"
 SUPPORTED_SOURCE = "nnai_supported"
 NOMINATIM_SOURCE = "nominatim"
 GEOCODE_RESULT_TTL_SECONDS = 15 * 60
+MAX_QUERY_CACHE_SIZE = 256
+MAX_RESULT_CACHE_SIZE = 512
 
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 _LAST_PROVIDER_CALL = 0.0
@@ -169,15 +175,21 @@ def _supported_city_rows(query: str, country_code: str) -> list[dict]:
 
 
 def _store_result(row: dict) -> str:
+    token = _sign_result(row)
     result_id = f"geo_{secrets.token_urlsafe(12)}"
     _RESULT_CACHE[result_id] = {
         **row,
         "expires_at": datetime.now(timezone.utc) + timedelta(seconds=GEOCODE_RESULT_TTL_SECONDS),
     }
-    return result_id
+    _prune_cache(_RESULT_CACHE, MAX_RESULT_CACHE_SIZE)
+    return token
 
 
 def get_cached_geocode_result(result_id: str) -> dict | None:
+    signed = _verify_result(result_id)
+    if signed is not None:
+        return signed
+
     row = _RESULT_CACHE.get(result_id)
     if not row:
         return None
@@ -185,6 +197,63 @@ def get_cached_geocode_result(result_id: str) -> dict | None:
         _RESULT_CACHE.pop(result_id, None)
         return None
     return {key: value for key, value in row.items() if key != "expires_at"}
+
+
+def _signing_key() -> bytes:
+    secret = os.environ.get("SECRET_KEY") or os.environ.get("APP_PII_ENCRYPTION_KEY") or "nnai-dev-geocode"
+    return secret.encode("utf-8")
+
+
+def _sign_result(row: dict) -> str:
+    payload = {
+        key: row.get(key)
+        for key in [
+            "city",
+            "country",
+            "country_code",
+            "lat",
+            "lng",
+            "supported",
+            "supported_city_id",
+            "location_source",
+            "display_name",
+            "geocode_place_id",
+            "geocode_confidence",
+        ]
+    }
+    payload["exp"] = int((datetime.now(timezone.utc) + timedelta(seconds=GEOCODE_RESULT_TTL_SECONDS)).timestamp())
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    body = base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+    sig = hmac.new(_signing_key(), body.encode("ascii"), hashlib.sha256).digest()
+    signature = base64.urlsafe_b64encode(sig).decode("ascii").rstrip("=")
+    return f"geo_{body}.{signature}"
+
+
+def _verify_result(result_id: str) -> dict | None:
+    if not result_id.startswith("geo_") or "." not in result_id:
+        return None
+    body, signature = result_id[4:].split(".", 1)
+    expected = hmac.new(_signing_key(), body.encode("ascii"), hashlib.sha256).digest()
+    try:
+        received = base64.urlsafe_b64decode(signature + "=" * (-len(signature) % 4))
+    except ValueError:
+        return None
+    if not hmac.compare_digest(expected, received):
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(body + "=" * (-len(body) % 4))
+        payload = json.loads(raw.decode("utf-8"))
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if int(payload.get("exp") or 0) < int(datetime.now(timezone.utc).timestamp()):
+        return None
+    payload.pop("exp", None)
+    return payload
+
+
+def _prune_cache(cache: dict, max_size: int) -> None:
+    while len(cache) > max_size:
+        cache.pop(next(iter(cache)))
 
 
 def nominatim_provider(query: str, country_code: str) -> list[ProviderResult]:
@@ -259,6 +328,7 @@ def geocode_city_candidates(
             datetime.now(timezone.utc) + timedelta(seconds=GEOCODE_RESULT_TTL_SECONDS),
             provider_rows,
         )
+        _prune_cache(_QUERY_CACHE, MAX_QUERY_CACHE_SIZE)
 
     results = []
     for raw in provider_rows:

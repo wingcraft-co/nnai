@@ -376,22 +376,31 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             DO $$
             BEGIN
                 IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint WHERE conname = 'chk_nomad_journey_stops_lat_range'
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_lat_range'
+                      AND conrelid = 'nomad_journey_stops'::regclass
                 ) THEN
                     ALTER TABLE nomad_journey_stops
-                    ADD CONSTRAINT chk_nomad_journey_stops_lat_range CHECK (lat BETWEEN -90 AND 90);
+                    ADD CONSTRAINT chk_nomad_journey_stops_lat_range CHECK (lat BETWEEN -90 AND 90) NOT VALID;
                 END IF;
                 IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint WHERE conname = 'chk_nomad_journey_stops_lng_range'
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_lng_range'
+                      AND conrelid = 'nomad_journey_stops'::regclass
                 ) THEN
                     ALTER TABLE nomad_journey_stops
-                    ADD CONSTRAINT chk_nomad_journey_stops_lng_range CHECK (lng BETWEEN -180 AND 180);
+                    ADD CONSTRAINT chk_nomad_journey_stops_lng_range CHECK (lng BETWEEN -180 AND 180) NOT VALID;
                 END IF;
                 IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint WHERE conname = 'chk_nomad_journey_stops_line_style'
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_line_style'
+                      AND conrelid = 'nomad_journey_stops'::regclass
                 ) THEN
                     ALTER TABLE nomad_journey_stops
-                    ADD CONSTRAINT chk_nomad_journey_stops_line_style CHECK (line_style IN ('solid', 'dashed'));
+                    ADD CONSTRAINT chk_nomad_journey_stops_line_style CHECK (line_style IN ('solid', 'dashed')) NOT VALID;
                 END IF;
             END $$;
         """)
