@@ -13,7 +13,11 @@ import {
   mockBillingStatus,
   mockDetailQuota,
   mockDetailMarkdown,
+  buildMockBriefing,
+  type BriefingData,
 } from "@/lib/dev-preview";
+import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
+import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
 
 const SESSION_V2_KEY = "result_session_v2";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -216,6 +220,7 @@ export default function GuidePage() {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [briefing, setBriefing] = useState<BriefingData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,13 +248,23 @@ export default function GuidePage() {
         setCity(selected);
         setParsedData(session.parsedData);
 
-        // Dev preview 단축 — 백엔드 호출 우회, mock 데이터 주입
+        // Dev preview 단축 — 백엔드 호출 우회, Country Briefing mock 데이터 주입
         const devPreview = readDevPreview();
         if (devPreview.enabled) {
           setBillingStatus(mockBillingStatus(devPreview.plan));
           setDetailQuota(mockDetailQuota(devPreview.plan));
           setMarkdown(mockDetailMarkdown(selected.city_kr ?? "", selected.city ?? ""));
           setQuotaExceeded(false);
+          const mockBriefing = await buildMockBriefing({
+            cityName: selected.city,
+            cityKr: selected.city_kr ?? null,
+            countryId: selected.country_id,
+            userProfile: (session.parsedData?._user_profile as Record<string, unknown> | undefined) ?? {
+              persona_type: "free_spirit",
+              travel_type: "혼자 (솔로)",
+            },
+          });
+          if (!cancelled) setBriefing(mockBriefing);
           return;
         }
 
@@ -435,7 +450,27 @@ export default function GuidePage() {
               </p>
             </header>
 
-            {isPro(billingStatus) ? (
+            {briefing ? (
+              isPro(billingStatus) ? (
+                <article className="overflow-hidden rounded-lg border border-border bg-[#FAF8F4]">
+                  <div className="flex flex-col gap-2 border-b border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-muted-foreground">Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다.</p>
+                  </div>
+                  <div className="flex justify-center overflow-x-auto">
+                    <CountryBriefingDocument data={briefing} watermark={false} />
+                  </div>
+                </article>
+              ) : (
+                <section className="space-y-3">
+                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-muted-foreground">
+                    무료 플랜에서는 Country Briefing이 Wingcraft 워터마크가 포함된 PNG 이미지로 표시됩니다. Pro 플랜에서는 워터마크 없이 보고, 텍스트·PNG로 내보낼 수 있습니다.
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-border bg-[#FAF8F4]">
+                    <BriefingPngPreview data={briefing} watermark={true} />
+                  </div>
+                </section>
+              )
+            ) : isPro(billingStatus) ? (
               <article className="rounded-lg border border-border bg-card p-5">
                 <div className="mb-4 flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다.</p>

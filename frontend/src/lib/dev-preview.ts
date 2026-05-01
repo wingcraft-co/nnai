@@ -5,6 +5,10 @@ import type {
   DashboardWidgetCatalogItem,
   DashboardWidgetSettings,
 } from "@/components/dashboard/types";
+import { buildMockBriefing, type BriefingData } from "./briefing-data";
+
+export { buildMockBriefing };
+export type { BriefingData };
 
 export type DevPreviewPlan = "free" | "pro";
 
