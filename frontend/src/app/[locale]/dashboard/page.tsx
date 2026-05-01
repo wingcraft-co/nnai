@@ -15,6 +15,13 @@ import {
   LOCKED_WIDGET_IDS,
   coerceDashboardWidgets,
 } from "@/lib/dashboard-content.mjs";
+import {
+  readDevPreview,
+  mockDashboardPlan,
+  mockDashboardWidgets,
+  mockDashboardCatalog,
+} from "@/lib/dev-preview";
+import { RitualTransition } from "@/components/transition/RitualTransition";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -36,6 +43,7 @@ export default function DashboardPage() {
   const [accessError, setAccessError] = useState<"login" | "pro" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [personaType, setPersonaType] = useState<string | null>(null);
+  const [devPreviewEnabled, setDevPreviewEnabled] = useState(false);
 
   const orderedWidgetIds = useMemo(() => {
     return coerceDashboardWidgets(widgets).widget_order;
@@ -46,6 +54,41 @@ export default function DashboardPage() {
     const localPersona = localStorage.getItem("persona_type");
     if (localPersona) {
       setPersonaType(localPersona);
+    }
+
+    // Dev preview 단축 — 백엔드 호출 우회
+    const devPreview = readDevPreview();
+    if (devPreview.enabled) {
+      setDevPreviewEnabled(true);
+      if (devPreview.plan === "free") {
+        setAccessError("pro");
+        setLoading(false);
+        return;
+      }
+      // Pro: localStorage의 가장 최근 도시(있으면) 또는 방콕 fallback
+      let mockedCity = { city: "Bangkok", cityKr: "방콕" as string | null, country: "Thailand", countryId: "TH" };
+      try {
+        const raw = localStorage.getItem("result_session_v2");
+        if (raw) {
+          const session = JSON.parse(raw);
+          const last = session?.revealedCities?.[session?.readingCityIndex ?? 0] ?? session?.revealedCities?.[0];
+          if (last?.city) {
+            mockedCity = {
+              city: String(last.city),
+              cityKr: last.city_kr ?? null,
+              country: last.country ?? "",
+              countryId: last.country_id ?? "",
+            };
+          }
+        }
+      } catch {
+        // fallback to default mock
+      }
+      setPlan(mockDashboardPlan(mockedCity));
+      setWidgets(coerceDashboardWidgets(mockDashboardWidgets()));
+      setCatalog(mockDashboardCatalog());
+      setLoading(false);
+      return;
     }
 
     async function loadDashboard() {
@@ -87,6 +130,10 @@ export default function DashboardPage() {
   async function saveWidgets(nextWidgets: DashboardWidgetSettings) {
     setSaving(true);
     setWidgets(nextWidgets);
+    if (devPreviewEnabled) {
+      setSaving(false);
+      return;
+    }
     try {
       const response = await fetch(`${API_BASE}/api/dashboard/widgets`, {
         method: "PATCH",
@@ -105,6 +152,10 @@ export default function DashboardPage() {
   }
 
   async function patchPlan(patch: Record<string, unknown>) {
+    if (devPreviewEnabled) {
+      setPlan((prev) => (prev ? ({ ...prev, ...patch } as DashboardPlan) : prev));
+      return;
+    }
     const response = await fetch(`${API_BASE}/api/dashboard/plan`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -154,6 +205,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
+      <RitualTransition />
       <div className="mx-auto max-w-6xl px-5 py-12">
         {loading && (
           <div className="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-muted-foreground">

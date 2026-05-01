@@ -6,6 +6,7 @@ import TarotDeck from "@/components/tarot/TarotDeck";
 import type { DeckStage } from "@/components/tarot/TarotDeck";
 import type { CityData, TarotSession } from "@/components/tarot/types";
 import { TAROT_SESSION_KEY } from "@/components/tarot/types";
+import { RitualTransition } from "@/components/transition/RitualTransition";
 import {
   trackRecommendFailure,
   trackRecommendSubmit,
@@ -311,6 +312,7 @@ export default function ResultPage() {
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
+      <RitualTransition />
       {/* Loading */}
       {stage === "loading" && (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">

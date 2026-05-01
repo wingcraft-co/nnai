@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useRouter } from "@/i18n/navigation";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
+import { DEV_PREVIEW_PAYLOAD, type DevPreviewPlan } from "@/lib/dev-preview";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -101,30 +102,33 @@ export default function Home() {
             type="button"
             onClick={() => {
               trackLandingCtaClick("preview");
-              localStorage.setItem("recommend_payload", JSON.stringify({
-                nationality: "한국",
-                income_krw: 400,
-                immigration_purpose: "원격 근무",
-                lifestyle: ["일하기 좋은 인프라"],
-                languages: [],
-                timeline: "6개월 중기 체류",
-                preferred_countries: [],
-                preferred_language: "한국어",
-                persona_type: null,
-                income_type: "",
-                travel_type: "혼자 (솔로)",
-                children_ages: null,
-                dual_nationality: false,
-                readiness_stage: "",
-                has_spouse_income: "없음",
-                spouse_income_krw: 0,
-              }));
+              localStorage.setItem("recommend_payload", JSON.stringify(DEV_PREVIEW_PAYLOAD));
               window.location.href = "/result";
             }}
             className="block w-full py-2.5 text-center text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
           >
             카드 플로우 미리보기
           </button>
+        </motion.div>
+
+        {/* Dev: post-login flow preview (Free / Pro 토글) */}
+        <motion.div {...fadeUp(1.1)}>
+          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
+            <span className="uppercase tracking-widest">로그인 후 플로우</span>
+            {(["free", "pro"] as const).map((plan: DevPreviewPlan) => (
+              <button
+                key={plan}
+                type="button"
+                onClick={() => {
+                  localStorage.setItem("recommend_payload", JSON.stringify(DEV_PREVIEW_PAYLOAD));
+                  window.location.href = `/result?dev_preview=1&plan=${plan}`;
+                }}
+                className="hover:text-muted-foreground transition-colors uppercase tracking-widest"
+              >
+                {plan}
+              </button>
+            ))}
+          </div>
         </motion.div>
       </div>
     </div>

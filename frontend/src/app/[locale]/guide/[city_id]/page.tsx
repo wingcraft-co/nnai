@@ -8,6 +8,12 @@ import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
 import { buildGuideExportFilename, markdownToCanvasLines } from "@/lib/guide-export.mjs";
+import {
+  readDevPreview,
+  mockBillingStatus,
+  mockDetailQuota,
+  mockDetailMarkdown,
+} from "@/lib/dev-preview";
 
 const SESSION_V2_KEY = "result_session_v2";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -237,6 +243,16 @@ export default function GuidePage() {
         setCity(selected);
         setParsedData(session.parsedData);
 
+        // Dev preview 단축 — 백엔드 호출 우회, mock 데이터 주입
+        const devPreview = readDevPreview();
+        if (devPreview.enabled) {
+          setBillingStatus(mockBillingStatus(devPreview.plan));
+          setDetailQuota(mockDetailQuota(devPreview.plan));
+          setMarkdown(mockDetailMarkdown(selected.city_kr ?? "", selected.city ?? ""));
+          setQuotaExceeded(false);
+          return;
+        }
+
         const statusResponse = await fetch(`${API_BASE}/api/billing/status`, {
           cache: "no-store",
           credentials: "include",
@@ -297,6 +313,17 @@ export default function GuidePage() {
     setConfirming(true);
     setError(null);
     try {
+      // Dev preview 단축
+      const devPreview = readDevPreview();
+      if (devPreview.enabled) {
+        if (devPreview.plan === "free") {
+          setBillingStatus(mockBillingStatus("free"));
+          return;
+        }
+        router.push(`/dashboard?dev_preview=1&plan=${devPreview.plan}`);
+        return;
+      }
+
       const response = await fetch(`${API_BASE}/api/dashboard/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

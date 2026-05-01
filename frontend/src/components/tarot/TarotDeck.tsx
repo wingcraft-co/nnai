@@ -21,6 +21,7 @@ import {
   trackLoginClick,
   trackResultCardInteraction,
 } from "@/lib/analytics/events";
+import { readDevPreview, appendDevPreviewQuery } from "@/lib/dev-preview";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -281,9 +282,13 @@ function LightboxFrontContent({
     };
   }, [city, locale]);
 
-  // Auth check — /auth/me 쿠키 세션
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  // Auth check — /auth/me 쿠키 세션 (dev preview 모드면 강제 로그인 상태)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(() => {
+    if (typeof window === "undefined") return null;
+    return readDevPreview().enabled ? true : null;
+  });
   useEffect(() => {
+    if (readDevPreview().enabled) return;
     let cancelled = false;
     fetch(`${API_BASE}/auth/me`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
@@ -306,7 +311,8 @@ function LightboxFrontContent({
   }
 
   function handleDetailClick() {
-    const path = guidePathForCity(city, locale);
+    const basePath = guidePathForCity(city, locale);
+    const path = appendDevPreviewQuery(basePath, readDevPreview());
     try {
       localStorage.setItem("selected_guide_city_id", city.id || city.city);
     } catch {
