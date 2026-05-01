@@ -21,7 +21,7 @@ The feature should make the journey map feel like a playful extension of the exi
 
 Primary logged-out CTA copy:
 
-> 내 발자취를 남기고 저장해서  
+> 내 발자취를 남기고 저장해서<br>
 > 나만의 디지털노마드 log를 완성해보세요.
 
 CTA behavior:
