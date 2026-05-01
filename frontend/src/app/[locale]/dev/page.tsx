@@ -75,16 +75,6 @@ interface AuthUser {
   uid?: string;
 }
 
-interface Pin {
-  id?: number;
-  city: string;
-  display: string;
-  note: string;
-  lat: number;
-  lng: number;
-  created_at?: string;
-}
-
 // ── 공통 스타일 ───────────────────────────────────────────────
 const inputCls =
   'bg-[#0d0f15] border border-[#1e2330] rounded-lg px-3 py-2 text-sm text-[#e2e8f0] font-mono focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/15 transition-colors w-full placeholder:text-[#2e3848]';
@@ -337,60 +327,6 @@ export default function DevPage() {
     }
   };
 
-  // ── Pins ───────────────────────────────────────────────────
-  const [pins, setPins] = useState<Pin[]>([]);
-  const [pinsLoading, setPinsLoading] = useState(false);
-  const [newPin, setNewPin] = useState<Omit<Pin, 'id' | 'created_at'>>({
-    city: '', display: '', note: '', lat: 0, lng: 0,
-  });
-  const [pinError, setPinError] = useState('');
-  const [communityPins, setCommunityPins] = useState<Array<{ city: string; cnt: number }>>([]);
-
-  const fetchPins = useCallback(async () => {
-    setPinsLoading(true);
-    try {
-      const r = await fetch(`${API_BASE}/api/pins`, { credentials: 'include' });
-      setPins(await r.json());
-    } catch {
-      setPins([]);
-    } finally {
-      setPinsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPins();
-    fetch(`${API_BASE}/api/pins/community`, { credentials: 'include' })
-      .then((r) => r.json())
-      .then(setCommunityPins)
-      .catch(() => {});
-  }, [fetchPins]);
-
-  const addPin = async () => {
-    setPinError('');
-    try {
-      const r = await fetch(`${API_BASE}/api/pins`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ ...newPin, lat: Number(newPin.lat), lng: Number(newPin.lng) }),
-      });
-      if (r.status === 401) { setPinError('로그인이 필요합니다'); return; }
-      if (!r.ok) throw new Error(`${r.status}`);
-      setNewPin({ city: '', display: '', note: '', lat: 0, lng: 0 });
-      fetchPins();
-    } catch (e) {
-      setPinError(String(e));
-    }
-  };
-
-  const deletePin = async (id: number) => {
-    try {
-      await fetch(`${API_BASE}/api/pins/${id}`, { method: 'DELETE', credentials: 'include' });
-      fetchPins();
-    } catch { /* ignore */ }
-  };
-
   // ── helper ─────────────────────────────────────────────────
   const toggleMulti = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
@@ -460,11 +396,7 @@ export default function DevPage() {
             {/* 요약 통계 */}
             <div className="mt-8 flex items-center justify-center gap-8">
               {[
-                { value: communityPins.length, label: '커뮤니티 핀 도시' },
-                {
-                  value: communityPins.reduce((s, p) => s + Number(p.cnt), 0),
-                  label: '총 저장 핀',
-                },
+                { value: animCount, label: '방문 카운트' },
                 {
                   value: auth?.logged_in ? '●' : '○',
                   label: '로그인',
@@ -509,7 +441,7 @@ export default function DevPage() {
             </div>
           ) : (
             <div className="flex items-center justify-between gap-4">
-              <p className="text-xs text-[#4a5568]">로그인하면 핀 저장 및 상세 가이드 조회가 가능합니다.</p>
+              <p className="text-xs text-[#4a5568]">로그인하면 상세 가이드와 개인화 기능을 확인할 수 있습니다.</p>
               <a href={`${API_BASE}/auth/google`} className={btnPrimary}>
                 Google로 로그인
               </a>
@@ -717,118 +649,6 @@ export default function DevPage() {
               {step2Error && <ErrorBox msg={step2Error} />}
               {step2Result && <Output content={step2Result} />}
             </>
-          )}
-        </Section>
-
-        {/* ── 04 PINS ─────────────────────────────────────────── */}
-        <Section num="04" title="PINS  관심 도시" badge="/api/pins" defaultOpen={false}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-            {/* 내 핀 목록 */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] text-[#4a5568] uppercase tracking-widest">내 핀 목록</span>
-                <button onClick={fetchPins} className={btnSecondary}>
-                  {pinsLoading ? '...' : '↻ 새로고침'}
-                </button>
-              </div>
-
-              {pins.length === 0 ? (
-                <p className="text-xs text-[#2e3848]">
-                  {auth?.logged_in ? '저장된 핀이 없습니다.' : '로그인 후 확인 가능합니다.'}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {pins.map((p, i) => (
-                    <motion.div
-                      key={i}
-                      layout
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center justify-between p-3 bg-[#0d0f15] rounded-lg border border-[#1e2330]"
-                    >
-                      <div>
-                        <p className="text-sm text-[#c8d0e0]">{p.city}</p>
-                        <p className="text-xs text-[#4a5568] mt-0.5">{p.note}</p>
-                      </div>
-                      {p.id && (
-                        <button
-                          onClick={() => deletePin(p.id!)}
-                          className="text-xs text-[#3a4560] hover:text-red-400 transition-colors ml-3 shrink-0"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 핀 추가 폼 */}
-            <div>
-              <p className="text-[10px] text-[#4a5568] uppercase tracking-widest mb-3">핀 추가</p>
-              <div className="space-y-2">
-                <input
-                  placeholder="도시명 (예: 방콕)"
-                  className={inputCls}
-                  value={newPin.city}
-                  onChange={(e) => setNewPin((p) => ({ ...p, city: e.target.value }))}
-                />
-                <input
-                  placeholder="표시명 (예: Bangkok, Thailand)"
-                  className={inputCls}
-                  value={newPin.display}
-                  onChange={(e) => setNewPin((p) => ({ ...p, display: e.target.value }))}
-                />
-                <input
-                  placeholder="메모"
-                  className={inputCls}
-                  value={newPin.note}
-                  onChange={(e) => setNewPin((p) => ({ ...p, note: e.target.value }))}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    placeholder="위도 lat"
-                    className={inputCls}
-                    value={newPin.lat || ''}
-                    onChange={(e) => setNewPin((p) => ({ ...p, lat: Number(e.target.value) }))}
-                  />
-                  <input
-                    type="number"
-                    placeholder="경도 lng"
-                    className={inputCls}
-                    value={newPin.lng || ''}
-                    onChange={(e) => setNewPin((p) => ({ ...p, lng: Number(e.target.value) }))}
-                  />
-                </div>
-                <button onClick={addPin} className={btnPrimary + ' w-full'}>
-                  + 핀 추가
-                </button>
-                {pinError && <p className="text-xs text-red-400">{pinError}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* 커뮤니티 핀 */}
-          {communityPins.length > 0 && (
-            <div className="mt-6 pt-5 border-t border-[#1e2330]">
-              <p className="text-[10px] text-[#4a5568] uppercase tracking-widest mb-3">
-                커뮤니티 핀 TOP {Math.min(10, communityPins.length)}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {communityPins.slice(0, 10).map((p, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d0f15] rounded-lg border border-[#1e2330]"
-                  >
-                    <span className="text-xs text-[#8892a4]">{p.city}</span>
-                    <span className="text-xs text-amber-400 font-bold">{p.cnt}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
         </Section>
 

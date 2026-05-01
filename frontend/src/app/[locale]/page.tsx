@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useRouter } from "@/i18n/navigation";
+import { NomadJourneyModal } from "@/components/journey/NomadJourneyModal";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -16,6 +17,7 @@ const fadeUp = (delay: number) => ({
 export default function Home() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [journeyOpen, setJourneyOpen] = useState(false);
 
   useEffect(() => {
     async function checkPlan() {
@@ -52,7 +54,14 @@ export default function Home() {
     <div className="mx-auto flex min-h-screen max-w-sm w-full flex-col items-center justify-center px-4">
       {/* 지구본 */}
       <motion.div {...fadeUp(0.2)} className="mb-6">
-        <img src="/earth_web.gif" alt="" width={96} height={96} className="mx-auto" />
+        <button
+          type="button"
+          onClick={() => setJourneyOpen(true)}
+          aria-label="노마드 여정 지도 열기"
+          className="block transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <img src="/earth_web.gif" alt="" width={96} height={96} className="mx-auto" />
+        </button>
       </motion.div>
 
       {/* 헤드라인 */}
@@ -127,6 +136,7 @@ export default function Home() {
           </button>
         </motion.div>
       </div>
+      <NomadJourneyModal open={journeyOpen} onClose={() => setJourneyOpen(false)} />
     </div>
   );
 }
