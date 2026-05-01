@@ -122,7 +122,7 @@ function QFCell({ label, value }: { label: string; value: string }) {
 
 // ─────────────────────────────────────────────────────────────────
 
-// 본문 단락
+// 본문 단락 — 첫 줄 들여쓰기 1em (인쇄 문서 컨벤션)
 function Paragraph({ children }: { children: React.ReactNode }) {
   return (
     <p
@@ -131,7 +131,8 @@ function Paragraph({ children }: { children: React.ReactNode }) {
         fontSize: "13px",
         lineHeight: 1.75,
         color: COLOR_INK,
-        margin: "14px 0 0",
+        margin: "10px 0 0",
+        textIndent: "16px",
         textAlign: "justify",
         wordBreak: "keep-all",
         overflowWrap: "break-word",
@@ -275,92 +276,82 @@ function BriefingTable({
 }
 
 function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?: number }) {
-  // Top-level (1, 2, 3, ...) — 번호를 left gutter 컬럼에 배치
+  // Section (장) — IMF 스타일 bold serif. 가로선 없이 spacing으로만 구분.
   if (depth === 0) {
     return (
-      <section
-        style={{
-          marginTop: "44px",
-          paddingTop: "20px",
-          borderTop: `1.5px solid ${COLOR_RULE}`,
-        }}
-      >
+      <section style={{ marginTop: "36px" }}>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "60px 1fr",
-            columnGap: "20px",
-            alignItems: "start",
+            gridTemplateColumns: "52px 1fr",
+            columnGap: "16px",
+            alignItems: "baseline",
           }}
         >
           <span
             style={{
               fontFamily: SERIF,
-              fontSize: "26px",
-              fontWeight: 400,
-              color: COLOR_MUTED,
-              lineHeight: 1.1,
+              fontSize: "22px",
+              fontWeight: 700,
+              color: COLOR_INK,
+              lineHeight: 1.2,
               fontVariantNumeric: "tabular-nums",
-              paddingTop: "2px",
+              textAlign: "right",
+              letterSpacing: "-0.01em",
             }}
           >
             {section.num}.
           </span>
-          <div>
-            <h2
-              style={{
-                fontFamily: SERIF,
-                fontSize: "24px",
-                fontWeight: 600,
-                color: COLOR_INK,
-                margin: 0,
-                lineHeight: 1.2,
-                wordBreak: "keep-all",
-                letterSpacing: "-0.005em",
-              }}
-            >
-              {section.title}
-            </h2>
-            {section.body && <Paragraph>{section.body}</Paragraph>}
-            {section.items && <ItemList items={section.items} />}
-            {section.table && <BriefingTable table={section.table} />}
-            {section.subsections?.map((sub) => (
-              <SectionBlock key={sub.num} section={sub} depth={1} />
-            ))}
-          </div>
+          <h2
+            style={{
+              fontFamily: SERIF,
+              fontSize: "22px",
+              fontWeight: 700,
+              color: COLOR_INK,
+              margin: 0,
+              lineHeight: 1.2,
+              wordBreak: "keep-all",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            {section.title}
+          </h2>
+        </div>
+        <div style={{ paddingLeft: "68px", marginTop: "10px" }}>
+          {section.body && <Paragraph>{section.body}</Paragraph>}
+          {section.items && <ItemList items={section.items} />}
+          {section.table && <BriefingTable table={section.table} />}
+          {section.subsections?.map((sub) => (
+            <SectionBlock key={sub.num} section={sub} depth={1} />
+          ))}
         </div>
       </section>
     );
   }
 
-  // Subsection (절) — CAPS tracked 라벨 톤 (size로 hierarchy 만들지 않고 structural label로)
+  // Subsection (절) — IMF 스타일 bold serif. 사이즈만 작게, 가로선 없음.
   return (
-    <div style={{ marginTop: "26px" }}>
+    <div style={{ marginTop: "20px" }}>
       <h3
         style={{
-          fontFamily: SANS,
-          fontSize: "11px",
+          fontFamily: SERIF,
+          fontSize: "14px",
           fontWeight: 700,
           color: COLOR_INK,
           margin: 0,
-          paddingBottom: "8px",
-          borderBottom: `0.5px solid ${COLOR_MUTED}`,
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          lineHeight: 1.3,
+          marginBottom: "4px",
+          lineHeight: 1.35,
           wordBreak: "keep-all",
           display: "flex",
           alignItems: "baseline",
-          gap: "12px",
+          gap: "8px",
         }}
       >
         <span
           style={{
-            color: COLOR_MUTED,
             fontWeight: 500,
-            fontSize: "11px",
+            color: COLOR_INK,
             fontVariantNumeric: "tabular-nums",
-            letterSpacing: "0.04em",
           }}
         >
           {section.num}
@@ -540,26 +531,18 @@ export function CountryBriefingDocument({
           <SectionBlock key={sec.num} section={sec} />
         ))}
 
-        {/* References */}
-        <hr
-          style={{
-            margin: "48px 0 0",
-            border: 0,
-            borderTop: `2px solid ${COLOR_RULE}`,
-          }}
-        />
-        <section style={{ marginTop: "24px" }}>
+        {/* References — 가로선 없이 큰 spacing으로 구분 */}
+        <section style={{ marginTop: "60px" }}>
           <h2
             style={{
-              fontFamily: SANS,
-              fontSize: "11px",
+              fontFamily: SERIF,
+              fontSize: "18px",
               fontWeight: 700,
               color: COLOR_INK,
               margin: 0,
-              paddingBottom: "8px",
-              borderBottom: `0.5px solid ${COLOR_MUTED}`,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
+              marginBottom: "12px",
+              lineHeight: 1.2,
+              letterSpacing: "-0.005em",
             }}
           >
             References

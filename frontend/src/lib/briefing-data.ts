@@ -100,12 +100,16 @@ export function preparedForLabel(userProfile: Record<string, unknown> | null | u
   return personaLabel;
 }
 
-/** Mock briefing — country/city agnostic 본문 + country-aware references */
+/** Mock briefing — country/city agnostic 본문 + 실제 도시 데이터 plug-in Quick Facts */
 export async function buildMockBriefing(input: {
   cityName?: string;
   cityKr?: string | null;
   countryId?: string;
   userProfile?: Record<string, unknown>;
+  visaType?: string | null;
+  visaFreeDays?: number | null;
+  stayMonths?: number | null;
+  monthlyCostUsd?: number | null;
 }): Promise<BriefingData> {
   const cityName = input.cityName || "Bangkok";
   const cityKr = input.cityKr ?? null;
@@ -113,6 +117,16 @@ export async function buildMockBriefing(input: {
   const userProfile = input.userProfile ?? { persona_type: "free_spirit", travel_type: "혼자 (솔로)" };
   const issuedDate = new Date().toISOString().slice(0, 10);
   const documentId = await buildDocumentId(countryId, issuedDate, userProfile);
+
+  // 세무 거주지 임계점 — 대부분 OECD 183일, 일부 국가 차등
+  const TAX_RESIDENCY_DAYS: Record<string, number> = {
+    TH: 180,
+    JP: 183,
+    SG: 183,
+    AE: 183,
+    PT: 183,
+  };
+  const taxDays = TAX_RESIDENCY_DAYS[countryId] ?? 183;
 
   const COUNTRY_OFFICIAL: Record<string, string> = {
     TH: "Kingdom of Thailand",
@@ -182,10 +196,18 @@ export async function buildMockBriefing(input: {
     countryOfficial,
     countryId,
     quickFacts: {
-      visa: "Refer to § 2",
-      stay: "Refer to § 2.2",
-      monthly: "Refer to § 3.1",
-      taxResidency: "Refer to § 3.2",
+      visa: input.visaType || (input.visaFreeDays
+        ? `Visa-free ${input.visaFreeDays}d`
+        : "—"),
+      stay: input.stayMonths
+        ? `Up to ${input.stayMonths} months`
+        : input.visaFreeDays
+          ? `${input.visaFreeDays} days max`
+          : "—",
+      monthly: typeof input.monthlyCostUsd === "number"
+        ? `USD ${input.monthlyCostUsd.toLocaleString()}`
+        : "—",
+      taxResidency: `${taxDays}-day threshold`,
     },
     sections: [
       {

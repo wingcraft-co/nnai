@@ -263,6 +263,11 @@ export default function GuidePage() {
               persona_type: "free_spirit",
               travel_type: "혼자 (솔로)",
             },
+            // Quick Facts 실값 plug-in — revealedCities enrichment 결과 사용
+            visaType: selected.visa_type ?? null,
+            visaFreeDays: typeof selected.visa_free_days === "number" ? selected.visa_free_days : null,
+            stayMonths: typeof selected.stay_months === "number" ? selected.stay_months : null,
+            monthlyCostUsd: typeof selected.monthly_cost_usd === "number" ? selected.monthly_cost_usd : null,
           });
           if (!cancelled) setBriefing(mockBriefing);
           return;
