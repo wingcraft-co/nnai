@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   buildJourneyCityOptions,
+  findJourneyCitySearchMatch,
   filterJourneyCities,
   projectJourneyPoint,
   resolveJourneyLocation,
@@ -28,6 +29,15 @@ test('filters cities by fuzzy city, country, korean name, and iso code', () => {
   assert.equal(filterJourneyCities(options, '포르투').some((city) => city.city === 'Porto'), true);
   assert.equal(filterJourneyCities(options, 'vnm').some((city) => city.city === 'Da Nang'), true);
   assert.equal(filterJourneyCities(options, 'th').some((city) => city.city === 'Bangkok'), true);
+});
+
+test('finds a strong city match while typing search text', () => {
+  const options = buildJourneyCityOptions(cityScores);
+
+  assert.equal(findJourneyCitySearchMatch(options, 'lis')?.city, 'Lisbon');
+  assert.equal(findJourneyCitySearchMatch(options, '방콕')?.city, 'Bangkok');
+  assert.equal(findJourneyCitySearchMatch(options, 'pt')?.country_code, 'PT');
+  assert.equal(findJourneyCitySearchMatch(options, 'x')?.city, undefined);
 });
 
 test('projects city coordinates into the real world map view box', () => {

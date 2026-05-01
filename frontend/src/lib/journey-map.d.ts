@@ -23,6 +23,11 @@ export function filterJourneyCities(
   limit?: number,
 ): JourneyCityOption[];
 
+export function findJourneyCitySearchMatch(
+  options: JourneyCityOption[],
+  query: string,
+): JourneyCityOption | null;
+
 export function resolveJourneyLocation(
   options: JourneyCityOption[],
   lat: number,

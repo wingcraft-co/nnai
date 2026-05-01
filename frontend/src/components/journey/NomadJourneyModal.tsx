@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LocateFixed, MapPin, Search, Users, UserRound, X } from "lucide-react";
 import cityScores from "@/data/city_scores.json";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
 import {
   buildJourneyCityOptions,
+  findJourneyCitySearchMatch,
   filterJourneyCities,
   projectJourneyPoint,
   resolveJourneyLocation,
@@ -89,6 +90,8 @@ export function NomadJourneyModal({
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [personaType, setPersonaType] = useState("");
+  const [previewAnimationKey, setPreviewAnimationKey] = useState(0);
+  const lastSearchMatchRef = useRef("");
 
   useEffect(() => {
     if (!open) return;
@@ -147,10 +150,25 @@ export function NomadJourneyModal({
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [onClose, open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const match = findJourneyCitySearchMatch(CITY_OPTIONS, cityQuery) as JourneyCityOption | null;
+    if (!match) return;
+
+    const matchKey = `${cityQuery.trim().toLowerCase()}|${match.id}`;
+    if (lastSearchMatchRef.current === matchKey) return;
+    lastSearchMatchRef.current = matchKey;
+
+    setSelectedCity((current) => (current.id === match.id ? current : match));
+    setPreviewAnimationKey((key) => key + 1);
+  }, [cityQuery, open]);
+
   if (!open) return null;
 
   const visibleCommunity = showPersona && personaCommunity.length > 0 ? personaCommunity : community;
   const filteredCities = filterJourneyCities(CITY_OPTIONS, cityQuery, 7) as JourneyCityOption[];
+  const selectedPoint = projectJourneyPoint(selectedCity.lat, selectedCity.lng);
 
   function requestLocation() {
     if (!navigator.geolocation) {
@@ -174,6 +192,7 @@ export function NomadJourneyModal({
 
         setSelectedCity(city);
         setCityQuery(city.city);
+        setPreviewAnimationKey((key) => key + 1);
         setStatus(`${city.city} 근처의 현재 GPS 좌표로 확인했습니다. 그대로 깃발을 꽂을 수 있습니다.`);
       },
       () => setStatus("위치 권한을 확인하지 못했습니다. 도시를 직접 선택해주세요."),
@@ -238,6 +257,21 @@ export function NomadJourneyModal({
           className="pointer-events-none absolute h-[calc(100%-10rem)] max-h-full w-[calc(100%-1rem)] max-w-[150vh] lg:h-[calc(100%-5rem)] lg:w-[calc(100%-4rem)]"
           aria-label="Nomad journey world map"
         >
+          <style>
+            {`
+              @keyframes journeyFlagDrop {
+                0% { opacity: 0; transform: translateY(-38px) scale(0.72); }
+                62% { opacity: 1; transform: translateY(4px) scale(1.04); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+              }
+              @keyframes journeyFlagPulse {
+                0% { opacity: 0.38; transform: scale(0.65); }
+                100% { opacity: 0; transform: scale(2.4); }
+              }
+              .journey-preview-flag { animation: journeyFlagDrop 520ms cubic-bezier(.2,.9,.2,1) both; transform-box: fill-box; transform-origin: center bottom; }
+              .journey-preview-pulse { animation: journeyFlagPulse 900ms ease-out both; transform-box: fill-box; transform-origin: center; }
+            `}
+          </style>
           {myStops.length > 1 && (
             <polyline
               points={routePoints(myStops)}
@@ -275,6 +309,14 @@ export function NomadJourneyModal({
               </g>
             );
           })}
+
+          <g key={`preview-${selectedCity.id}-${previewAnimationKey}`} transform={`translate(${selectedPoint.x} ${selectedPoint.y})`}>
+            <circle r="12" fill="currentColor" className="journey-preview-pulse text-[#d1842c]" />
+            <g className="journey-preview-flag">
+              <path d="M0 0 L0 -30 L23 -19 L0 -9 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2.3" className="text-[#d1842c]" />
+              <circle r="4.5" fill="#fffaf2" />
+            </g>
+          </g>
         </svg>
       </div>
 
@@ -347,6 +389,7 @@ export function NomadJourneyModal({
                   onClick={() => {
                     setSelectedCity(city);
                     setCityQuery(city.city);
+                    setPreviewAnimationKey((key) => key + 1);
                   }}
                   className={`flex w-full items-center justify-between border-b border-[#eadfd1] px-3 py-2.5 text-left text-sm transition-colors last:border-b-0 hover:bg-[#f7f1e8] ${selectedCity.id === city.id ? "bg-[#f1e2cc] text-[#1D1D1F]" : "bg-white text-[#3d352d]"}`}
                 >

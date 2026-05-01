@@ -99,7 +99,7 @@ function normalizeSearch(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, "");
+    .replace(/[^a-z0-9가-힣ㄱ-ㅎㅏ-ㅣ\u1100-\u11ff]+/g, "");
 }
 
 function compactSearchParts(parts) {
@@ -186,6 +186,14 @@ export function filterJourneyCities(options, query, limit = 7) {
     .sort((a, b) => a.rank - b.rank || a.city.city.localeCompare(b.city.city))
     .slice(0, limit)
     .map((entry) => entry.city);
+}
+
+export function findJourneyCitySearchMatch(options, query) {
+  const normalizedQuery = normalizeSearch(query);
+  if (normalizedQuery.length < 2) return null;
+
+  const filtered = filterJourneyCities(options, query, 1);
+  return filtered[0] ?? null;
 }
 
 export function resolveJourneyLocation(options, lat, lng, thresholdKm = GPS_CITY_THRESHOLD_KM) {
