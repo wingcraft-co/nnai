@@ -17,6 +17,7 @@ export type Provider = "google" | "polar";
 export type OnboardingFlow = "quiz" | "form";
 export type ResultCardAction = "open_city" | "open_locked" | "unlock_click" | "guide_click";
 export type PricingSection = "free_plan" | "pro_plan" | "faq" | "pro_expansion";
+export type JourneyContinent = "Europe" | "Asia" | "Americas" | "Middle East" | "Africa";
 export type PageKey =
   | "home"
   | "quiz"
@@ -259,4 +260,28 @@ export function trackPricingSectionEngagement({
     section,
     action,
   });
+}
+
+export function trackJourneyMapOpen(): void {
+  captureFullAnalyticsEvent("journey_map_open", {});
+}
+
+export function trackJourneyContinentSelect(continent: JourneyContinent): void {
+  captureFullAnalyticsEvent("journey_continent_select", { continent });
+}
+
+export function trackJourneyCountrySelect(countryCode: string): void {
+  captureFullAnalyticsEvent("journey_country_select", { country_code: countryCode });
+}
+
+export function trackJourneyCitySelect(cityId: string): void {
+  captureFullAnalyticsEvent("journey_city_select", { city_id: cityId });
+}
+
+export function trackJourneySaveClick(loggedIn: boolean): void {
+  captureFullAnalyticsEvent("journey_save_click", { logged_in: loggedIn });
+}
+
+export function trackJourneySaveSuccess(cityId: string): void {
+  captureFullAnalyticsEvent("journey_save_success", { city_id: cityId });
 }
