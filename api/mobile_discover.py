@@ -24,16 +24,6 @@ def _load_city_rows() -> list[dict]:
     return _city_rows_cache
 
 
-class PinCreate(BaseModel):
-    city: str
-    display: str
-    note: str
-    lat: float
-    lng: float
-    user_lat: float | None = None
-    user_lng: float | None = None
-
-
 class CityStayCreate(BaseModel):
     city: str
     country: str | None = None
@@ -184,61 +174,6 @@ def toggle_circle(circle_id: int, user_id: str = Depends(require_mobile_auth)):
     conn.commit()
 
     return {"joined": not is_member}
-
-
-@router.get("/pins")
-def get_pins(user_id: str = Depends(require_mobile_auth)):
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT id, city, display, note, lat, lng, created_at
-            FROM pins
-            WHERE user_id = %s
-            ORDER BY created_at DESC
-            """,
-            (user_id,),
-        )
-        rows = cur.fetchall()
-
-    return [
-        {
-            "id": r[0],
-            "city": r[1],
-            "display": r[2],
-            "note": r[3],
-            "lat": r[4],
-            "lng": r[5],
-            "created_at": str(r[6]),
-        }
-        for r in rows
-    ]
-
-
-@router.post("/pins", status_code=201)
-def create_pin(body: PinCreate, user_id: str = Depends(require_mobile_auth)):
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO pins (user_id, city, display, note, lat, lng, user_lat, user_lng, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW()::text)
-            RETURNING id, city, display, note, lat, lng, created_at
-            """,
-            (user_id, body.city, body.display, body.note, body.lat, body.lng, body.user_lat, body.user_lng),
-        )
-        row = cur.fetchone()
-    conn.commit()
-
-    return {
-        "id": row[0],
-        "city": row[1],
-        "display": row[2],
-        "note": row[3],
-        "lat": row[4],
-        "lng": row[5],
-        "created_at": str(row[6]),
-    }
 
 
 @router.get("/city-stays")

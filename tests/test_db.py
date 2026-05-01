@@ -16,7 +16,7 @@ def conn():
     yield c
     # 테스트 후 테이블 초기화
     with c.cursor() as cur:
-        cur.execute("DELETE FROM pins")
+        cur.execute("DELETE FROM nomad_journey_stops")
         cur.execute("DELETE FROM users")
     c.commit()
     c.close()
@@ -30,28 +30,55 @@ def test_init_creates_tables(conn):
         """)
         tables = {r[0] for r in cur.fetchall()}
     assert "users" in tables
-    assert "pins" in tables
+    assert "nomad_journey_stops" in tables
+    assert "pins" not in tables
 
 
-def test_insert_and_fetch_pin(conn):
+def test_insert_and_fetch_journey_stop(conn):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO users VALUES (%s,%s,%s,%s,%s)",
-            ("uid1", "test@example.com", "Test", "http://img", "2026-01-01T00:00:00")
+            """
+            INSERT INTO users (id, email, name, picture, persona_type, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW()::text)
+            """,
+            ("uid1", "test@example.com", "Test", "http://img", "planner")
         )
         cur.execute(
-            "INSERT INTO pins(user_id,city,display,note,lat,lng,user_lat,user_lng,created_at) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            ("uid1", "방콕", "Bangkok, Thailand", "최고!", 13.75, 100.5,
-             13.0, 100.0, "2026-01-01T00:00:00")
+            """
+            INSERT INTO nomad_journey_stops(
+                user_id, city, country, country_code, note, lat, lng, persona_type
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            ("uid1", "방콕", "Thailand", "TH", "최고!", 13.75, 100.5, "planner")
         )
     conn.commit()
     with conn.cursor() as cur:
-        cur.execute("SELECT city, note FROM pins WHERE user_id=%s", ("uid1",))
+        cur.execute("SELECT city, note FROM nomad_journey_stops WHERE user_id=%s", ("uid1",))
         rows = cur.fetchall()
     assert len(rows) == 1
     assert rows[0][0] == "방콕"
     assert rows[0][1] == "최고!"
+
+
+def test_journey_stop_note_length_is_limited(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO users (id, email, name, picture, created_at)
+            VALUES (%s, %s, %s, %s, NOW()::text)
+            """,
+            ("uid1", "test@example.com", "Test", "http://img"),
+        )
+        with pytest.raises(Exception):
+            cur.execute(
+                """
+                INSERT INTO nomad_journey_stops(user_id, city, country, note, lat, lng)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                ("uid1", "방콕", "Thailand", "12345678901", 13.75, 100.5),
+            )
+    conn.rollback()
 
 
 def test_get_conn_returns_same_thread_connection():

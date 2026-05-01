@@ -21,8 +21,8 @@ def get_profile(user_id: str = Depends(require_mobile_auth)):
         cur.execute("SELECT badge FROM user_badges WHERE user_id = %s", (user_id,))
         badges = [r[0] for r in cur.fetchall()]
 
-        cur.execute("SELECT COUNT(*) FROM pins WHERE user_id = %s", (user_id,))
-        pin_count = int(cur.fetchone()[0])
+        cur.execute("SELECT COUNT(*) FROM nomad_journey_stops WHERE user_id = %s", (user_id,))
+        journey_stop_count = int(cur.fetchone()[0])
 
         cur.execute("SELECT COUNT(*) FROM posts WHERE user_id = %s", (user_id,))
         post_count = int(cur.fetchone()[0])
@@ -39,7 +39,7 @@ def get_profile(user_id: str = Depends(require_mobile_auth)):
         "character": resolve_character(identity["persona_type"]),
         "badges": badges,
         "stats": {
-            "pins": pin_count,
+            "journey_stops": journey_stop_count,
             "posts": post_count,
             "circles": circle_count,
         },

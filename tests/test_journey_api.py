@@ -1,0 +1,170 @@
+import os
+import pytest
+
+TEST_DB_URL = os.environ.get("TEST_DATABASE_URL")
+
+requires_db = pytest.mark.skipif(
+    not TEST_DB_URL,
+    reason="TEST_DATABASE_URL 환경변수가 없으면 스킵",
+)
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from utils.db import init_db
+
+
+def _make_app(user_id: str | None):
+    from api.journey import router
+    from utils import db as db_mod
+
+    app = FastAPI()
+
+    class FakeAuth(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            request.state.user_id = user_id
+            return await call_next(request)
+
+    app.add_middleware(FakeAuth)
+    app.include_router(router, prefix="/api")
+
+    db_mod._conn = init_db(TEST_DB_URL)
+    with db_mod._conn.cursor() as cur:
+        cur.execute("DELETE FROM nomad_journey_stops")
+        cur.execute("DELETE FROM users")
+        cur.execute(
+            """
+            INSERT INTO users (id, email, name, picture, persona_type, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW()::text)
+            """,
+            ("uid1", "uid1@example.com", "Tester 1", "", "planner"),
+        )
+        cur.execute(
+            """
+            INSERT INTO users (id, email, name, picture, persona_type, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW()::text)
+            """,
+            ("uid2", "uid2@example.com", "Tester 2", "", "wanderer"),
+        )
+    db_mod._conn.commit()
+    return app
+
+
+def _stop_payload(**overrides):
+    payload = {
+        "city": "Kuala Lumpur",
+        "country": "Malaysia",
+        "country_code": "MY",
+        "lat": 3.139,
+        "lng": 101.6869,
+        "note": "KL좋아",
+    }
+    payload.update(overrides)
+    return payload
+
+
+@requires_db
+def test_create_stop_requires_auth():
+    client = TestClient(_make_app(None))
+
+    response = client.post("/api/journey/stops", json=_stop_payload())
+
+    assert response.status_code == 401
+
+
+@requires_db
+def test_create_stop_saves_persona_and_returns_stop():
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json=_stop_payload())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["city"] == "Kuala Lumpur"
+    assert body["country"] == "Malaysia"
+    assert body["note"] == "KL좋아"
+    assert body["persona_type"] == "planner"
+    assert body["verified_method"] == "gps_city_confirmed"
+    assert "id" in body
+
+
+@requires_db
+def test_create_stop_rejects_note_over_ten_characters():
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json=_stop_payload(note="12345678901"))
+
+    assert response.status_code == 422
+
+
+@requires_db
+def test_my_journey_returns_only_current_user_in_chronological_order():
+    uid1 = TestClient(_make_app("uid1"))
+    uid1.post("/api/journey/stops", json=_stop_payload(city="Kuala Lumpur", note="첫도시"))
+    uid1.post(
+        "/api/journey/stops",
+        json=_stop_payload(city="Chiang Mai", country="Thailand", country_code="TH", lat=18.7883, lng=98.9853, note="두번째"),
+    )
+
+    uid2 = TestClient(_make_app("uid2"))
+    uid2.post(
+        "/api/journey/stops",
+        json=_stop_payload(city="Lisbon", country="Portugal", country_code="PT", lat=38.7223, lng=-9.1393, note="숨김"),
+    )
+
+    response = uid1.get("/api/journey/me")
+
+    assert response.status_code == 200
+    cities = [row["city"] for row in response.json()]
+    assert cities == ["Kuala Lumpur", "Chiang Mai"]
+
+
+@requires_db
+def test_community_returns_city_level_counts_only():
+    client = TestClient(_make_app("uid1"))
+    client.post("/api/journey/stops", json=_stop_payload(note="개인글"))
+    client.post("/api/journey/stops", json=_stop_payload(note="또왔음"))
+
+    response = client.get("/api/journey/community")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == [
+        {
+            "city": "Kuala Lumpur",
+            "country": "Malaysia",
+            "country_code": "MY",
+            "lat": 3.139,
+            "lng": 101.6869,
+            "cnt": 2,
+        }
+    ]
+    assert "note" not in body[0]
+    assert "user_id" not in body[0]
+
+
+@requires_db
+def test_community_persona_filter_returns_aggregate_counts_only():
+    uid1 = TestClient(_make_app("uid1"))
+    uid1.post("/api/journey/stops", json=_stop_payload(note="플래너"))
+
+    uid2 = TestClient(_make_app("uid2"))
+    uid2.post("/api/journey/stops", json=_stop_payload(note="방랑자"))
+
+    response = uid1.get("/api/journey/community?persona_type=planner")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["city"] == "Kuala Lumpur"
+    assert body[0]["cnt"] == 1
+    assert set(body[0]) == {"city", "country", "country_code", "lat", "lng", "cnt"}
+
+
+def test_legacy_pins_routes_are_not_mounted_on_server():
+    import server
+
+    paths = {route.path for route in server.app.routes}
+
+    assert "/api/pins" not in paths
+    assert "/api/pins/community" not in paths

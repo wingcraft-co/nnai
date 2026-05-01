@@ -583,16 +583,16 @@ Cookie: nnai_session=...
 
 ---
 
-## 핀 API
+## Nomad Journey API
 
-저장된 관심 도시를 관리합니다. **로그인 필요** (community 조회 제외).
+픽셀 지구본 이스터에그의 노마드 여정 기록 API입니다. 기존 관심 도시 `pins` API는 제거되었고, 기존 `pins` 데이터는 새 여정 데이터로 마이그레이션하지 않습니다.
 
-### GET /api/pins
+### GET /api/journey/me
 
-내 저장 도시 목록 조회. 미로그인 시 빈 배열 반환.
+내 인증 도시 목록을 시간순으로 조회합니다. **로그인 필요.**
 
 ```
-GET /api/pins
+GET /api/journey/me
 Cookie: nnai_session=...
 ```
 
@@ -600,24 +600,31 @@ Cookie: nnai_session=...
 ```json
 [
   {
-    "city": "방콕",
-    "display": "Bangkok, Thailand",
-    "note": "좋아요",
-    "lat": 13.75,
-    "lng": 100.5,
-    "created_at": "2026-03-30T10:00:00+00:00"
+    "id": 42,
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "country_code": "MY",
+    "lat": 3.139,
+    "lng": 101.6869,
+    "note": "KL좋아",
+    "persona_type": "planner",
+    "verified_method": "gps_city_confirmed",
+    "created_at": "2026-05-01T05:00:00+00:00"
   }
 ]
 ```
 
+**에러:**
+- `401` — 미로그인
+
 ---
 
-### POST /api/pins
+### POST /api/journey/stops
 
-관심 도시 저장. **로그인 필요.**
+GPS 확인 후 사용자가 확정한 도시 중심 좌표를 저장합니다. **로그인 필요.** 원본 정밀 GPS 좌표는 저장하지 않습니다.
 
 ```
-POST /api/pins
+POST /api/journey/stops
 Content-Type: application/json
 Cookie: nnai_session=...
 ```
@@ -626,102 +633,65 @@ Cookie: nnai_session=...
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `city` | string | ✅ | 도시명 (한국어 또는 영어) |
-| `display` | string | ✅ | 표시 이름 (예: `"Bangkok, Thailand"`) |
-| `note` | string | ✅ | 메모 |
-| `lat` | float | ✅ | 위도 |
-| `lng` | float | ✅ | 경도 |
-| `user_lat` | float \| null | ❌ | 사용자 현재 위치 위도 |
-| `user_lng` | float \| null | ❌ | 사용자 현재 위치 경도 |
+| `city` | string | ✅ | 인증한 도시명 |
+| `country` | string | ✅ | 국가명 |
+| `country_code` | string \| null | ❌ | ISO-2 국가 코드 |
+| `lat` | float | ✅ | 도시 중심 위도 |
+| `lng` | float | ✅ | 도시 중심 경도 |
+| `note` | string | ✅ | 10글자 이하 방명록 |
 
 **응답 (200 OK):**
 ```json
 {
   "id": 42,
-  "city": "방콕",
-  "created_at": "2026-03-30T10:00:00+00:00"
-}
-```
-
-**에러 (401):** 미로그인
-```json
-{ "detail": "로그인이 필요합니다" }
-```
-
----
-
-### PUT /api/pins/{pin_id}
-
-저장한 핀의 메모를 수정합니다. **로그인 필요. 본인 핀만 수정 가능.**
-
-```
-PUT /api/pins/{pin_id}
-Content-Type: application/json
-Cookie: nnai_session=...
-```
-
-**요청 바디:**
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| `note` | string | ✅ | 변경할 메모 |
-
-**응답 (200 OK):**
-```json
-{
-  "id": 42,
-  "note": "변경된 메모"
+  "city": "Kuala Lumpur",
+  "country": "Malaysia",
+  "country_code": "MY",
+  "lat": 3.139,
+  "lng": 101.6869,
+  "note": "KL좋아",
+  "persona_type": "planner",
+  "verified_method": "gps_city_confirmed",
+  "created_at": "2026-05-01T05:00:00+00:00"
 }
 ```
 
 **에러:**
 - `401` — 미로그인
-- `404` — 핀 없음 또는 다른 유저의 핀
+- `422` — 필수 필드 누락 또는 `note` 10글자 초과
 
 ---
 
-### DELETE /api/pins/{pin_id}
+### GET /api/journey/community
 
-저장한 핀을 삭제합니다. **로그인 필요. 본인 핀만 삭제 가능.**
-
-```
-DELETE /api/pins/{pin_id}
-Cookie: nnai_session=...
-```
-
-**응답 (200 OK):**
-```json
-{ "ok": true }
-```
-
-**에러:**
-- `401` — 미로그인
-- `404` — 핀 없음 또는 다른 유저의 핀
-
----
-
-### GET /api/pins/community
-
-전체 사용자의 핀을 도시별로 집계합니다. **인증 불필요.**
+전체 사용자의 인증 도시를 도시별로 집계합니다. **인증 불필요.** 개별 사용자, 개별 방명록, 원본 GPS 좌표는 반환하지 않습니다.
 
 ```
-GET /api/pins/community
+GET /api/journey/community
+GET /api/journey/community?persona_type=planner
 ```
+
+**쿼리 파라미터:**
+
+| 파라미터 | 설명 |
+|----------|------|
+| `persona_type` | 선택. 같은 노마드 타입 사용자만 도시별 집계 |
 
 **응답 (200 OK):**
 ```json
 [
   {
-    "city": "방콕",
-    "display": "Bangkok, Thailand",
-    "lat": 13.75,
-    "lng": 100.5,
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "country_code": "MY",
+    "lat": 3.139,
+    "lng": 101.6869,
     "cnt": 12
   }
 ]
 ```
 
-> `cnt` — 해당 도시를 저장한 유저 수. 내림차순 정렬, 최대 100개.
+> `cnt` — 해당 도시를 인증한 여정 stop 수. 내림차순 정렬, 최대 100개.
 
 ---
 
@@ -802,8 +772,6 @@ GET /api/visits?path=/dev
   - `GET /api/mobile/cities/{city_id}`
   - `GET /api/mobile/circles`
   - `POST /api/mobile/circles/{id}/join`
-  - `GET /api/mobile/pins`
-  - `POST /api/mobile/pins`
   - `GET /api/mobile/city-stays`
   - `POST /api/mobile/city-stays`
   - `PATCH /api/mobile/city-stays/{id}`
@@ -842,7 +810,7 @@ GET /api/visits?path=/dev
   - `persona_type` (`wanderer|local|planner|free_spirit|pioneer|null`)
   - `character` (`persona_type`가 없으면 `rocky`)
   - `badges: string[]`
-  - `stats: { pins, posts, circles }`
+  - `stats: { journey_stops, posts, circles }`
 - `GET/POST/PATCH /api/mobile/type-actions/wanderer/hops*`
   - `status`: `planned | booked`
   - `conditions: [{ id, label, is_done }]`

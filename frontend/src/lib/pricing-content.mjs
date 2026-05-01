@@ -27,13 +27,13 @@ const pricingContent = {
         summary: [
           "Top 3 city recommendations",
           "Step 2 detailed guide: 2 times per month",
-          "Saved pins: up to 5",
+          "Basic city comparison",
         ],
         features: [
           "See your top three recommended cities",
           "Open Step 2 detailed guidance twice each month",
           "Check base visa and lifestyle direction before paying",
-          "Save up to 5 cities while comparing options",
+          "Compare your recommended cities before paying",
         ],
         premiumGaps: [
           "No unlimited detail refreshes",
@@ -64,7 +64,7 @@ const pricingContent = {
           "Schengen calculator with visual calendar workflow",
           "Detailed tax simulation beyond the basic warning layer",
           "Unlimited city comparison while refining your shortlist",
-          "Unlimited saved pins for long-running planning",
+          "Nomad journey map for tracking verified stays",
         ],
         premiumGaps: [
           "Best fit once you are actively making a move",
@@ -94,7 +94,7 @@ const pricingContent = {
         },
         {
           question: "What becomes unlimited on Pro?",
-          answer: "Pro unlocks unlimited Step 2 detailed guides, unlimited saved pins, and unlimited city comparison.",
+          answer: "Pro unlocks unlimited Step 2 detailed guides, unlimited city comparison, and deeper planning workflows.",
         },
         {
           question: "How do payments work?",
@@ -122,13 +122,13 @@ const pricingContent = {
         summary: [
           "TOP 3 도시 추천",
           "Step 2 상세 가이드 월 2회",
-          "핀 저장 5개까지",
+          "기본 도시 비교",
         ],
         features: [
           "내 조건에 맞는 TOP 3 추천 도시 확인",
           "Step 2 상세 가이드는 월 2회까지만 열람 가능",
           "결제 전에도 비자/생활 방향성은 먼저 점검 가능",
-          "비교 중인 도시를 최대 5개까지 저장",
+          "추천 도시를 결제 전 비교",
         ],
         premiumGaps: [
           "상세 가이드 무제한 재조회 불가",
@@ -159,7 +159,7 @@ const pricingContent = {
           "쉥겐 계산기를 시각화 캘린더 형태로 활용",
           "기본 세금 경고를 넘는 상세 세금 시뮬레이션 제공",
           "후보 도시를 제한 없이 계속 비교 가능",
-          "핀 저장 무제한으로 장기 계획 관리 가능",
+          "인증한 체류 도시를 여정 지도로 기록",
         ],
         premiumGaps: [
           "실제 이민 설계 단계에서 가장 효율적인 플랜",
@@ -189,7 +189,7 @@ const pricingContent = {
         },
         {
           question: "Pro에서 무엇이 무제한이 되나요?",
-          answer: "Pro는 Step 2 상세 가이드, 핀 저장, 도시 비교를 사실상 무제한으로 사용할 수 있습니다.",
+          answer: "Pro는 Step 2 상세 가이드, 도시 비교, 더 깊은 이민 설계 흐름을 사실상 제한 없이 사용할 수 있습니다.",
         },
         {
           question: "결제는 어떻게 진행되나요?",

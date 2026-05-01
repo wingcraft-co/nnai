@@ -49,7 +49,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "local_saved_events",
     "move_checklist_items",
     "move_plans",
-    "pins",
+    "nomad_journey_stops",
     "pioneer_milestones",
     "planner_boards",
     "planner_tasks",
@@ -125,6 +125,19 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "radius_m",
     },
     "pioneer_milestones": {"country", "city", "category", "status", "target_date", "note"},
+    "nomad_journey_stops": {
+        "id",
+        "user_id",
+        "city",
+        "country",
+        "country_code",
+        "lat",
+        "lng",
+        "note",
+        "persona_type",
+        "verified_method",
+        "created_at",
+    },
 }
 
 
@@ -316,19 +329,33 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_bucket_window_created
             ON rate_limit_hits(bucket_key, window_name, created_at);
         """)
+        cur.execute("DROP TABLE IF EXISTS pins;")
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS pins (
-                id         SERIAL PRIMARY KEY,
-                user_id    TEXT NOT NULL REFERENCES users(id),
-                city       TEXT NOT NULL,
-                display    TEXT,
-                note       TEXT,
-                lat        REAL NOT NULL,
-                lng        REAL NOT NULL,
-                user_lat   REAL,
-                user_lng   REAL,
-                created_at TEXT NOT NULL
+            CREATE TABLE IF NOT EXISTS nomad_journey_stops (
+                id              SERIAL PRIMARY KEY,
+                user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                city            TEXT NOT NULL,
+                country         TEXT NOT NULL,
+                country_code    TEXT,
+                lat             DOUBLE PRECISION NOT NULL,
+                lng             DOUBLE PRECISION NOT NULL,
+                note            TEXT NOT NULL CHECK (char_length(note) <= 10),
+                persona_type    TEXT,
+                verified_method TEXT NOT NULL DEFAULT 'gps_city_confirmed',
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_user_created
+            ON nomad_journey_stops(user_id, created_at);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_city
+            ON nomad_journey_stops(city, country);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_persona
+            ON nomad_journey_stops(persona_type);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS visits (

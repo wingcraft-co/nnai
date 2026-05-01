@@ -25,7 +25,7 @@
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
 | `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 및 무료 quota 기준 |
-| `pins` | 유저가 저장한 관심 도시 |
+| `nomad_journey_stops` | GPS+도시 확인으로 인증한 노마드 여정 stop |
 | `visits` | 경로별 방문자 수 집계 |
 | `posts` | 모바일 피드 게시글 |
 | `post_likes` | 게시글 좋아요 매핑 |
@@ -272,37 +272,50 @@ CREATE TABLE IF NOT EXISTS detail_guide_cache (
 
 ---
 
-## pins
+## nomad_journey_stops
 
-유저가 저장한 관심 도시. `user_id`는 `users.id`를 외래키로 참조합니다.
+픽셀 지구본 이스터에그에서 사용자가 GPS 확인 후 확정한 도시 중심 좌표를 저장합니다. 기존 `pins` 테이블은 제거되며 데이터는 마이그레이션하지 않습니다.
 
 ```sql
-CREATE TABLE IF NOT EXISTS pins (
-    id         SERIAL PRIMARY KEY,
-    user_id    TEXT NOT NULL REFERENCES users(id),
-    city       TEXT NOT NULL,    -- 도시명 (한국어 또는 영어)
-    display    TEXT,             -- 표시명 (예: "Bangkok, Thailand")
-    note       TEXT,             -- 유저 메모
-    lat        REAL NOT NULL,    -- 도시 위도
-    lng        REAL NOT NULL,    -- 도시 경도
-    user_lat   REAL,             -- 저장 시 유저 위치 위도 (선택)
-    user_lng   REAL,             -- 저장 시 유저 위치 경도 (선택)
-    created_at TEXT NOT NULL     -- ISO 8601 타임스탬프 (UTC)
+DROP TABLE IF EXISTS pins;
+
+CREATE TABLE IF NOT EXISTS nomad_journey_stops (
+    id              SERIAL PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    city            TEXT NOT NULL,
+    country         TEXT NOT NULL,
+    country_code    TEXT,
+    lat             DOUBLE PRECISION NOT NULL,
+    lng             DOUBLE PRECISION NOT NULL,
+    note            TEXT NOT NULL CHECK (char_length(note) <= 10),
+    persona_type    TEXT,
+    verified_method TEXT NOT NULL DEFAULT 'gps_city_confirmed',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_user_created
+ON nomad_journey_stops(user_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_city
+ON nomad_journey_stops(city, country);
+
+CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_persona
+ON nomad_journey_stops(persona_type);
 ```
 
 | 컬럼 | 타입 | Null | 설명 |
 |------|------|------|------|
 | `id` | SERIAL PK | NOT NULL | 자동 증가 정수 ID |
-| `user_id` | TEXT FK | NOT NULL | `users.id` 참조 |
-| `city` | TEXT | NOT NULL | 도시명 |
-| `display` | TEXT | NULL 가능 | 표시용 이름 (예: `"Bangkok, Thailand"`) |
-| `note` | TEXT | NULL 가능 | 유저 메모 |
-| `lat` | REAL | NOT NULL | 도시 위도 |
-| `lng` | REAL | NOT NULL | 도시 경도 |
-| `user_lat` | REAL | NULL 가능 | 저장 시점의 유저 위치 위도 |
-| `user_lng` | REAL | NULL 가능 | 저장 시점의 유저 위치 경도 |
-| `created_at` | TEXT | NOT NULL | 저장 시각 (ISO 8601 UTC) |
+| `user_id` | TEXT FK | NOT NULL | `users.id` 참조, 유저 삭제 시 함께 삭제 |
+| `city` | TEXT | NOT NULL | 인증한 도시명 |
+| `country` | TEXT | NOT NULL | 인증한 국가명 |
+| `country_code` | TEXT | NULL 가능 | ISO-2 국가 코드 |
+| `lat` | DOUBLE PRECISION | NOT NULL | 도시 중심 위도 |
+| `lng` | DOUBLE PRECISION | NOT NULL | 도시 중심 경도 |
+| `note` | TEXT | NOT NULL | 10글자 이하 개인 방명록 |
+| `persona_type` | TEXT | NULL 가능 | 저장 시점의 NNAI 노마드 타입 |
+| `verified_method` | TEXT | NOT NULL | 기본값 `gps_city_confirmed` |
+| `created_at` | TIMESTAMPTZ | NOT NULL | 저장 시각 |
 
 ---
 
@@ -807,7 +820,7 @@ CREATE TABLE IF NOT EXISTS verification_logs (
 ```
 users (id)
   └── detail_guide_cache (user_id) — 1:N
-  └── pins (user_id) — 1:N
+  └── nomad_journey_stops (user_id) — 1:N
   └── posts (user_id) — 1:N
       └── post_likes (post_id) — 1:N
       └── post_comments (post_id) — 1:N

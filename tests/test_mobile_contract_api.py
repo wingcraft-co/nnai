@@ -74,7 +74,8 @@ def test_profile_includes_required_persona_type_field():
     assert "persona_type" in body
     assert body["persona_type"] is None
     assert body["character"] == "rocky"
-    assert "stats" in body and {"pins", "posts", "circles"}.issubset(set(body["stats"].keys()))
+    assert "stats" in body and {"journey_stops", "posts", "circles"}.issubset(set(body["stats"].keys()))
+    assert "pins" not in body["stats"]
 
 
 def test_mobile_recommend_persists_persona_type_for_user():
