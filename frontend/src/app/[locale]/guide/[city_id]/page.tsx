@@ -440,15 +440,17 @@ export default function GuidePage() {
 
         {!loading && !error && city && markdown && (
           <div className="space-y-6">
-            <header className="border-b border-border pb-6">
-              <p className="mb-2 text-xs text-muted-foreground">Step 2 상세 가이드</p>
-              <h1 className="font-serif text-3xl font-bold">
-                {city.city_kr || city.city} 맞춤 가이드
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {city.country} · {city.visa_type || "비자 정보"} · 월 예상 비용 ${city.monthly_cost_usd?.toLocaleString?.() ?? "-"}
-              </p>
-            </header>
+            {!briefing && (
+              <header className="border-b border-border pb-6">
+                <p className="mb-2 text-xs text-muted-foreground">Step 2 상세 가이드</p>
+                <h1 className="font-serif text-3xl font-bold">
+                  {city.city_kr || city.city} 정착 가이드
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {city.country} · {city.visa_type || "비자 정보"} · 월 예상 비용 ${city.monthly_cost_usd?.toLocaleString?.() ?? "-"}
+                </p>
+              </header>
+            )}
 
             {briefing ? (
               isPro(billingStatus) ? (

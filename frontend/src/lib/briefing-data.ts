@@ -97,7 +97,7 @@ export function preparedForLabel(userProfile: Record<string, unknown> | null | u
   return personaLabel;
 }
 
-/** Mock briefing — Bangkok / 방콕 기준 */
+/** Mock briefing — country/city agnostic 본문 + country-aware references */
 export async function buildMockBriefing(input: {
   cityName?: string;
   cityKr?: string | null;
@@ -105,7 +105,7 @@ export async function buildMockBriefing(input: {
   userProfile?: Record<string, unknown>;
 }): Promise<BriefingData> {
   const cityName = input.cityName || "Bangkok";
-  const cityKr = input.cityKr ?? "방콕";
+  const cityKr = input.cityKr ?? null;
   const countryId = (input.countryId || "TH").toUpperCase();
   const userProfile = input.userProfile ?? { persona_type: "free_spirit", travel_type: "혼자 (솔로)" };
   const issuedDate = new Date().toISOString().slice(0, 10);
@@ -123,7 +123,42 @@ export async function buildMockBriefing(input: {
     ES: "Kingdom of Spain",
     GR: "Hellenic Republic",
     MX: "United Mexican States",
+    CO: "Republic of Colombia",
+    DE: "Federal Republic of Germany",
+    FR: "French Republic",
+    NL: "Kingdom of the Netherlands",
+    BR: "Federative Republic of Brazil",
+    AR: "Argentine Republic",
+    PE: "Republic of Peru",
+    UY: "Oriental Republic of Uruguay",
+    CR: "Republic of Costa Rica",
+    PA: "Republic of Panama",
+    HR: "Republic of Croatia",
+    CZ: "Czech Republic",
+    HU: "Hungary",
+    PL: "Republic of Poland",
+    RO: "Romania",
+    RS: "Republic of Serbia",
+    TR: "Republic of Türkiye",
+    AE: "United Arab Emirates",
+    PH: "Republic of the Philippines",
+    TW: "Taiwan",
+    SG: "Republic of Singapore",
   };
+
+  const COUNTRY_NAME: Record<string, string> = {
+    TH: "Thailand", PT: "Portugal", JP: "Japan", MY: "Malaysia",
+    VN: "Vietnam", ID: "Indonesia", GE: "Georgia", EE: "Estonia",
+    ES: "Spain", GR: "Greece", MX: "Mexico", CO: "Colombia",
+    DE: "Germany", FR: "France", NL: "Netherlands", BR: "Brazil",
+    AR: "Argentina", PE: "Peru", UY: "Uruguay", CR: "Costa Rica",
+    PA: "Panama", HR: "Croatia", CZ: "Czech Republic", HU: "Hungary",
+    PL: "Poland", RO: "Romania", RS: "Serbia", TR: "Türkiye",
+    AE: "UAE", PH: "Philippines", TW: "Taiwan", SG: "Singapore",
+  };
+
+  const countryOfficial = COUNTRY_OFFICIAL[countryId] || cityName;
+  const countryName = COUNTRY_NAME[countryId] || countryOfficial;
 
   return {
     documentId,
@@ -132,23 +167,22 @@ export async function buildMockBriefing(input: {
     classification: "Personal Briefing",
     cityName,
     cityKr,
-    countryOfficial: COUNTRY_OFFICIAL[countryId] || cityName,
+    countryOfficial,
     countryId,
     quickFacts: {
-      visa: "Visa-free 90 days",
-      stay: "Up to 6 months",
-      monthly: "USD 1,210",
-      taxResidency: "180-day threshold",
+      visa: "Refer to § 2",
+      stay: "Refer to § 2.2",
+      monthly: "Refer to § 3.1",
+      taxResidency: "Refer to § 3.2",
     },
     sections: [
       {
         num: "1",
         title: "Executive Summary",
         body:
-          `${cityName} 카드가 당신을 선택했네요. 이 도시는 무비자 90일 입국이 허용되며, ` +
-          `생활비는 월 USD 1,200 안팎으로 동남아 노마드 평균에 부합합니다. ` +
-          `한국 여권 기준 도착 비자/연장 옵션이 명확하고, 한인 커뮤니티와 코워킹 인프라가 자리잡혀 있어 ` +
-          `초기 정착 마찰이 낮습니다. 다만 세무 거주지 180일 임계점 관리는 사전 계획이 필요합니다.`,
+          `본 브리핑은 ${cityName}에서 한국 여권 보유자가 디지털 노마드로 정착할 때 ` +
+          `필요한 비자 경로, 비용 구조, 30·60·90일 액션 플랜, 주요 리스크를 정리합니다. ` +
+          `세부 수치와 권장 일정은 본문 각 절을 참고하시기 바랍니다.`,
       },
       {
         num: "2",
@@ -160,18 +194,16 @@ export async function buildMockBriefing(input: {
             items: [
               "여권 사본 (유효기간 6개월 이상)¹",
               "왕복 항공권 또는 출국 증빙¹",
-              "충분한 체류 자금 증빙은 비요구 (TH 무비자 입국 케이스)¹",
-              "한국 외 입국 심사 시 원격근무 사실 발설 금지²",
+              "거주 증명 (호텔 예약 또는 임대 계약서)²",
+              "재정 능력 증빙 (요청 시 제출)²",
             ],
           },
           {
             num: "2.2",
             title: "Long-Term Options",
-            items: [
-              "Destination Thailand Visa (DTV): 5년 멀티 엔트리, 매 입국 180일¹",
-              "Long-Term Resident (LTR): 10년, 소득 USD 80,000+ 요건¹",
-              "비자런은 권장하지 않음 (반복 시 입국 거부 사례)²",
-            ],
+            body:
+              "장기 체류 옵션은 디지털 노마드 비자, 거주자 비자, 투자 이민 비자 등의 경로가 있습니다. " +
+              "비자별 소득 요건·신청 절차·갱신 가능성은 영사관 공식 안내를 참조하시기 바랍니다.²",
           },
         ],
       },
@@ -185,29 +217,29 @@ export async function buildMockBriefing(input: {
             table: {
               headers: ["Category", "USD", "Notes"],
               rows: [
-                ["Rent", "600", "1BR mid-range, Sukhumvit"],
-                ["Food", "300", "Mix of street and grocery"],
-                ["Coworking", "100", "Hot desk monthly"],
-                ["Insurance", "60", "SafetyWing nomad plan⁴"],
-                ["Misc", "150", "Transport, leisure, SIM"],
-                ["Total", "1,210", ""],
+                ["Rent", "—", "Mid-range 1BR, central district"],
+                ["Food", "—", "Mix of local and grocery"],
+                ["Coworking", "—", "Hot desk, monthly"],
+                ["Insurance", "—", "Nomad plan⁴"],
+                ["Misc", "—", "Transport, leisure, SIM"],
+                ["Total", "—", ""],
               ],
-              sourceLabel: "Source: Numbeo Cost of Living, Bangkok³",
+              sourceLabel: `Source: Numbeo Cost of Living, ${cityName}³`,
             },
           },
           {
             num: "3.2",
             title: "Tax Residency Notes",
             body:
-              "TH 세무 거주지 임계점은 누적 체류 180일입니다. 동일 과세연도 내 임계 초과 시 " +
-              "TH 거주자 신분으로 전환되어 글로벌 소득에 대한 과세 의무가 발생할 수 있습니다. " +
-              "한국과 이중과세 협정이 적용되므로 사전 검토를 권장합니다.",
+              "거주국 세무 규정에 따라 누적 체류 일수가 임계점을 초과하면 해당국 세무 거주자 " +
+              "신분으로 전환될 수 있습니다. 글로벌 소득에 대한 과세 의무, 한국과의 이중과세 협정 " +
+              "적용 여부는 출국 전 사전 검토를 권장합니다.²",
           },
         ],
       },
       {
         num: "4",
-        title: "Action Plan (30 / 60 / 90)",
+        title: "Action Plan",
         subsections: [
           {
             num: "4.1",
@@ -215,8 +247,8 @@ export async function buildMockBriefing(input: {
             items: [
               "건강보험 임의계속가입 신청 (퇴직 후 2개월 이내, 기한 초과 시 영구 불가)¹",
               "Wise 또는 Revolut 국제 계좌 개설",
-              "현지 SIM/eSIM 개통 + Grab/Bolt 앱 설정",
-              "단기 숙소 1개월 예약 + 장기 임대 탐색",
+              "현지 SIM/eSIM 개통 및 결제 앱 설정",
+              "단기 숙소 1개월 확보 + 장기 임대 탐색",
             ],
           },
           {
@@ -224,17 +256,18 @@ export async function buildMockBriefing(input: {
             title: "Days 31–60",
             items: [
               "코워킹 멤버십 1개월 (커뮤니티 합류)",
-              "현지 병원 1곳 방문 (보험 처리 절차 사전 검증)",
+              "현지 병원 1곳 방문 (보험 처리 절차 사전 검증)⁴",
               "한인회 또는 노마드 모임 등록²",
+              "은행 계좌 개설 (외국인 등록증 요건 확인)",
             ],
           },
           {
             num: "4.3",
             title: "Days 61–90",
             items: [
-              "비자 갱신 또는 비자런 일정 검토 (90일 임박 전)",
-              "세무 거주지 임계점 (180일) 카운트다운 시작",
-              "장기 비자(DTV/LTR) 신청 자격 검토",
+              "비자 갱신 또는 출국 일정 검토",
+              "세무 거주지 임계점 도달 여부 확인",
+              "장기 비자 옵션 신청 자격 검토",
             ],
           },
         ],
@@ -243,17 +276,17 @@ export async function buildMockBriefing(input: {
         num: "5",
         title: "Risk Notes",
         items: [
-          "원격근무 입국 발설 시 입국 거부 사례 보고됨²",
-          "우기(5–10월) 도착 시 항공 지연 + 침수 리스크",
-          "180일 누적 시 세무 거주지 자동 전환 — 예방적 출국 필요",
-          "현금 위주 골목 상권 + 디지털 결제 인프라 격차 존재",
+          "입국 심사 시 원격근무 사실 발설 시 일부 국가에서 입국 거부 사례 보고됨²",
+          "기후·계절 영향 (도시별 우기·태풍·혹서·혹한 시기 사전 확인)",
+          "세무 거주지 자동 전환 위험 — 누적 체류일 사전 관리",
+          "현지 결제 인프라 격차 (현금 의존도 및 신용카드 수용도)",
         ],
       },
     ],
     references: [
-      { num: 1, source: "MFA Korea, Visa Waiver Program (consulate.go.kr)" },
-      { num: 2, source: "Korean Embassy in Thailand, Travel Advisory" },
-      { num: 3, source: "Numbeo, Cost of Living in Bangkok (numbeo.com)" },
+      { num: 1, source: "Korean Ministry of Foreign Affairs (consulate.go.kr)" },
+      { num: 2, source: `Korean Embassy in ${countryName}` },
+      { num: 3, source: `Numbeo, Cost of Living — ${cityName} (numbeo.com)` },
       { num: 4, source: "SafetyWing Nomad Insurance (safetywing.com)" },
     ],
   };

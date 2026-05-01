@@ -122,180 +122,254 @@ function QFCell({ label, value }: { label: string; value: string }) {
 
 // ─────────────────────────────────────────────────────────────────
 
-function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?: number }) {
-  const isTopLevel = depth === 0;
-  const headingFontSize = isTopLevel ? "22px" : depth === 1 ? "16px" : "14px";
-  const headingMarginTop = isTopLevel ? "40px" : "22px";
-  const headingFontWeight = isTopLevel ? 600 : 600;
-
+// 본문 단락
+function Paragraph({ children }: { children: React.ReactNode }) {
   return (
-    <section style={{ marginTop: headingMarginTop }}>
-      <h2
+    <p
+      style={{
+        fontFamily: SANS,
+        fontSize: "13px",
+        lineHeight: 1.75,
+        color: COLOR_INK,
+        margin: "14px 0 0",
+        textAlign: "justify",
+        wordBreak: "keep-all",
+        overflowWrap: "break-word",
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+// 항목 list — (a) (b) (c) 마커 + grid 정렬 (legal/academic 톤)
+function ItemList({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div
+      style={{
+        marginTop: "14px",
+        fontFamily: SANS,
+        fontSize: "13px",
+        lineHeight: 1.7,
+        color: COLOR_INK,
+      }}
+    >
+      {items.map((item, i) => (
+        <div
+          key={i}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "30px 1fr",
+            columnGap: "10px",
+            marginBottom: "8px",
+            alignItems: "baseline",
+          }}
+        >
+          <span
+            style={{
+              color: COLOR_MUTED,
+              fontWeight: 500,
+              fontSize: "12px",
+              fontFamily: SERIF,
+              fontVariantNumeric: "tabular-nums",
+              fontStyle: "italic",
+            }}
+          >
+            ({String.fromCharCode(97 + (i % 26))})
+          </span>
+          <span
+            style={{
+              wordBreak: "keep-all",
+              overflowWrap: "break-word",
+            }}
+          >
+            {item}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 표 (Cost Profile 등)
+function BriefingTable({
+  table,
+}: {
+  table: NonNullable<BriefingSection["table"]>;
+}) {
+  return (
+    <div style={{ marginTop: "16px" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontFamily: SANS,
+          fontSize: "13px",
+          color: COLOR_INK,
+        }}
+      >
+        <thead>
+          <tr>
+            {table.headers.map((h, i) => (
+              <th
+                key={i}
+                style={{
+                  textAlign: i === 0 ? "left" : i === 1 ? "right" : "left",
+                  padding: "8px 12px",
+                  borderBottom: `1px solid ${COLOR_RULE}`,
+                  borderTop: `1.5px solid ${COLOR_RULE}`,
+                  fontWeight: 600,
+                  fontSize: "10px",
+                  letterSpacing: "0.14em",
+                  color: COLOR_MUTED,
+                  textTransform: "uppercase",
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, ri) => {
+            const isTotal = row[0] === "Total";
+            return (
+              <tr key={ri}>
+                {row.map((cell, ci) => (
+                  <td
+                    key={ci}
+                    style={{
+                      textAlign: ci === 0 ? "left" : ci === 1 ? "right" : "left",
+                      padding: "8px 12px",
+                      borderBottom: isTotal
+                        ? `1.5px solid ${COLOR_RULE}`
+                        : "1px dashed rgba(0,0,0,0.12)",
+                      fontWeight: isTotal ? 600 : 400,
+                      fontSize: "13px",
+                      color: ci === 2 ? COLOR_MUTED : COLOR_INK,
+                      fontVariantNumeric: ci === 1 ? "tabular-nums" : "normal",
+                      wordBreak: "keep-all",
+                    }}
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {table.sourceLabel && (
+        <p
+          style={{
+            fontFamily: SANS,
+            fontSize: "11px",
+            color: COLOR_MUTED,
+            margin: "8px 0 0",
+            fontStyle: "italic",
+          }}
+        >
+          {table.sourceLabel}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?: number }) {
+  // Top-level (1, 2, 3, ...) — 번호를 left gutter 컬럼에 배치
+  if (depth === 0) {
+    return (
+      <section
+        style={{
+          marginTop: "44px",
+          paddingTop: "20px",
+          borderTop: `1.5px solid ${COLOR_RULE}`,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "60px 1fr",
+            columnGap: "20px",
+            alignItems: "start",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: SERIF,
+              fontSize: "26px",
+              fontWeight: 400,
+              color: COLOR_MUTED,
+              lineHeight: 1.1,
+              fontVariantNumeric: "tabular-nums",
+              paddingTop: "2px",
+            }}
+          >
+            {section.num}.
+          </span>
+          <div>
+            <h2
+              style={{
+                fontFamily: SERIF,
+                fontSize: "24px",
+                fontWeight: 600,
+                color: COLOR_INK,
+                margin: 0,
+                lineHeight: 1.2,
+                wordBreak: "keep-all",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              {section.title}
+            </h2>
+            {section.body && <Paragraph>{section.body}</Paragraph>}
+            {section.items && <ItemList items={section.items} />}
+            {section.table && <BriefingTable table={section.table} />}
+            {section.subsections?.map((sub) => (
+              <SectionBlock key={sub.num} section={sub} depth={1} />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Subsection (1.1, 1.2, ...) — 인라인 번호 + 더 작은 헤딩
+  return (
+    <div style={{ marginTop: "26px" }}>
+      <h3
         style={{
           fontFamily: SERIF,
-          fontSize: headingFontSize,
-          fontWeight: headingFontWeight,
+          fontSize: "15px",
+          fontWeight: 600,
           color: COLOR_INK,
           margin: 0,
-          paddingBottom: isTopLevel ? "12px" : "6px",
-          borderBottom: isTopLevel ? `1px solid ${COLOR_RULE}` : "none",
+          lineHeight: 1.3,
+          wordBreak: "keep-all",
           display: "flex",
           alignItems: "baseline",
-          gap: "14px",
-          wordBreak: "keep-all",
+          gap: "10px",
         }}
       >
         <span
           style={{
-            fontFamily: SANS,
-            fontWeight: 500,
             color: COLOR_MUTED,
-            fontSize: isTopLevel ? "16px" : "13px",
-            letterSpacing: "0.04em",
+            fontWeight: 400,
+            fontSize: "13px",
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: "0.02em",
           }}
         >
-          {section.num}.
+          {section.num}
         </span>
         <span>{section.title}</span>
-      </h2>
-
-      {section.body && (
-        <p
-          style={{
-            fontFamily: SANS,
-            fontSize: "13px",
-            lineHeight: 1.75,
-            color: COLOR_INK,
-            margin: "14px 0 0",
-            textAlign: "justify",
-            wordBreak: "keep-all",
-            overflowWrap: "break-word",
-          }}
-        >
-          {section.body}
-        </p>
-      )}
-
-      {section.items && section.items.length > 0 && (
-        <ul
-          style={{
-            margin: "12px 0 0",
-            paddingLeft: 0,
-            listStyle: "none",
-            fontFamily: SANS,
-            fontSize: "13px",
-            lineHeight: 1.75,
-            color: COLOR_INK,
-          }}
-        >
-          {section.items.map((item, i) => (
-            <li
-              key={i}
-              style={{
-                paddingLeft: "20px",
-                position: "relative",
-                marginBottom: "6px",
-                wordBreak: "keep-all",
-                overflowWrap: "break-word",
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  left: 4,
-                  top: 0,
-                  color: COLOR_MUTED,
-                }}
-              >
-                ·
-              </span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {section.table && (
-        <div style={{ marginTop: "14px" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontFamily: SANS,
-              fontSize: "13px",
-              color: COLOR_INK,
-            }}
-          >
-            <thead>
-              <tr>
-                {section.table.headers.map((h, i) => (
-                  <th
-                    key={i}
-                    style={{
-                      textAlign: i === 0 ? "left" : i === 1 ? "right" : "left",
-                      padding: "8px 12px",
-                      borderBottom: `1px solid ${COLOR_RULE}`,
-                      borderTop: `1px solid ${COLOR_RULE}`,
-                      fontWeight: 600,
-                      fontSize: "11px",
-                      letterSpacing: "0.12em",
-                      color: COLOR_MUTED,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {section.table.rows.map((row, ri) => {
-                const isTotal = row[0] === "Total";
-                return (
-                  <tr key={ri}>
-                    {row.map((cell, ci) => (
-                      <td
-                        key={ci}
-                        style={{
-                          textAlign: ci === 0 ? "left" : ci === 1 ? "right" : "left",
-                          padding: "8px 12px",
-                          borderBottom: isTotal
-                            ? `1px solid ${COLOR_RULE}`
-                            : "1px dashed rgba(0,0,0,0.12)",
-                          fontWeight: isTotal ? 600 : 400,
-                          fontSize: "13px",
-                          color: ci === 2 ? COLOR_MUTED : COLOR_INK,
-                          wordBreak: "keep-all",
-                        }}
-                      >
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {section.table.sourceLabel && (
-            <p
-              style={{
-                fontFamily: SANS,
-                fontSize: "11px",
-                color: COLOR_MUTED,
-                margin: "8px 0 0",
-                fontStyle: "italic",
-              }}
-            >
-              {section.table.sourceLabel}
-            </p>
-          )}
-        </div>
-      )}
-
-      {section.subsections?.map((sub) => (
-        <SectionBlock key={sub.num} section={sub} depth={depth + 1} />
-      ))}
-    </section>
+      </h3>
+      {section.body && <Paragraph>{section.body}</Paragraph>}
+      {section.items && <ItemList items={section.items} />}
+      {section.table && <BriefingTable table={section.table} />}
+    </div>
   );
 }
 
@@ -308,7 +382,9 @@ export function CountryBriefingDocument({
   data: BriefingData;
   watermark: boolean;
 }) {
-  const titleHeading = data.cityKr ? `${data.cityName} 정착 가이드` : `${data.cityName} Settlement Briefing`;
+  const titleHeading = data.cityKr
+    ? `${data.cityKr} 정착 가이드`
+    : `${data.cityName} Settlement Briefing`;
 
   return (
     <article
@@ -486,7 +562,7 @@ export function CountryBriefingDocument({
           </h2>
           <ol
             style={{
-              margin: "12px 0 0",
+              margin: "14px 0 0",
               paddingLeft: 0,
               listStyle: "none",
               fontFamily: SANS,
@@ -499,24 +575,33 @@ export function CountryBriefingDocument({
               <li
                 key={r.num}
                 style={{
-                  paddingLeft: "28px",
-                  position: "relative",
-                  marginBottom: "4px",
+                  display: "grid",
+                  gridTemplateColumns: "32px 1fr",
+                  columnGap: "10px",
+                  marginBottom: "5px",
+                  alignItems: "baseline",
                 }}
               >
                 <span
                   style={{
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
+                    fontFamily: SERIF,
                     fontWeight: 600,
                     color: COLOR_STAMP,
-                    width: "20px",
+                    fontSize: "12px",
+                    fontVariantNumeric: "tabular-nums",
+                    textAlign: "right",
                   }}
                 >
-                  <sup style={{ fontSize: "11px" }}>{r.num}</sup>
+                  {r.num}.
                 </span>
-                {r.source}
+                <span
+                  style={{
+                    wordBreak: "keep-all",
+                    overflowWrap: "break-word",
+                  }}
+                >
+                  {r.source}
+                </span>
               </li>
             ))}
           </ol>
