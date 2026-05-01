@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import test from 'node:test';
+
+import {
+  buildJourneyCityOptions,
+  filterJourneyCities,
+  projectJourneyPoint,
+  resolveJourneyLocation,
+} from './journey-map.mjs';
+
+const require = createRequire(import.meta.url);
+const cityScores = require('../data/city_scores.json');
+
+test('builds journey options from the full provided city list', () => {
+  const options = buildJourneyCityOptions(cityScores);
+
+  assert.equal(options.length, cityScores.cities.length);
+  assert.equal(options.some((city) => city.city === 'Lisbon' && city.country_code === 'PT'), true);
+  assert.equal(options.some((city) => city.city === 'Da Nang' && city.country_code === 'VN'), true);
+  assert.equal(options.every((city) => Number.isFinite(city.lat) && Number.isFinite(city.lng)), true);
+});
+
+test('filters cities by fuzzy city, country, korean name, and iso code', () => {
+  const options = buildJourneyCityOptions(cityScores);
+
+  assert.deepEqual(filterJourneyCities(options, 'lis').map((city) => city.city).slice(0, 1), ['Lisbon']);
+  assert.equal(filterJourneyCities(options, '포르투').some((city) => city.city === 'Porto'), true);
+  assert.equal(filterJourneyCities(options, 'vnm').some((city) => city.city === 'Da Nang'), true);
+  assert.equal(filterJourneyCities(options, 'th').some((city) => city.city === 'Bangkok'), true);
+});
+
+test('projects city coordinates into the real world map view box', () => {
+  const lisbon = projectJourneyPoint(38.7223, -9.1393);
+  const tokyo = projectJourneyPoint(35.6762, 139.6503);
+
+  assert.equal(lisbon.x > 0 && lisbon.x < 950, true);
+  assert.equal(lisbon.y > 0 && lisbon.y < 620, true);
+  assert.equal(tokyo.x > lisbon.x, true);
+});
+
+test('resolves gps location to a provided city while preserving actual coordinates', () => {
+  const options = buildJourneyCityOptions(cityScores);
+  const currentLisbon = resolveJourneyLocation(options, 38.73, -9.14);
+
+  assert.equal(currentLisbon.city, 'Lisbon');
+  assert.equal(currentLisbon.country_code, 'PT');
+  assert.equal(currentLisbon.lat, 38.73);
+  assert.equal(currentLisbon.lng, -9.14);
+  assert.equal(currentLisbon.gps_confirmed, true);
+});
+
+test('does not guess a city when gps is far from every provided city', () => {
+  const options = buildJourneyCityOptions(cityScores);
+
+  assert.equal(resolveJourneyLocation(options, 64.1466, -21.9426), null);
+});
