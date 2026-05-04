@@ -94,10 +94,10 @@ export function preparedForLabel(userProfile: Record<string, unknown> | null | u
   const personaLabel = PERSONA_LABEL_KR[persona] || "Independent Nomad";
   const travel = String(userProfile.travel_type || "");
   if (travel.includes("배우자") || travel.includes("파트너")) {
-    return `${personaLabel} · With Partner`;
+    return `${personaLabel}, With Partner`;
   }
   if (travel.includes("가족")) {
-    return `${personaLabel} · With Family`;
+    return `${personaLabel}, With Family`;
   }
   return personaLabel;
 }
@@ -217,7 +217,7 @@ export async function buildMockBriefing(input: {
         title: "Executive Summary",
         body:
           `본 브리핑은 ${cityName}에서 한국 여권 보유자가 디지털 노마드로 정착할 때 ` +
-          `필요한 비자 경로, 비용 구조, 30·60·90일 액션 플랜, 주요 리스크를 정리합니다. ` +
+          `필요한 비자 경로, 비용 구조, 30/60/90일 액션 플랜, 주요 리스크를 정리합니다. ` +
           `세부 수치와 권장 일정은 본문 각 절을 참고하시기 바랍니다.`,
       },
       {
@@ -239,7 +239,7 @@ export async function buildMockBriefing(input: {
             title: "Long-Term Options",
             body:
               "장기 체류 옵션은 디지털 노마드 비자, 거주자 비자, 투자 이민 비자 등의 경로가 있습니다. " +
-              "비자별 소득 요건·신청 절차·갱신 가능성은 영사관 공식 안내를 참조하시기 바랍니다.[2]",
+              "비자별 소득 요건, 신청 절차, 갱신 가능성은 영사관 공식 안내를 참조하시기 바랍니다.[2]",
           },
         ],
       },
@@ -313,7 +313,7 @@ export async function buildMockBriefing(input: {
         title: "Risk Notes",
         items: [
           "입국 심사 시 원격근무 사실 발설 시 일부 국가에서 입국 거부 사례 보고됨[2]",
-          "기후·계절 영향 (도시별 우기·태풍·혹서·혹한 시기 사전 확인)",
+          "기후 및 계절 영향 (도시별 우기, 태풍, 혹서, 혹한 시기 사전 확인)",
           "세무 거주지 자동 전환 위험 — 누적 체류일 사전 관리",
           "현지 결제 인프라 격차 (현금 의존도 및 신용카드 수용도)",
         ],

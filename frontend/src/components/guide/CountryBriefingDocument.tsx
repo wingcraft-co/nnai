@@ -37,20 +37,26 @@ const DOC_WIDTH = 1080;
 const DOC_PADDING_X = 96;
 const DOC_PADDING_Y = 80;
 
-// Hanging-indent num columns — mdpi 425-twip hanging (21.25pt ≈ 28px) ground truth.
-// 모든 layer 동일 left margin; hierarchy 신호는 weight/italic만 사용 (size 차이 X).
+// Hanging-indent num columns — mdpi lvlJc="left" 컨벤션 (모든 marker leftmost-aligned).
+// 장·절 num column 동일 width (32) — left-align이라 모든 layer marker가 left edge 0에서 시작.
 const NUM_COL_SECTION = 32;       // "1."
-const NUM_COL_SUBSECTION = 44;    // "1.1"
+const NUM_COL_SUBSECTION = 32;    // "1.1"
 const NUM_COL_ITEM = 28;          // "(a)" — mdpi MDPI37itemize hanging 425 twips
-const COL_GAP = 16;
+const COL_GAP = 12;
+
+// 항(itemize) 추가 indent — mdpi MDPI37itemize: itemize body는 본문보다 425 twips 안쪽.
+// 우리는 ItemList container marginLeft로 표현 → 항이 절보다 시각적으로 안쪽 nested.
+const ITEM_INDENT = 32;
 
 // 본문 typography — mdpi MDPI31text (12pt body, line ≥14pt) → web 17/28 (1.4× 디지털 보정)
 const BODY_FS = "17px";
 const BODY_LH = "28px";
 
-// Heading typography — mdpi: 모든 layer body size 동일, weight/italic으로만 차별화
-const HEADING_FS = "17px";
-const HEADING_LH = "26px";
+// Heading typography — mdpi: 본문 size = body. 디지털 보정으로 장만 +2px (시각 hierarchy).
+const SECTION_FS = "19px";        // 장 — body+2 (디지털 보정, mdpi spec deviation 최소)
+const SECTION_LH = "28px";
+const SUBSECTION_FS = "17px";     // 절 — body size 동일, italic + 500 weight로 차별화
+const SUBSECTION_LH = "26px";
 
 // ─────────────────────────────────────────────────────────────────
 
@@ -84,8 +90,9 @@ function renderFootnotes(text: string): React.ReactNode {
 // ─────────────────────────────────────────────────────────────────
 
 function BriefingWatermark({ text }: { text: string }) {
-  const ROW_COUNT = 24;
-  const COL_COUNT = 5;
+  // 충분한 row/col로 긴 문서 전체 cover (rotate -30deg + 200% container 고려)
+  const ROW_COUNT = 60;
+  const COL_COUNT = 8;
   return (
     <div
       aria-hidden
@@ -208,18 +215,18 @@ function Paragraph({ children }: { children: React.ReactNode }) {
   );
 }
 
-// 항목 list — IMF/World Bank 컨벤션: (a) non-italic, body 동색, hanging indent
+// 항목 list — mdpi MDPI37itemize: marker leftmost-aligned, body hanging 28
 function ItemList({ items }: { items: string[] }) {
   if (!items.length) return null;
   return (
-    <div style={{ marginTop: "12px" }}>
+    <div style={{ marginTop: "10px", marginLeft: `${ITEM_INDENT}px` }}>
       {items.map((item, i) => (
         <div
           key={i}
           style={{
             display: "grid",
             gridTemplateColumns: `${NUM_COL_ITEM}px 1fr`,
-            columnGap: "8px",
+            columnGap: "0px",
             marginBottom: "6px",
             alignItems: "baseline",
             fontFamily: SERIF,
@@ -235,7 +242,7 @@ function ItemList({ items }: { items: string[] }) {
               lineHeight: BODY_LH,
               fontWeight: 500,
               color: COLOR_INK,
-              textAlign: "right",
+              textAlign: "left",
             }}
           >
             ({String.fromCharCode(97 + (i % 26))})
@@ -342,10 +349,10 @@ function BriefingTable({
 }
 
 function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?: number }) {
-  // Section (장) — mdpi MDPI21heading1: bold only (size = body, NOT enlarged)
+  // Section (장) — mdpi MDPI21heading1: bold + 디지털 보정 +2px (size hierarchy 시각 명확화)
   if (depth === 0) {
     return (
-      <section style={{ marginTop: "28px" }}>
+      <section style={{ marginTop: "36px" }}>
         <div
           style={{
             display: "grid",
@@ -357,12 +364,12 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
           <span
             style={{
               fontFamily: SERIF,
-              fontSize: HEADING_FS,
+              fontSize: SECTION_FS,
               fontWeight: 700,
               color: COLOR_INK,
-              lineHeight: HEADING_LH,
+              lineHeight: SECTION_LH,
               fontVariantNumeric: "tabular-nums",
-              textAlign: "right",
+              textAlign: "left",
             }}
           >
             {section.num}.
@@ -370,18 +377,18 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
           <h2
             style={{
               fontFamily: SERIF,
-              fontSize: HEADING_FS,
+              fontSize: SECTION_FS,
               fontWeight: 700,
               color: COLOR_INK,
               margin: 0,
-              lineHeight: HEADING_LH,
+              lineHeight: SECTION_LH,
               wordBreak: "keep-all",
             }}
           >
             {section.title}
           </h2>
         </div>
-        <div style={{ marginTop: "6px" }}>
+        <div style={{ marginTop: "8px" }}>
           {section.body && <Paragraph>{renderFootnotes(section.body)}</Paragraph>}
           {section.items && <ItemList items={section.items} />}
           {section.table && <BriefingTable table={section.table} />}
@@ -393,9 +400,9 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
     );
   }
 
-  // Subsection (절) — mdpi MDPI22heading2: italic only (no bold, size = body)
+  // Subsection (절) — mdpi MDPI22heading2: italic + 500 weight (mdpi 400을 디지털에서 살짝 강화)
   return (
-    <div style={{ marginTop: "18px" }}>
+    <div style={{ marginTop: "24px" }}>
       <h3
         style={{
           display: "grid",
@@ -409,13 +416,13 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
         <span
           style={{
             fontFamily: SERIF,
-            fontSize: HEADING_FS,
-            fontWeight: 400,
+            fontSize: SUBSECTION_FS,
+            fontWeight: 500,
             fontStyle: "italic",
             color: COLOR_INK,
-            lineHeight: HEADING_LH,
+            lineHeight: SUBSECTION_LH,
             fontVariantNumeric: "tabular-nums",
-            textAlign: "right",
+            textAlign: "left",
           }}
         >
           {section.num}
@@ -423,11 +430,11 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
         <span
           style={{
             fontFamily: SERIF,
-            fontSize: HEADING_FS,
-            fontWeight: 400,
+            fontSize: SUBSECTION_FS,
+            fontWeight: 500,
             fontStyle: "italic",
             color: COLOR_INK,
-            lineHeight: HEADING_LH,
+            lineHeight: SUBSECTION_LH,
             wordBreak: "keep-all",
           }}
         >
