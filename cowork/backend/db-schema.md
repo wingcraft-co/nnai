@@ -297,9 +297,16 @@ CREATE TABLE IF NOT EXISTS nomad_journey_stops (
     geocode_place_id TEXT,
     geocode_confidence DOUBLE PRECISION,
     geocoded_at TIMESTAMPTZ,
+    gps_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    flag_color TEXT NOT NULL DEFAULT 'red',
+    github_issue_url TEXT,
+    github_issue_key TEXT,
+    github_issue_status TEXT NOT NULL DEFAULT 'not_required',
     CHECK (lat BETWEEN -90 AND 90),
     CHECK (lng BETWEEN -180 AND 180),
     CHECK (line_style IN ('solid', 'dashed')),
+    CHECK (flag_color IN ('green', 'red', 'yellow')),
+    CHECK (github_issue_status IN ('not_required', 'created', 'linked', 'failed')),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -332,6 +339,11 @@ ON nomad_journey_stops(persona_type);
 | `geocode_place_id` | TEXT | NULL 가능 | 외부 geocoder place id |
 | `geocode_confidence` | DOUBLE PRECISION | NULL 가능 | 외부 geocoder confidence/importance |
 | `geocoded_at` | TIMESTAMPTZ | NULL 가능 | 백엔드 geocoding 검증 시각 |
+| `gps_verified` | BOOLEAN | NOT NULL | 사용자가 선택 도시 근처 GPS 인증을 완료했는지 여부 |
+| `flag_color` | TEXT | NOT NULL | 깃발 색상. `green`, `red`, `yellow` |
+| `github_issue_url` | TEXT | NULL 가능 | 미지원 GPS 인증 도시의 GitHub 추가 요청 이슈 URL |
+| `github_issue_key` | TEXT | NULL 가능 | 도시별 dedupe key. 예: `city-request:ES:granada` |
+| `github_issue_status` | TEXT | NOT NULL | `not_required`, `created`, `linked`, `failed` |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 저장 시각 |
 
 ---

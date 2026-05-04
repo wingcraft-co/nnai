@@ -4,7 +4,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 import math
+import os
+import re
 import time
+import unicodedata
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote
+from urllib.request import Request as UrlRequest, urlopen
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
@@ -23,6 +29,7 @@ SESSION_KEY = "user_id"
 GEOCODE_RATE_LIMIT = 12
 GEOCODE_RATE_WINDOW_SECONDS = 60
 _GEOCODE_RATE_LIMIT: dict[str, list[float]] = {}
+GITHUB_CITY_LABEL_DEFAULT = "data:city-request"
 
 
 class JourneyStopIn(BaseModel):
@@ -34,6 +41,7 @@ class JourneyStopIn(BaseModel):
     note: str = Field(default="", max_length=10)
     city_id: str | None = Field(default=None, max_length=20)
     geocode_result_id: str | None = Field(default=None, max_length=1200)
+    gps_verified: bool = False
 
     @model_validator(mode="after")
     def validate_shape(self):
@@ -96,6 +104,115 @@ def _enforce_geocode_rate_limit(request: Request) -> None:
     _GEOCODE_RATE_LIMIT[subject] = hits
 
 
+def _flag_color(is_supported_city: bool, gps_verified: bool) -> str:
+    if is_supported_city and gps_verified:
+        return "green"
+    if not is_supported_city and gps_verified:
+        return "yellow"
+    return "red"
+
+
+def _normalize_issue_city(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-z0-9]+", "-", ascii_value.lower()).strip("-")
+    return slug or "unknown"
+
+
+def build_city_request_issue_key(country_code: str, city: str) -> str:
+    return f"city-request:{str(country_code or '').upper()}:{_normalize_issue_city(city)}"
+
+
+def _github_headers(token: str) -> dict[str, str]:
+    return {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "User-Agent": "NomadNavigatorAI/1.0",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
+def _github_request(url: str, token: str, method: str = "GET", payload: dict | None = None) -> dict:
+    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = UrlRequest(url, data=data, headers=_github_headers(token), method=method)
+    with urlopen(request, timeout=5) as response:
+        return json.loads(response.read(100_000).decode("utf-8"))
+
+
+def ensure_city_request_issue(payload: dict) -> dict:
+    issue_key = payload["github_issue_key"]
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT github_issue_url
+            FROM nomad_journey_stops
+            WHERE github_issue_key = %s
+              AND github_issue_url IS NOT NULL
+            ORDER BY created_at ASC, id ASC
+            LIMIT 1
+            """,
+            (issue_key,),
+        )
+        row = cur.fetchone()
+    if row and row[0]:
+        return {
+            "github_issue_url": row[0],
+            "github_issue_key": issue_key,
+            "github_issue_status": "linked",
+        }
+
+    token = os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPO")
+    label = os.environ.get("GITHUB_CITY_LABEL", GITHUB_CITY_LABEL_DEFAULT)
+    if not token or not repo:
+        return {
+            "github_issue_url": None,
+            "github_issue_key": issue_key,
+            "github_issue_status": "not_required",
+        }
+
+    encoded_query = quote(f'repo:{repo} is:issue is:open "{issue_key}"')
+    search_url = f"https://api.github.com/search/issues?q={encoded_query}"
+    try:
+        search_result = _github_request(search_url, token)
+        items = search_result.get("items") or []
+        if items:
+            return {
+                "github_issue_url": items[0].get("html_url"),
+                "github_issue_key": issue_key,
+                "github_issue_status": "linked",
+            }
+
+        title = f"Add journey city: {payload['city']}, {payload['country']}"
+        body = "\n".join([
+            "Unsupported journey city was GPS-verified by a user.",
+            "",
+            f"- City: {payload['city']}",
+            f"- Country: {payload['country']}",
+            f"- Country code: {payload['country_code']}",
+            f"- Latitude: {payload['lat']}",
+            f"- Longitude: {payload['lng']}",
+            f"- Source: {payload['location_source']}",
+            f"- Request key: {issue_key}",
+        ])
+        issue = _github_request(
+            f"https://api.github.com/repos/{repo}/issues",
+            token,
+            method="POST",
+            payload={"title": title, "body": body, "labels": [label]},
+        )
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        raise OSError("github_issue_request_failed") from exc
+
+    return {
+        "github_issue_url": issue.get("html_url"),
+        "github_issue_key": issue_key,
+        "github_issue_status": "created",
+    }
+
+
 def _payload_from_stop(stop: JourneyStopIn) -> dict:
     if stop.city_id:
         city = supported_city_by_id(stop.city_id)
@@ -119,16 +236,26 @@ def _payload_from_stop(stop: JourneyStopIn) -> dict:
             "geocode_place_id": None,
             "geocode_confidence": None,
             "geocoded_at": None,
+            "gps_verified": stop.gps_verified,
+            "flag_color": _flag_color(True, stop.gps_verified),
+            "github_issue_url": None,
+            "github_issue_key": None,
+            "github_issue_status": "not_required",
         }
 
     if stop.geocode_result_id:
         result = get_cached_geocode_result(stop.geocode_result_id)
         if not result:
             raise HTTPException(422, "검증된 도시 검색 결과가 만료되었습니다")
+        if not stop.gps_verified:
+            raise HTTPException(422, "미지원 도시는 GPS 인증 후 저장할 수 있습니다")
+        city = str(result["city"])
+        country_code = str(result["country_code"]).upper()
+        issue_key = build_city_request_issue_key(country_code, city)
         return {
-            "city": result["city"],
+            "city": city,
             "country": result["country"],
-            "country_code": result["country_code"],
+            "country_code": country_code,
             "lat": finite_coordinate(result["lat"], -90, 90),
             "lng": finite_coordinate(result["lng"], -180, 180),
             "verified_method": "backend_geocoded_unsupported",
@@ -139,6 +266,11 @@ def _payload_from_stop(stop: JourneyStopIn) -> dict:
             "geocode_place_id": result.get("geocode_place_id"),
             "geocode_confidence": result.get("geocode_confidence"),
             "geocoded_at": datetime.now(timezone.utc),
+            "gps_verified": True,
+            "flag_color": "yellow",
+            "github_issue_url": None,
+            "github_issue_key": issue_key,
+            "github_issue_status": "not_required",
         }
 
     return {
@@ -155,6 +287,11 @@ def _payload_from_stop(stop: JourneyStopIn) -> dict:
         "geocode_place_id": None,
         "geocode_confidence": None,
         "geocoded_at": None,
+        "gps_verified": False,
+        "flag_color": "red",
+        "github_issue_url": None,
+        "github_issue_key": None,
+        "github_issue_status": "not_required",
     }
 
 
@@ -183,6 +320,8 @@ def list_my_journey(request: Request):
                    persona_type, verified_method, supported_city_id,
                    is_supported_city, location_source, line_style,
                    geocode_place_id, geocode_confidence, geocoded_at,
+                   gps_verified, flag_color, github_issue_url,
+                   github_issue_key, github_issue_status,
                    created_at
             FROM nomad_journey_stops
             WHERE user_id = %s
@@ -203,6 +342,11 @@ def create_journey_stop(request: Request, stop: JourneyStopIn):
 
     persona_type = _current_persona_type(uid)
     payload = _payload_from_stop(stop)
+    if payload["flag_color"] == "yellow":
+        try:
+            payload.update(ensure_city_request_issue(payload))
+        except OSError:
+            payload["github_issue_status"] = "failed"
     now = datetime.now(timezone.utc)
     conn = get_conn()
     with conn.cursor() as cur:
@@ -213,13 +357,17 @@ def create_journey_stop(request: Request, stop: JourneyStopIn):
                 persona_type, verified_method, supported_city_id,
                 is_supported_city, location_source, line_style,
                 geocode_place_id, geocode_confidence, geocoded_at,
+                gps_verified, flag_color, github_issue_url,
+                github_issue_key, github_issue_status,
                 created_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, city, country, country_code, lat, lng, note,
                       persona_type, verified_method, supported_city_id,
                       is_supported_city, location_source, line_style,
                       geocode_place_id, geocode_confidence, geocoded_at,
+                      gps_verified, flag_color, github_issue_url,
+                      github_issue_key, github_issue_status,
                       created_at
             """,
             (
@@ -239,6 +387,11 @@ def create_journey_stop(request: Request, stop: JourneyStopIn):
                 payload["geocode_place_id"],
                 payload["geocode_confidence"],
                 payload["geocoded_at"],
+                payload["gps_verified"],
+                payload["flag_color"],
+                payload["github_issue_url"],
+                payload["github_issue_key"],
+                payload["github_issue_status"],
                 now,
             ),
         )
@@ -268,7 +421,12 @@ def community_journey(
                    ROUND(AVG(lng)::numeric, 4)::float AS lng,
                    COUNT(DISTINCT user_id)::int AS cnt,
                    MIN(supported_city_id) AS supported_city_id,
-                   CASE WHEN BOOL_OR(is_supported_city) THEN 'solid' ELSE 'dashed' END AS line_style
+                   CASE WHEN BOOL_OR(is_supported_city) THEN 'solid' ELSE 'dashed' END AS line_style,
+                   CASE
+                       WHEN BOOL_OR(flag_color = 'green') THEN 'green'
+                       WHEN BOOL_OR(flag_color = 'yellow') THEN 'yellow'
+                       ELSE 'red'
+                   END AS flag_color
             FROM nomad_journey_stops
             {where}
             GROUP BY city, country

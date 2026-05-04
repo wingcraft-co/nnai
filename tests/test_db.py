@@ -81,6 +81,18 @@ def test_journey_stop_note_length_is_limited(conn):
     conn.rollback()
 
 
+def test_required_schema_includes_journey_flag_columns():
+    from utils import db
+
+    required = db._REQUIRED_SCHEMA_COLUMNS["nomad_journey_stops"]
+
+    assert "gps_verified" in required
+    assert "flag_color" in required
+    assert "github_issue_url" in required
+    assert "github_issue_key" in required
+    assert "github_issue_status" in required
+
+
 def test_get_conn_returns_same_thread_connection():
     import importlib
     import utils.db as db_mod

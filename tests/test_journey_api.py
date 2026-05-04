@@ -201,6 +201,43 @@ def test_create_stop_rejects_ambiguous_new_save_body_without_db():
         JourneyStopIn(city_id="LIS", geocode_result_id="geo_fake", note="")
 
 
+def test_create_stop_rejects_unsupported_without_gps_without_db():
+    from fastapi import HTTPException
+    from api.journey import JourneyStopIn, _payload_from_stop
+    from utils import geocoding
+
+    result_id = geocoding._sign_result({
+        "city": "Granada",
+        "country": "Spain",
+        "country_code": "ES",
+        "lat": 37.1773,
+        "lng": -3.5986,
+        "supported": False,
+        "supported_city_id": None,
+        "location_source": "nominatim",
+        "display_name": "Granada, Spain",
+        "geocode_place_id": "es-granada",
+        "geocode_confidence": 0.9,
+    })
+
+    with pytest.raises(HTTPException) as exc:
+        _payload_from_stop(JourneyStopIn(geocode_result_id=result_id, gps_verified=False))
+
+    assert exc.value.status_code == 422
+
+
+def test_payload_from_supported_city_resolves_flag_color_without_db():
+    from api.journey import JourneyStopIn, _payload_from_stop
+
+    green = _payload_from_stop(JourneyStopIn(city_id="LIS", gps_verified=True))
+    red = _payload_from_stop(JourneyStopIn(city_id="LIS", gps_verified=False))
+
+    assert green["flag_color"] == "green"
+    assert green["gps_verified"] is True
+    assert red["flag_color"] == "red"
+    assert red["gps_verified"] is False
+
+
 def test_required_schema_includes_journey_metadata_columns():
     from utils import db
 
@@ -214,6 +251,13 @@ def test_required_schema_includes_journey_metadata_columns():
         "geocode_place_id",
         "geocode_confidence",
         "geocoded_at",
+    }.issubset(required)
+    assert {
+        "gps_verified",
+        "flag_color",
+        "github_issue_url",
+        "github_issue_key",
+        "github_issue_status",
     }.issubset(required)
 
 
@@ -246,7 +290,7 @@ def test_create_stop_saves_persona_and_returns_stop():
 def test_create_supported_city_id_stop_sets_solid_metadata():
     client = TestClient(_make_app("uid1"))
 
-    response = client.post("/api/journey/stops", json={"city_id": "LIS", "note": "리스본"})
+    response = client.post("/api/journey/stops", json={"city_id": "LIS", "gps_verified": True, "note": "리스본"})
 
     assert response.status_code == 200
     body = response.json()
@@ -256,6 +300,21 @@ def test_create_supported_city_id_stop_sets_solid_metadata():
     assert body["is_supported_city"] is True
     assert body["location_source"] == "nnai_supported"
     assert body["line_style"] == "solid"
+    assert body["gps_verified"] is True
+    assert body["flag_color"] == "green"
+    assert body["github_issue_status"] == "not_required"
+
+
+@requires_db
+def test_create_supported_city_without_gps_sets_red_flag():
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json={"city_id": "LIS", "gps_verified": False, "note": "리스본"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["gps_verified"] is False
+    assert body["flag_color"] == "red"
 
 
 @requires_db
@@ -277,7 +336,7 @@ def test_create_unsupported_geocode_stop_sets_dashed_metadata():
     result_id = geocode_city_candidates("Granada", "ES", provider=provider)["results"][0]["geocode_result_id"]
     client = TestClient(_make_app("uid1"))
 
-    response = client.post("/api/journey/stops", json={"geocode_result_id": result_id, "note": "그라나다"})
+    response = client.post("/api/journey/stops", json={"geocode_result_id": result_id, "gps_verified": True, "note": "그라나다"})
 
     assert response.status_code == 200
     body = response.json()
@@ -286,6 +345,73 @@ def test_create_unsupported_geocode_stop_sets_dashed_metadata():
     assert body["is_supported_city"] is False
     assert body["location_source"] == "nominatim"
     assert body["line_style"] == "dashed"
+    assert body["gps_verified"] is True
+    assert body["flag_color"] == "yellow"
+
+
+@requires_db
+def test_create_unsupported_geocode_stop_creates_github_issue(monkeypatch):
+    from utils.geocoding import geocode_city_candidates
+    import api.journey as journey_mod
+
+    def provider(_query, _country_code):
+        return [{
+            "city": "Granada",
+            "country": "Spain",
+            "country_code": "ES",
+            "lat": 37.1773,
+            "lng": -3.5986,
+            "display_name": "Granada, Spain",
+            "place_id": "es-granada",
+            "confidence": 0.9,
+        }]
+
+    result_id = geocode_city_candidates("Granada", "ES", provider=provider)["results"][0]["geocode_result_id"]
+    calls = []
+    monkeypatch.setattr(journey_mod, "ensure_city_request_issue", lambda payload: calls.append(payload) or {
+        "github_issue_url": "https://github.com/wingcraft-co/nnai/issues/123",
+        "github_issue_key": "city-request:ES:granada",
+        "github_issue_status": "created",
+    })
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json={"geocode_result_id": result_id, "gps_verified": True, "note": "추억"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["flag_color"] == "yellow"
+    assert body["github_issue_status"] == "created"
+    assert body["github_issue_url"].endswith("/123")
+    assert calls[0]["github_issue_key"] == "city-request:ES:granada"
+
+
+@requires_db
+def test_github_issue_failure_does_not_block_yellow_stop(monkeypatch):
+    from utils.geocoding import geocode_city_candidates
+    import api.journey as journey_mod
+
+    def provider(_query, _country_code):
+        return [{
+            "city": "Granada",
+            "country": "Spain",
+            "country_code": "ES",
+            "lat": 37.1773,
+            "lng": -3.5986,
+            "display_name": "Granada, Spain",
+            "place_id": "es-granada",
+            "confidence": 0.9,
+        }]
+
+    result_id = geocode_city_candidates("Granada", "ES", provider=provider)["results"][0]["geocode_result_id"]
+    monkeypatch.setattr(journey_mod, "ensure_city_request_issue", lambda _payload: (_ for _ in ()).throw(OSError("github down")))
+    client = TestClient(_make_app("uid1"))
+
+    response = client.post("/api/journey/stops", json={"geocode_result_id": result_id, "gps_verified": True})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["flag_color"] == "yellow"
+    assert body["github_issue_status"] == "failed"
 
 
 @requires_db

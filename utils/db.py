@@ -143,6 +143,11 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "geocode_place_id",
         "geocode_confidence",
         "geocoded_at",
+        "gps_verified",
+        "flag_color",
+        "github_issue_url",
+        "github_issue_key",
+        "github_issue_status",
         "created_at",
     },
 }
@@ -356,9 +361,16 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 geocode_place_id TEXT,
                 geocode_confidence DOUBLE PRECISION,
                 geocoded_at TIMESTAMPTZ,
+                gps_verified BOOLEAN NOT NULL DEFAULT FALSE,
+                flag_color TEXT NOT NULL DEFAULT 'red',
+                github_issue_url TEXT,
+                github_issue_key TEXT,
+                github_issue_status TEXT NOT NULL DEFAULT 'not_required',
                 CHECK (lat BETWEEN -90 AND 90),
                 CHECK (lng BETWEEN -180 AND 180),
                 CHECK (line_style IN ('solid', 'dashed')),
+                CHECK (flag_color IN ('green', 'red', 'yellow')),
+                CHECK (github_issue_status IN ('not_required', 'created', 'linked', 'failed')),
                 created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
         """)
@@ -370,6 +382,11 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             "ADD COLUMN IF NOT EXISTS geocode_place_id TEXT",
             "ADD COLUMN IF NOT EXISTS geocode_confidence DOUBLE PRECISION",
             "ADD COLUMN IF NOT EXISTS geocoded_at TIMESTAMPTZ",
+            "ADD COLUMN IF NOT EXISTS gps_verified BOOLEAN NOT NULL DEFAULT FALSE",
+            "ADD COLUMN IF NOT EXISTS flag_color TEXT NOT NULL DEFAULT 'red'",
+            "ADD COLUMN IF NOT EXISTS github_issue_url TEXT",
+            "ADD COLUMN IF NOT EXISTS github_issue_key TEXT",
+            "ADD COLUMN IF NOT EXISTS github_issue_status TEXT NOT NULL DEFAULT 'not_required'",
         ]:
             cur.execute(f"ALTER TABLE nomad_journey_stops {column_sql};")
         cur.execute("""
@@ -401,6 +418,24 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 ) THEN
                     ALTER TABLE nomad_journey_stops
                     ADD CONSTRAINT chk_nomad_journey_stops_line_style CHECK (line_style IN ('solid', 'dashed')) NOT VALID;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_flag_color'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_flag_color CHECK (flag_color IN ('green', 'red', 'yellow')) NOT VALID;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_github_issue_status'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_github_issue_status CHECK (github_issue_status IN ('not_required', 'created', 'linked', 'failed')) NOT VALID;
                 END IF;
             END $$;
         """)

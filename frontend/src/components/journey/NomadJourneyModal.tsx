@@ -5,12 +5,19 @@ import { LocateFixed, MapPin, Users, UserRound, X } from "lucide-react";
 import cityScores from "@/data/city_scores.json";
 import {
   type JourneyContinent,
+  trackJourneyFlagSaveSuccess,
+  trackJourneyGithubIssueLinked,
   trackJourneyCitySelect,
   trackJourneyContinentSelect,
   trackJourneyCountrySelect,
+  trackJourneyGpsVerifyClick,
+  trackJourneyGpsVerifyFailure,
+  trackJourneyGpsVerifySuccess,
   trackJourneyMapOpen,
   trackJourneySaveClick,
   trackJourneySaveSuccess,
+  trackJourneyUnsupportedCitySelect,
+  trackJourneyUnsupportedSearchSubmit,
 } from "@/lib/analytics/events";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
 import {
@@ -19,6 +26,7 @@ import {
   filterJourneyCitiesByCountry,
   filterJourneyCountriesByContinent,
   projectJourneyPoint,
+  resolveJourneyFlagColor,
   resolveJourneyLocation,
 } from "@/lib/journey-map.mjs";
 
@@ -80,6 +88,9 @@ type JourneyStop = {
   lng: number;
   note: string;
   persona_type?: string | null;
+  flag_color?: JourneyFlagColor | null;
+  gps_verified?: boolean | null;
+  github_issue_status?: string | null;
   created_at: string;
 };
 
@@ -90,6 +101,23 @@ type CommunityStop = {
   lat: number;
   lng: number;
   cnt: number;
+  flag_color?: JourneyFlagColor | null;
+};
+
+type JourneyFlagColor = "green" | "red" | "yellow";
+type GpsState = "idle" | "requesting" | "verified" | "denied" | "unavailable" | "mismatch";
+
+type GeocodeResult = {
+  city: string;
+  country: string;
+  country_code: string;
+  lat: number;
+  lng: number;
+  supported: boolean;
+  supported_city_id: string | null;
+  geocode_result_id: string | null;
+  location_source: string;
+  display_name: string;
 };
 
 function nearestCity(lat: number, lng: number) {
@@ -115,6 +143,31 @@ function markerStyle(point: { x: number; y: number }) {
   };
 }
 
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const radiusKm = 6371;
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const lat1 = toRad(aLat);
+  const lat2 = toRad(bLat);
+  const a =
+    Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * radiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function flagColorClass(color: JourneyFlagColor | string | null | undefined) {
+  if (color === "green") return "text-[#38b96b]";
+  if (color === "yellow") return "text-[#ffc93d]";
+  return "text-[#f45b5b]";
+}
+
+function flagBgClass(color: JourneyFlagColor | string | null | undefined) {
+  if (color === "green") return "bg-[#38b96b]";
+  if (color === "yellow") return "bg-[#ffc93d] text-[#272225]";
+  return "bg-[#f45b5b]";
+}
+
 export function NomadJourneyModal({
   open,
   onClose,
@@ -131,6 +184,12 @@ export function NomadJourneyModal({
   const [activeContinent, setActiveContinent] = useState<JourneyContinentValue | null>(null);
   const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
+  const [selectedGeocodeResult, setSelectedGeocodeResult] = useState<GeocodeResult | null>(null);
+  const [unsupportedQuery, setUnsupportedQuery] = useState("");
+  const [unsupportedResults, setUnsupportedResults] = useState<GeocodeResult[]>([]);
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [gpsState, setGpsState] = useState<GpsState>("idle");
+  const [gpsVerified, setGpsVerified] = useState(false);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
@@ -203,6 +262,11 @@ export function NomadJourneyModal({
 
   const visibleCommunity = showPersona && personaCommunity.length > 0 ? personaCommunity : community;
   const selectedCity = CITY_OPTIONS.find((city) => city.id === selectedCityId) ?? null;
+  const selectedLocation = selectedGeocodeResult ?? selectedCity;
+  const selectedIsSupported = Boolean(selectedCity && !selectedGeocodeResult);
+  const pendingFlagColor = selectedLocation
+    ? resolveJourneyFlagColor({ supported: selectedIsSupported, gpsVerified }) as JourneyFlagColor
+    : "red";
   const activeCountries = activeContinent
     ? filterJourneyCountriesByContinent(COUNTRY_OPTIONS, activeContinent) as JourneyCountryOption[]
     : [];
@@ -212,12 +276,17 @@ export function NomadJourneyModal({
   const activeCountry = activeCountryCode
     ? COUNTRY_OPTIONS.find((country) => country.country_code === activeCountryCode) ?? null
     : null;
-  const selectedPoint = selectedCity ? projectJourneyPoint(selectedCity.lat, selectedCity.lng) : null;
+  const selectedPoint = selectedLocation ? projectJourneyPoint(selectedLocation.lat, selectedLocation.lng) : null;
 
   function selectContinent(continent: JourneyContinentValue) {
     setActiveContinent(continent);
     setActiveCountryCode(null);
     setSelectedCityId(null);
+    setSelectedGeocodeResult(null);
+    setUnsupportedQuery("");
+    setUnsupportedResults([]);
+    setGpsState("idle");
+    setGpsVerified(false);
     setStatus("");
     trackJourneyContinentSelect(continent);
   }
@@ -225,6 +294,11 @@ export function NomadJourneyModal({
   function selectCountry(country: JourneyCountryOption) {
     setActiveCountryCode(country.country_code);
     setSelectedCityId(null);
+    setSelectedGeocodeResult(null);
+    setUnsupportedQuery("");
+    setUnsupportedResults([]);
+    setGpsState("idle");
+    setGpsVerified(false);
     setStatus("");
     trackJourneyCountrySelect(country.country_code);
   }
@@ -232,6 +306,9 @@ export function NomadJourneyModal({
   function selectCity(city: JourneyCityOption) {
     const next = selectedCityId === city.id ? null : city.id;
     setSelectedCityId(next);
+    setSelectedGeocodeResult(null);
+    setGpsState("idle");
+    setGpsVerified(false);
     if (next) {
       trackJourneyCitySelect(city.id);
       setPreviewAnimationKey((key) => key + 1);
@@ -243,23 +320,57 @@ export function NomadJourneyModal({
     setActiveContinent(null);
     setActiveCountryCode(null);
     setSelectedCityId(null);
+    setSelectedGeocodeResult(null);
+    setUnsupportedQuery("");
+    setUnsupportedResults([]);
+    setGpsState("idle");
+    setGpsVerified(false);
     setStatus("");
   }
 
   function resetCountry() {
     setActiveCountryCode(null);
     setSelectedCityId(null);
+    setSelectedGeocodeResult(null);
+    setUnsupportedQuery("");
+    setUnsupportedResults([]);
+    setGpsState("idle");
+    setGpsVerified(false);
     setStatus("");
   }
 
   function requestLocation() {
     if (!navigator.geolocation) {
+      setGpsState("unavailable");
       setStatus("이 브라우저에서는 위치 인증을 사용할 수 없습니다.");
       return;
     }
+    trackJourneyGpsVerifyClick();
+    setGpsState("requesting");
     setStatus("현재 위치를 확인하는 중입니다.");
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (selectedLocation) {
+          const distance = distanceKm(
+            position.coords.latitude,
+            position.coords.longitude,
+            selectedLocation.lat,
+            selectedLocation.lng,
+          );
+          if (distance <= 60) {
+            setGpsState("verified");
+            setGpsVerified(true);
+            trackJourneyGpsVerifySuccess();
+            setStatus(`${selectedLocation.city} 근처의 현재 GPS 좌표로 확인했습니다.`);
+          } else {
+            setGpsState("mismatch");
+            setGpsVerified(false);
+            trackJourneyGpsVerifyFailure("distance_mismatch");
+            setStatus(`${selectedLocation.city}와 현재 위치가 ${Math.round(distance)}km 떨어져 있어 GPS 인증하지 않았습니다.`);
+          }
+          return;
+        }
+
         const city = resolveJourneyLocation(
           CITY_OPTIONS,
           position.coords.latitude,
@@ -268,6 +379,9 @@ export function NomadJourneyModal({
 
         if (!city) {
           const fallbackCity = nearestCity(position.coords.latitude, position.coords.longitude);
+          setGpsState("mismatch");
+          setGpsVerified(false);
+          trackJourneyGpsVerifyFailure("no_supported_city_nearby");
           setStatus(`${fallbackCity.city}와 거리가 있어 자동 등록하지 않았습니다. 지도에서 도시를 선택해주세요.`);
           return;
         }
@@ -276,17 +390,63 @@ export function NomadJourneyModal({
         setActiveContinent(country?.continent ?? null);
         setActiveCountryCode(city.country_code);
         setSelectedCityId(city.id);
+        setSelectedGeocodeResult(null);
+        setGpsState("verified");
+        setGpsVerified(true);
         setPreviewAnimationKey((key) => key + 1);
         trackJourneyCitySelect(city.id);
+        trackJourneyGpsVerifySuccess();
         setStatus(`${city.city} 근처의 현재 GPS 좌표로 확인했습니다. 그대로 깃발을 꽂을 수 있습니다.`);
       },
-      () => setStatus("위치 권한을 확인하지 못했습니다. 지도에서 도시를 선택해주세요."),
+      () => {
+        setGpsState("denied");
+        setGpsVerified(false);
+        trackJourneyGpsVerifyFailure("permission_denied");
+        setStatus("위치 권한을 확인하지 못했습니다. 지원 도시는 빨간 깃발로 저장할 수 있습니다.");
+      },
       { enableHighAccuracy: false, timeout: 8000 },
     );
   }
 
+  async function searchUnsupportedCity() {
+    if (!activeCountryCode || unsupportedQuery.trim().length < 2 || geocodeLoading) return;
+    setGeocodeLoading(true);
+    setStatus("");
+    trackJourneyUnsupportedSearchSubmit(activeCountryCode);
+    try {
+      const response = await fetch(`${API_BASE}/api/journey/geocode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: unsupportedQuery.trim(), country_code: activeCountryCode }),
+      });
+      if (!response.ok) {
+        throw new Error(response.status === 503 ? "도시 확인 서버가 잠시 쉬고 있어요." : "도시를 확인하지 못했습니다.");
+      }
+      const payload = await response.json() as { results?: GeocodeResult[] };
+      const results = (payload.results ?? []).filter((result) => !result.supported && result.geocode_result_id);
+      setUnsupportedResults(results);
+      if (results.length === 0) {
+        setStatus("목록 밖 도시를 찾지 못했습니다. 도시명과 국가를 다시 확인해주세요.");
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "도시를 확인하지 못했습니다.");
+    } finally {
+      setGeocodeLoading(false);
+    }
+  }
+
+  function selectUnsupportedCity(result: GeocodeResult) {
+    setSelectedCityId(null);
+    setSelectedGeocodeResult(result);
+    setGpsState("idle");
+    setGpsVerified(false);
+    setPreviewAnimationKey((key) => key + 1);
+    trackJourneyUnsupportedCitySelect(result.country_code);
+    setStatus("목록 밖 도시는 GPS 인증 후 노란 깃발로 저장할 수 있습니다.");
+  }
+
   async function saveStop() {
-    if (!selectedCity) {
+    if (!selectedLocation) {
       setStatus("도시를 먼저 선택해주세요.");
       return;
     }
@@ -295,29 +455,51 @@ export function NomadJourneyModal({
       window.location.assign(buildGoogleLoginUrl(API_BASE, window.location.href));
       return;
     }
+    if (selectedGeocodeResult && !gpsVerified) {
+      setStatus("목록 밖 도시는 GPS 인증 후 저장할 수 있습니다.");
+      return;
+    }
     setLoading(true);
     setStatus("");
     try {
+      const body = selectedGeocodeResult
+        ? {
+            geocode_result_id: selectedGeocodeResult.geocode_result_id,
+            gps_verified: true,
+            note,
+          }
+        : {
+            city_id: selectedCity?.id,
+            gps_verified: gpsVerified,
+            note,
+          };
       const response = await fetch(`${API_BASE}/api/journey/stops`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          city: selectedCity.city,
-          country: selectedCity.country,
-          country_code: selectedCity.country_code,
-          lat: selectedCity.lat,
-          lng: selectedCity.lng,
-          note,
-        }),
+        body: JSON.stringify(body),
       });
       if (!response.ok) {
         const message = response.status === 422 ? "방명록은 10글자 이내로 입력해주세요." : "깃발을 저장하지 못했습니다.";
         throw new Error(message);
       }
+      const saved = await response.json() as {
+        flag_color?: JourneyFlagColor;
+        is_supported_city?: boolean;
+        gps_verified?: boolean;
+        github_issue_status?: string;
+      };
       setNote("");
       setStatus("깃발을 꽂았습니다.");
-      trackJourneySaveSuccess(selectedCity.id);
+      if (selectedCity) trackJourneySaveSuccess(selectedCity.id);
+      trackJourneyFlagSaveSuccess({
+        flagColor: saved.flag_color ?? pendingFlagColor,
+        supported: Boolean(saved.is_supported_city ?? selectedIsSupported),
+        gpsVerified: Boolean(saved.gps_verified ?? gpsVerified),
+      });
+      if (saved.github_issue_status && saved.github_issue_status !== "not_required") {
+        trackJourneyGithubIssueLinked(saved.github_issue_status);
+      }
       await refresh();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "깃발을 저장하지 못했습니다.");
@@ -339,9 +521,15 @@ export function NomadJourneyModal({
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-3 py-20 lg:px-8 lg:py-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          src="/earth_web.gif"
+          alt=""
+          className="absolute size-[min(68vh,72vw)] max-h-[560px] max-w-[560px] opacity-25 [image-rendering:pixelated]"
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/world-map-low-resolution.svg"
           alt=""
-          className="h-full max-h-full w-full max-w-[150vh] object-contain opacity-45"
+          className="h-full max-h-full w-full max-w-[150vh] object-contain opacity-38 [image-rendering:pixelated]"
         />
         <svg
           viewBox="0 0 950 620"
@@ -415,8 +603,8 @@ export function NomadJourneyModal({
               const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
               return (
                 <g key={`${stop.city}-${stop.country}`} transform={`translate(${point.x} ${point.y})`}>
-                  <circle r={Math.min(13, 5 + stop.cnt * 1.2)} fill="currentColor" className="text-[#d1842c]" opacity={showPersona ? "0.34" : "0.22"} />
-                  <circle r="3.2" fill="currentColor" className="text-[#d1842c]" opacity="0.88" />
+                  <circle r={Math.min(13, 5 + stop.cnt * 1.2)} fill="currentColor" className={flagColorClass(stop.flag_color)} opacity={showPersona ? "0.34" : "0.22"} />
+                  <circle r="3.2" fill="currentColor" className={flagColorClass(stop.flag_color)} opacity="0.88" />
                   <text y="-9" textAnchor="middle" fontSize="11" fontWeight="700" fill="currentColor" className="text-[#fffaf2]">
                     {stop.city} {stop.cnt}
                   </text>
@@ -428,18 +616,18 @@ export function NomadJourneyModal({
             const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
             return (
               <g key={stop.id} transform={`translate(${point.x} ${point.y})`}>
-                <circle r="8" fill="currentColor" className="text-[#d1842c]" opacity="0.22" />
-                <path d="M0 0 L0 -24 L19 -15 L0 -7 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2" className="text-[#d1842c]" />
+                <circle r="8" fill="currentColor" className={flagColorClass(stop.flag_color)} opacity="0.22" />
+                <path d="M0 0 L0 -24 L19 -15 L0 -7 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2" className={flagColorClass(stop.flag_color)} />
                 <circle r="4" fill="#fffaf2" />
               </g>
             );
           })}
 
-          {selectedCity && selectedPoint && (
-            <g key={`preview-${selectedCity.id}-${previewAnimationKey}`} transform={`translate(${selectedPoint.x} ${selectedPoint.y})`}>
-              <circle r="12" fill="currentColor" className="journey-preview-pulse text-[#d1842c]" />
+          {selectedLocation && selectedPoint && (
+            <g key={`preview-${selectedLocation.city}-${previewAnimationKey}`} transform={`translate(${selectedPoint.x} ${selectedPoint.y})`}>
+              <circle r="12" fill="currentColor" className={`journey-preview-pulse ${flagColorClass(pendingFlagColor)}`} />
               <g className="journey-preview-flag">
-                <path d="M0 0 L0 -30 L23 -19 L0 -9 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2.3" className="text-[#d1842c]" />
+                <path d="M0 0 L0 -30 L23 -19 L0 -9 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2.3" className={flagColorClass(pendingFlagColor)} />
                 <circle r="4.5" fill="#fffaf2" />
               </g>
             </g>
@@ -627,17 +815,77 @@ export function NomadJourneyModal({
                     <span className="text-xs font-semibold text-[#d1842c]">{city.country_code}</span>
                   </button>
                 ))}
+                <div className="border-t border-[#eadfd1] pt-3">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-normal text-[#756c60]">Secret City</p>
+                  <div className="flex gap-2">
+                    <input
+                      value={unsupportedQuery}
+                      onChange={(event) => setUnsupportedQuery(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void searchUnsupportedCity();
+                        }
+                      }}
+                      placeholder="목록에 없는 도시"
+                      className="h-10 min-w-0 flex-1 border border-[#d8d0c4] bg-[#fffaf2] px-3 text-sm font-medium text-[#1D1D1F] outline-none placeholder:text-[#756c60] focus:border-[#d1842c]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void searchUnsupportedCity()}
+                      disabled={geocodeLoading || unsupportedQuery.trim().length < 2}
+                      className="h-10 border border-[#272225] bg-[#272225] px-3 text-xs font-extrabold text-[#fffaf2] transition-colors hover:bg-[#3a3030] disabled:opacity-40"
+                    >
+                      {geocodeLoading ? "검색중" : "검색"}
+                    </button>
+                  </div>
+                  {unsupportedResults.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {unsupportedResults.map((result) => (
+                        <button
+                          key={result.geocode_result_id ?? `${result.city}-${result.lat}-${result.lng}`}
+                          type="button"
+                          onClick={() => selectUnsupportedCity(result)}
+                          className={`w-full border px-3 py-2 text-left text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#d1842c] ${
+                            selectedGeocodeResult?.geocode_result_id === result.geocode_result_id
+                              ? "border-[#d1842c] bg-[#fff2ba]"
+                              : "border-[#eadfd1] bg-white hover:bg-[#f7f1e8]"
+                          }`}
+                        >
+                          <span className="block font-semibold">{result.city}</span>
+                          <span className="block truncate text-xs text-[#756c60]">{result.display_name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {selectedCity && (
+            {selectedLocation && (
               <div className="mt-3 border-t border-[#eadfd1] pt-3">
                 <div className="mb-2 flex items-center gap-2 bg-[#f7f1e8] px-3 py-2 text-sm text-[#3d352d]">
                   <MapPin className="size-4 text-[#d1842c]" />
-                  <span className="font-semibold">{selectedCity.city}</span>
-                  <span className="text-xs text-[#756c60]">{selectedCity.country}</span>
-                  {selectedCity.gps_confirmed && <span className="ml-auto text-xs font-semibold text-[#d1842c]">GPS</span>}
+                  <span className="font-semibold">{selectedLocation.city}</span>
+                  <span className="text-xs text-[#756c60]">{selectedLocation.country}</span>
+                  <span className={`ml-auto px-2 py-1 text-[10px] font-black uppercase ${flagBgClass(pendingFlagColor)}`}>
+                    {pendingFlagColor}
+                  </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  disabled={gpsState === "requesting"}
+                  className="mb-2 inline-flex h-10 w-full items-center justify-center gap-2 border border-[#272225] bg-[#78bfe0] px-3 text-sm font-extrabold text-[#272225] shadow-[3px_3px_0_#272225] transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  <LocateFixed className="size-4" />
+                  {gpsState === "requesting" ? "GPS 확인 중" : gpsVerified ? "GPS 인증 완료" : "GPS 인증하기"}
+                </button>
+                {selectedGeocodeResult && !gpsVerified && (
+                  <p className="mb-2 text-xs leading-relaxed text-[#756c60]">
+                    목록 밖 도시는 현재 위치 인증 후 노란 깃발로 저장됩니다.
+                  </p>
+                )}
 
                 <input
                   value={note}
@@ -649,8 +897,8 @@ export function NomadJourneyModal({
                 <button
                   type="button"
                   onClick={saveStop}
-                  disabled={loading || note.length > 10}
-                  className="h-11 w-full bg-[#d1842c] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#b96f20] disabled:opacity-45"
+                  disabled={loading || note.length > 10 || Boolean(selectedGeocodeResult && !gpsVerified)}
+                  className={`h-11 w-full px-4 text-sm font-semibold text-white transition-colors disabled:opacity-45 ${flagBgClass(pendingFlagColor)}`}
                 >
                   {auth.logged_in ? "깃발 꽂기" : "로그인하고 내 log 저장하기"}
                 </button>
@@ -668,7 +916,10 @@ export function NomadJourneyModal({
               <div className="space-y-2">
                 {myStops.map((stop, index) => (
                   <div key={stop.id} className="flex items-center justify-between bg-[#f7f1e8] px-3 py-2 text-sm">
-                    <span>{index + 1}. {stop.city}</span>
+                    <span className="flex items-center gap-2">
+                      <span className={`size-2.5 border border-[#272225] ${flagBgClass(stop.flag_color ?? "red")}`} />
+                      {index + 1}. {stop.city}
+                    </span>
                     <span className="font-semibold text-[#d1842c]">{stop.note}</span>
                   </div>
                 ))}

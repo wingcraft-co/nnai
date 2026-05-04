@@ -252,6 +252,12 @@ export function getJourneyContinentCounts(countryOptions) {
   }, {});
 }
 
+export function resolveJourneyFlagColor({ supported, gpsVerified }) {
+  if (!supported && gpsVerified) return "yellow";
+  if (supported && gpsVerified) return "green";
+  return "red";
+}
+
 export function filterJourneyCities(options, query, limit = 7) {
   const normalizedQuery = normalizeSearch(query);
   if (!normalizedQuery) return options.slice(0, limit);

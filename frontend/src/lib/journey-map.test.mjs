@@ -11,6 +11,7 @@ import {
   filterJourneyCountriesByContinent,
   getJourneyContinentCounts,
   projectJourneyPoint,
+  resolveJourneyFlagColor,
   resolveJourneyLocation,
 } from './journey-map.mjs';
 
@@ -102,4 +103,10 @@ test('counts active continents from supported countries only', () => {
   assert.equal(counts.Americas > 0, true);
   assert.equal(counts.Africa > 0, true);
   assert.equal(counts.Oceania, undefined);
+});
+
+test('resolves journey flag colors from supported and gps state', () => {
+  assert.equal(resolveJourneyFlagColor({ supported: true, gpsVerified: true }), 'green');
+  assert.equal(resolveJourneyFlagColor({ supported: true, gpsVerified: false }), 'red');
+  assert.equal(resolveJourneyFlagColor({ supported: false, gpsVerified: true }), 'yellow');
 });

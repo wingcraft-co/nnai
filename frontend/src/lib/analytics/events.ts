@@ -285,3 +285,43 @@ export function trackJourneySaveClick(loggedIn: boolean): void {
 export function trackJourneySaveSuccess(cityId: string): void {
   captureFullAnalyticsEvent("journey_save_success", { city_id: cityId });
 }
+
+export function trackJourneyGpsVerifyClick(): void {
+  captureFullAnalyticsEvent("journey_gps_verify_click", {});
+}
+
+export function trackJourneyGpsVerifySuccess(): void {
+  captureFullAnalyticsEvent("journey_gps_verify_success", {});
+}
+
+export function trackJourneyGpsVerifyFailure(reason: string): void {
+  captureFullAnalyticsEvent("journey_gps_verify_failure", { reason });
+}
+
+export function trackJourneyUnsupportedSearchSubmit(countryCode: string): void {
+  captureFullAnalyticsEvent("journey_unsupported_search_submit", { country_code: countryCode });
+}
+
+export function trackJourneyUnsupportedCitySelect(countryCode: string): void {
+  captureFullAnalyticsEvent("journey_unsupported_city_select", { country_code: countryCode });
+}
+
+export function trackJourneyFlagSaveSuccess({
+  flagColor,
+  supported,
+  gpsVerified,
+}: {
+  flagColor: "green" | "red" | "yellow";
+  supported: boolean;
+  gpsVerified: boolean;
+}): void {
+  captureFullAnalyticsEvent("journey_flag_save_success", {
+    flag_color: flagColor,
+    supported,
+    gps_verified: gpsVerified,
+  });
+}
+
+export function trackJourneyGithubIssueLinked(status: string): void {
+  captureFullAnalyticsEvent("journey_github_issue_linked", { status });
+}

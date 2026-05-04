@@ -606,17 +606,22 @@ Cookie: nnai_session=...
     "country_code": "MY",
     "lat": 3.139,
     "lng": 101.6869,
-      "note": "KL좋아",
-      "persona_type": "planner",
-      "verified_method": "gps_city_confirmed",
-      "supported_city_id": null,
-      "is_supported_city": false,
-      "location_source": "legacy",
-      "line_style": "solid",
-      "geocode_place_id": null,
-      "geocode_confidence": null,
-      "geocoded_at": null,
-      "created_at": "2026-05-01T05:00:00+00:00"
+    "note": "KL좋아",
+    "persona_type": "planner",
+    "verified_method": "gps_city_confirmed",
+    "supported_city_id": null,
+    "is_supported_city": false,
+    "location_source": "legacy",
+    "line_style": "solid",
+    "geocode_place_id": null,
+    "geocode_confidence": null,
+    "geocoded_at": null,
+    "gps_verified": false,
+    "flag_color": "red",
+    "github_issue_url": null,
+    "github_issue_key": null,
+    "github_issue_status": "not_required",
+    "created_at": "2026-05-01T05:00:00+00:00"
   }
 ]
 ```
@@ -694,6 +699,7 @@ Cookie: nnai_session=...
 ```json
 {
   "city_id": "LIS",
+  "gps_verified": true,
   "note": "리스본"
 }
 ```
@@ -702,9 +708,12 @@ Cookie: nnai_session=...
 ```json
 {
   "geocode_result_id": "geo_<signed-result-token>",
+  "gps_verified": true,
   "note": "추억"
 }
 ```
+
+미지원 검증 도시는 `gps_verified: true`일 때만 저장할 수 있습니다. 지원 도시는 GPS 인증 성공 시 초록 깃발(`green`), GPS 미인증 시 빨간 깃발(`red`)로 저장됩니다. 미지원 검증 도시는 노란 깃발(`yellow`)로 저장되며 GitHub 도시 추가 요청 이슈 생성/연결을 시도합니다.
 
 **요청 바디 — legacy 호환:**
 
@@ -716,6 +725,7 @@ Cookie: nnai_session=...
 | `lat` | float | ✅ | 도시 중심 위도 |
 | `lng` | float | ✅ | 도시 중심 경도 |
 | `note` | string | ✅ | 10글자 이하 방명록 |
+| `gps_verified` | boolean | ❌ | legacy 호환 요청에서는 무시되며 `false`로 저장 |
 
 **응답 (200 OK):**
 ```json
@@ -736,15 +746,37 @@ Cookie: nnai_session=...
   "geocode_place_id": null,
   "geocode_confidence": null,
   "geocoded_at": null,
+  "gps_verified": false,
+  "flag_color": "red",
+  "github_issue_url": null,
+  "github_issue_key": null,
+  "github_issue_status": "not_required",
   "created_at": "2026-05-01T05:00:00+00:00"
 }
 ```
 
 `line_style`은 프론트엔드 여정 연결선 렌더링용입니다. 지원 도시는 `solid`, 미지원 검증 도시는 `dashed`입니다. 서버가 계산하므로 클라이언트 요청 바디로 받지 않습니다.
 
+`flag_color`는 깃발 렌더링용입니다.
+
+| 값 | 조건 |
+|----|------|
+| `green` | 지원 도시 + GPS 인증 |
+| `red` | 지원 도시 또는 legacy 저장 + GPS 미인증 |
+| `yellow` | 미지원 검증 도시 + GPS 인증 |
+
+`github_issue_status`는 노란 깃발 저장 시 GitHub 이슈 자동화 상태입니다.
+
+| 값 | 설명 |
+|----|------|
+| `not_required` | GitHub 이슈가 필요 없거나 로컬/테스트 환경에서 토큰이 없음 |
+| `created` | 새 도시 추가 요청 이슈 생성 |
+| `linked` | 기존 도시 추가 요청 이슈 연결 |
+| `failed` | 이슈 생성/조회 실패. journey stop 저장은 유지 |
+
 **에러:**
 - `401` — 미로그인
-- `422` — 필수 필드 누락, `note` 10글자 초과, invalid 좌표, 알 수 없는 `city_id`, 만료/위조된 `geocode_result_id`, `city_id`와 `geocode_result_id` 동시 전달
+- `422` — 필수 필드 누락, `note` 10글자 초과, invalid 좌표, 알 수 없는 `city_id`, 만료/위조된 `geocode_result_id`, `city_id`와 `geocode_result_id` 동시 전달, 미지원 도시 GPS 미인증 저장
 
 ---
 
@@ -774,7 +806,8 @@ GET /api/journey/community?persona_type=planner
     "lng": 101.6869,
     "cnt": 12,
     "supported_city_id": "KL",
-    "line_style": "solid"
+    "line_style": "solid",
+    "flag_color": "green"
   }
 ]
 ```
