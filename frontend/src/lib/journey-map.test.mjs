@@ -116,4 +116,5 @@ test('resolves journey flag colors from supported and gps state', () => {
 test('journey easter egg renders the pixel globe instead of the flat world map', () => {
   assert.equal(journeyModalSource.includes('/earth_web.gif'), true);
   assert.equal(journeyModalSource.includes('/world-map-low-resolution.svg'), false);
+  assert.equal(journeyModalSource.includes('projectJourneyPoint('), false);
 });

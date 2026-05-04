@@ -25,7 +25,6 @@ import {
   buildJourneyCountryOptions,
   filterJourneyCitiesByCountry,
   filterJourneyCountriesByContinent,
-  projectJourneyPoint,
   resolveJourneyFlagColor,
   resolveJourneyLocation,
 } from "@/lib/journey-map.mjs";
@@ -67,11 +66,11 @@ const CONTINENT_MARKERS: Array<{
   y: number;
   size: number;
 }> = [
-  { id: "Americas", label: "아메리카", x: 230, y: 310, size: 104 },
-  { id: "Europe", label: "유럽", x: 493, y: 230, size: 92 },
-  { id: "Africa", label: "아프리카", x: 514, y: 382, size: 86 },
-  { id: "Middle East", label: "중동", x: 590, y: 330, size: 78 },
-  { id: "Asia", label: "아시아", x: 710, y: 300, size: 112 },
+  { id: "Americas", label: "아메리카", x: 28, y: 54, size: 104 },
+  { id: "Europe", label: "유럽", x: 51, y: 33, size: 92 },
+  { id: "Africa", label: "아프리카", x: 53, y: 61, size: 86 },
+  { id: "Middle East", label: "중동", x: 65, y: 52, size: 78 },
+  { id: "Asia", label: "아시아", x: 74, y: 46, size: 112 },
 ];
 
 type AuthState = {
@@ -129,8 +128,8 @@ function nearestCity(lat: number, lng: number) {
 
 function markerStyle(point: { x: number; y: number }) {
   return {
-    left: `${(point.x / 950) * 100}%`,
-    top: `${(point.y / 620) * 100}%`,
+    left: `${point.x}%`,
+    top: `${point.y}%`,
   };
 }
 
@@ -267,7 +266,6 @@ export function NomadJourneyModal({
   const activeCountry = activeCountryCode
     ? COUNTRY_OPTIONS.find((country) => country.country_code === activeCountryCode) ?? null
     : null;
-  const selectedPoint = selectedLocation ? projectJourneyPoint(selectedLocation.lat, selectedLocation.lng) : null;
 
   function selectContinent(continent: JourneyContinentValue) {
     setActiveContinent(continent);
@@ -551,84 +549,28 @@ export function NomadJourneyModal({
             </button>
           ))}
 
-          {activeCountries.map((country) => {
-            const point = projectJourneyPoint(country.lat, country.lng);
-            return (
-              <button
-                key={country.country_code}
-                type="button"
-                aria-label={`${country.country} 선택, 지원 도시 ${country.city_count}개`}
-                onClick={() => selectCountry(country)}
-                className={`absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center border-4 text-xs font-black shadow-[4px_4px_0_rgba(8,8,14,0.45)] transition focus:outline-none focus:ring-2 focus:ring-[#fffaf2] ${
-                  activeCountryCode === country.country_code
-                    ? "border-[#fffaf2] bg-[#d1842c] text-white"
-                    : "border-[#fffaf2]/70 bg-[#fffaf2]/90 text-[#1D1D1F] hover:bg-white"
-                }`}
-                style={markerStyle(point)}
-              >
-                {country.country_code}
-              </button>
-            );
-          })}
+          {activeContinent && (
+            <div className="absolute left-1/2 top-[18%] w-[min(82%,360px)] -translate-x-1/2 border-4 border-[#fffaf2]/80 bg-[#272225]/78 px-4 py-3 text-center shadow-[6px_6px_0_rgba(8,8,14,0.48)]">
+              <p className="text-[10px] font-black uppercase tracking-normal text-[#ffc93d]">Stage Select</p>
+              <p className="mt-1 text-lg font-black text-[#fffaf2]">
+                {activeCountry?.country ?? activeContinent}
+              </p>
+              <p className="mt-1 text-xs font-bold text-[#fffaf2]/78">
+                {selectedLocation ? `${selectedLocation.city} 깃발 준비` : "오른쪽 패널에서 국가와 도시를 골라주세요"}
+              </p>
+            </div>
+          )}
 
-          {activeCities.map((city) => {
-            const point = projectJourneyPoint(city.lat, city.lng);
-            const selected = selectedCityId === city.id;
-            return (
-              <button
-                key={city.id}
-                type="button"
-                aria-label={selected ? `${city.city} 선택 해제` : `${city.city} 선택`}
-                onClick={() => selectCity(city)}
-                className={`absolute size-7 -translate-x-1/2 -translate-y-1/2 border-4 shadow-[3px_3px_0_rgba(8,8,14,0.45)] transition focus:outline-none focus:ring-2 focus:ring-[#fffaf2] ${
-                  selected
-                    ? "border-[#fffaf2] bg-[#d1842c]"
-                    : "border-[#fffaf2]/80 bg-[#d1842c]/70 hover:bg-[#d1842c]"
-                }`}
-                style={markerStyle(point)}
-              />
-            );
-          })}
-
-          {showCommunity &&
-            visibleCommunity.map((stop) => {
-              const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
-              return (
-                <div
-                  key={`${stop.city}-${stop.country}`}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
-                  style={markerStyle(point)}
-                >
-                  <span className={`mx-auto block size-3 border-2 border-[#fffaf2] shadow-[2px_2px_0_rgba(8,8,14,0.5)] ${flagBgClass(stop.flag_color ?? "red")}`} />
-                  <span className="mt-1 block max-w-24 truncate bg-[#272225]/72 px-1.5 py-0.5 text-[10px] font-black text-[#fffaf2]">
-                    {stop.city} {stop.cnt}
-                  </span>
-                </div>
-              );
-            })}
-
-          {myStops.map((stop) => {
-            const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
-            return (
-              <div
-                key={stop.id}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={markerStyle(point)}
-                aria-label={`${stop.city} 깃발`}
-              >
-                <span className={`block h-8 w-6 border-2 border-[#fffaf2] shadow-[3px_3px_0_rgba(8,8,14,0.5)] ${flagBgClass(stop.flag_color ?? "red")}`} />
-              </div>
-            );
-          })}
-
-          {selectedLocation && selectedPoint && (
+          {selectedLocation && (
             <div
               key={`preview-${selectedLocation.city}-${previewAnimationKey}`}
-              className="absolute"
-              style={markerStyle(selectedPoint)}
+              className="absolute left-1/2 top-[58%]"
             >
-              <span className={`journey-preview-pulse absolute left-0 top-0 size-8 ${flagBgClass(pendingFlagColor)}`} />
-              <span className={`journey-preview-flag absolute left-0 top-0 h-10 w-7 border-2 border-[#fffaf2] shadow-[4px_4px_0_rgba(8,8,14,0.55)] ${flagBgClass(pendingFlagColor)}`} />
+              <span className={`journey-preview-pulse absolute left-0 top-0 size-12 ${flagBgClass(pendingFlagColor)}`} />
+              <span className={`journey-preview-flag absolute left-0 top-0 h-14 w-10 border-4 border-[#fffaf2] shadow-[5px_5px_0_rgba(8,8,14,0.58)] ${flagBgClass(pendingFlagColor)}`} />
+              <span className="absolute left-5 top-16 w-44 -translate-x-1/2 border-2 border-[#fffaf2]/80 bg-[#272225]/82 px-2 py-1 text-center text-xs font-black text-[#fffaf2]">
+                {selectedLocation.city}
+              </span>
             </div>
           )}
           </div>
