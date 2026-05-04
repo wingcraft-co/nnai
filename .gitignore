@@ -13,6 +13,7 @@ reports/
 *.jpeg
 *.log
 .playwright-mcp/
+.worktrees/
 .superpowers/
 docs/superpowers/
 .claude/CLAUDE.local.md
