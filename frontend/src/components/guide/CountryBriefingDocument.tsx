@@ -3,10 +3,14 @@
 /**
  * Country Briefing — 양식 spec 출처
  *
- * Hierarchy & visual:   Tufte-LaTeX (no horizontal rules; vertical space + small-caps for hierarchy)
+ * Hierarchy & visual:   Tufte-LaTeX (no horizontal rules; vertical space + style for hierarchy)
  *                       https://github.com/Tufte-LaTeX/tufte-latex
  * Section numbering:    IMF Country Report (1./1.1./1.1.1. 3-level), cover Document №
  *                       https://www.elibrary.imf.org/fileasset/IMF_Editorial_Style_Guide_2024.pdf
+ * Body / list / spacing: mdpi (MDPI31text / MDPI37itemize / MDPI81references) — ground truth
+ *                       from word/styles.xml: 12pt body, line ≥14pt, first-indent 21.25pt;
+ *                       heading hierarchy = weight/italic only, NO size differentiation.
+ *                       장=bold / 절=italic only / 항=plain.
  * Tables:               World Bank Editorial Style Guide 2020 — top·bottom horizontal rules only
  *                       (≥1pt), no vertical rules, no row dividers
  *                       https://documents1.worldbank.org/curated/en/318281583390046594/
@@ -33,15 +37,20 @@ const DOC_WIDTH = 1080;
 const DOC_PADDING_X = 96;
 const DOC_PADDING_Y = 80;
 
-// Hanging-indent num columns — IMF Country Report 컨벤션 (모든 layer leftmost align)
-const NUM_COL_SECTION = 40;       // "1."
-const NUM_COL_SUBSECTION = 48;    // "1.1"
-const NUM_COL_ITEM = 24;          // "(a)"
+// Hanging-indent num columns — mdpi 425-twip hanging (21.25pt ≈ 28px) ground truth.
+// 모든 layer 동일 left margin; hierarchy 신호는 weight/italic만 사용 (size 차이 X).
+const NUM_COL_SECTION = 32;       // "1."
+const NUM_COL_SUBSECTION = 44;    // "1.1"
+const NUM_COL_ITEM = 28;          // "(a)" — mdpi MDPI37itemize hanging 425 twips
 const COL_GAP = 16;
 
-// 본문 typography — GOV.UK 5px-multiple line-height + IMF body serif
-const BODY_FS = "15px";
-const BODY_LH = "25px";
+// 본문 typography — mdpi MDPI31text (12pt body, line ≥14pt) → web 17/28 (1.4× 디지털 보정)
+const BODY_FS = "17px";
+const BODY_LH = "28px";
+
+// Heading typography — mdpi: 모든 layer body size 동일, weight/italic으로만 차별화
+const HEADING_FS = "17px";
+const HEADING_LH = "26px";
 
 // ─────────────────────────────────────────────────────────────────
 
@@ -187,8 +196,8 @@ function Paragraph({ children }: { children: React.ReactNode }) {
         fontSize: BODY_FS,
         lineHeight: BODY_LH,
         color: COLOR_INK,
-        margin: "10px 0 0",
-        textIndent: "18px",
+        margin: "8px 0 0",
+        textIndent: "28px",
         textAlign: "justify",
         wordBreak: "keep-all",
         overflowWrap: "break-word",
@@ -258,7 +267,7 @@ function BriefingTable({
           width: "100%",
           borderCollapse: "collapse",
           fontFamily: SERIF,
-          fontSize: "14px",
+          fontSize: "16px",
           color: COLOR_INK,
         }}
       >
@@ -301,7 +310,7 @@ function BriefingTable({
                         : "1px dashed rgba(0,0,0,0.12)",
                       fontFamily: SERIF,
                       fontWeight: isTotal ? 600 : 400,
-                      fontSize: "14px",
+                      fontSize: "16px",
                       color: ci === 2 ? COLOR_MUTED : COLOR_INK,
                       fontVariantNumeric: ci === 1 ? "tabular-nums" : "normal",
                       wordBreak: "keep-all",
@@ -333,10 +342,10 @@ function BriefingTable({
 }
 
 function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?: number }) {
-  // Section (장) — IMF bold serif heading + leftmost body (Tufte: nested indent 최소화)
+  // Section (장) — mdpi MDPI21heading1: bold only (size = body, NOT enlarged)
   if (depth === 0) {
     return (
-      <section style={{ marginTop: "40px" }}>
+      <section style={{ marginTop: "28px" }}>
         <div
           style={{
             display: "grid",
@@ -348,13 +357,12 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
           <span
             style={{
               fontFamily: SERIF,
-              fontSize: "22px",
+              fontSize: HEADING_FS,
               fontWeight: 700,
               color: COLOR_INK,
-              lineHeight: 1.2,
+              lineHeight: HEADING_LH,
               fontVariantNumeric: "tabular-nums",
               textAlign: "right",
-              letterSpacing: "-0.01em",
             }}
           >
             {section.num}.
@@ -362,19 +370,18 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
           <h2
             style={{
               fontFamily: SERIF,
-              fontSize: "22px",
+              fontSize: HEADING_FS,
               fontWeight: 700,
               color: COLOR_INK,
               margin: 0,
-              lineHeight: 1.2,
+              lineHeight: HEADING_LH,
               wordBreak: "keep-all",
-              letterSpacing: "-0.005em",
             }}
           >
             {section.title}
           </h2>
         </div>
-        <div style={{ marginTop: "10px" }}>
+        <div style={{ marginTop: "6px" }}>
           {section.body && <Paragraph>{renderFootnotes(section.body)}</Paragraph>}
           {section.items && <ItemList items={section.items} />}
           {section.table && <BriefingTable table={section.table} />}
@@ -386,9 +393,9 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
     );
   }
 
-  // Subsection (절) — IMF bold serif italic + hanging indent (장과 동일 grid 컨벤션)
+  // Subsection (절) — mdpi MDPI22heading2: italic only (no bold, size = body)
   return (
-    <div style={{ marginTop: "26px" }}>
+    <div style={{ marginTop: "18px" }}>
       <h3
         style={{
           display: "grid",
@@ -396,16 +403,17 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
           columnGap: `${COL_GAP}px`,
           alignItems: "baseline",
           margin: 0,
-          marginBottom: "6px",
+          marginBottom: "4px",
         }}
       >
         <span
           style={{
             fontFamily: SERIF,
-            fontSize: "16px",
-            fontWeight: 500,
+            fontSize: HEADING_FS,
+            fontWeight: 400,
+            fontStyle: "italic",
             color: COLOR_INK,
-            lineHeight: 1.4,
+            lineHeight: HEADING_LH,
             fontVariantNumeric: "tabular-nums",
             textAlign: "right",
           }}
@@ -415,13 +423,12 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
         <span
           style={{
             fontFamily: SERIF,
-            fontSize: "16px",
-            fontWeight: 700,
+            fontSize: HEADING_FS,
+            fontWeight: 400,
             fontStyle: "italic",
             color: COLOR_INK,
-            lineHeight: 1.4,
+            lineHeight: HEADING_LH,
             wordBreak: "keep-all",
-            letterSpacing: "-0.005em",
           }}
         >
           {section.title}
@@ -622,8 +629,8 @@ export function CountryBriefingDocument({
               paddingLeft: 0,
               listStyle: "none",
               fontFamily: SERIF,
-              fontSize: "13px",
-              lineHeight: "22px",
+              fontSize: "14px",
+              lineHeight: "23px",
               color: COLOR_INK,
             }}
           >
@@ -637,14 +644,14 @@ export function CountryBriefingDocument({
                   marginBottom: "10px",
                   alignItems: "baseline",
                   fontFamily: SERIF,
-                  fontSize: "13px",
-                  lineHeight: "22px",
+                  fontSize: "14px",
+                  lineHeight: "23px",
                 }}
               >
                 <span
                   style={{
                     fontFamily: SERIF,
-                    fontSize: "13px",
+                    fontSize: "14px",
                     fontWeight: 600,
                     color: COLOR_STAMP,
                     fontVariantNumeric: "tabular-nums",
@@ -662,7 +669,7 @@ export function CountryBriefingDocument({
                   {r.issuer}.{" "}
                   <span style={{ fontStyle: "italic" }}>{r.title}</span>
                   {r.year ? `, ${r.year}` : ""}.{" "}
-                  <span style={{ color: COLOR_MUTED, fontSize: "12px" }}>
+                  <span style={{ color: COLOR_MUTED, fontSize: "13px" }}>
                     ({r.url})
                   </span>
                 </span>
