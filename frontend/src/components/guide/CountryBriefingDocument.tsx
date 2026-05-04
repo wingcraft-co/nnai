@@ -1,5 +1,22 @@
 "use client";
 
+/**
+ * Country Briefing — 양식 spec 출처
+ *
+ * Hierarchy & visual:   Tufte-LaTeX (no horizontal rules; vertical space + small-caps for hierarchy)
+ *                       https://github.com/Tufte-LaTeX/tufte-latex
+ * Section numbering:    IMF Country Report (1./1.1./1.1.1. 3-level), cover Document №
+ *                       https://www.elibrary.imf.org/fileasset/IMF_Editorial_Style_Guide_2024.pdf
+ * Tables:               World Bank Editorial Style Guide 2020 — top·bottom horizontal rules only
+ *                       (≥1pt), no vertical rules, no row dividers
+ *                       https://documents1.worldbank.org/curated/en/318281583390046594/
+ * References:           Chicago author-date — issuer · *title* italic · year · url
+ *                       (IMF + Chicago Manual 합성)
+ *
+ * 가로선 정책: zone boundary 4곳에만 (masthead / Quick Facts / 표 top·bottom / footer).
+ * Hierarchy 신호로는 절대 사용하지 않음 (Tufte 컨벤션).
+ */
+
 import type { BriefingData, BriefingSection } from "@/lib/briefing-data";
 
 const SERIF = "var(--font-briefing-serif), 'Noto Serif KR', Georgia, serif";
@@ -15,6 +32,45 @@ const COLOR_OVERLINE = "#7B1F1F";
 const DOC_WIDTH = 1080;
 const DOC_PADDING_X = 96;
 const DOC_PADDING_Y = 80;
+
+// Hanging-indent num columns — IMF Country Report 컨벤션 (모든 layer leftmost align)
+const NUM_COL_SECTION = 40;       // "1."
+const NUM_COL_SUBSECTION = 48;    // "1.1"
+const NUM_COL_ITEM = 24;          // "(a)"
+const COL_GAP = 16;
+
+// 본문 typography — GOV.UK 5px-multiple line-height + IMF body serif
+const BODY_FS = "15px";
+const BODY_LH = "25px";
+
+// ─────────────────────────────────────────────────────────────────
+
+// 본문 내 [1] [2] 마커 → STAMP color superscript 변환 (References list와 시각 연결)
+function renderFootnotes(text: string): React.ReactNode {
+  if (!text.includes("[")) return text;
+  const parts = text.split(/(\[\d+\])/g);
+  return parts.map((part, i) => {
+    if (/^\[\d+\]$/.test(part)) {
+      const num = part.slice(1, -1);
+      return (
+        <span
+          key={i}
+          style={{
+            color: COLOR_STAMP,
+            fontWeight: 600,
+            fontSize: "0.82em",
+            marginLeft: "2px",
+            marginRight: "1px",
+            letterSpacing: "0.02em",
+          }}
+        >
+          [{num}]
+        </span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 // ─────────────────────────────────────────────────────────────────
 
@@ -122,17 +178,17 @@ function QFCell({ label, value }: { label: string; value: string }) {
 
 // ─────────────────────────────────────────────────────────────────
 
-// 본문 단락 — 첫 줄 들여쓰기 1em (인쇄 문서 컨벤션)
+// 본문 단락 — IMF body serif + 첫 줄 들여쓰기 (인쇄 문서 컨벤션)
 function Paragraph({ children }: { children: React.ReactNode }) {
   return (
     <p
       style={{
-        fontFamily: SANS,
-        fontSize: "13px",
-        lineHeight: 1.75,
+        fontFamily: SERIF,
+        fontSize: BODY_FS,
+        lineHeight: BODY_LH,
         color: COLOR_INK,
         margin: "10px 0 0",
-        textIndent: "16px",
+        textIndent: "18px",
         textAlign: "justify",
         wordBreak: "keep-all",
         overflowWrap: "break-word",
@@ -143,34 +199,33 @@ function Paragraph({ children }: { children: React.ReactNode }) {
   );
 }
 
-// 항목 list — baseline hard-lock: marker와 텍스트 같은 폰트/크기/lineHeight
+// 항목 list — IMF/World Bank 컨벤션: (a) non-italic, body 동색, hanging indent
 function ItemList({ items }: { items: string[] }) {
   if (!items.length) return null;
   return (
-    <div style={{ marginTop: "10px" }}>
+    <div style={{ marginTop: "12px" }}>
       {items.map((item, i) => (
         <div
           key={i}
           style={{
             display: "grid",
-            gridTemplateColumns: "22px 1fr",
-            columnGap: "6px",
-            marginBottom: "5px",
+            gridTemplateColumns: `${NUM_COL_ITEM}px 1fr`,
+            columnGap: "8px",
+            marginBottom: "6px",
             alignItems: "baseline",
-            fontFamily: SANS,
-            fontSize: "13px",
-            lineHeight: 1.7,
+            fontFamily: SERIF,
+            fontSize: BODY_FS,
+            lineHeight: BODY_LH,
             color: COLOR_INK,
           }}
         >
           <span
             style={{
-              fontFamily: SANS,
-              fontSize: "13px",
-              lineHeight: 1.7,
-              fontStyle: "italic",
-              fontWeight: 400,
-              color: COLOR_MUTED,
+              fontFamily: SERIF,
+              fontSize: BODY_FS,
+              lineHeight: BODY_LH,
+              fontWeight: 500,
+              color: COLOR_INK,
               textAlign: "right",
             }}
           >
@@ -182,7 +237,7 @@ function ItemList({ items }: { items: string[] }) {
               overflowWrap: "break-word",
             }}
           >
-            {item}
+            {renderFootnotes(item)}
           </span>
         </div>
       ))}
@@ -202,8 +257,8 @@ function BriefingTable({
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          fontFamily: SANS,
-          fontSize: "13px",
+          fontFamily: SERIF,
+          fontSize: "14px",
           color: COLOR_INK,
         }}
       >
@@ -214,11 +269,12 @@ function BriefingTable({
                 key={i}
                 style={{
                   textAlign: i === 0 ? "left" : i === 1 ? "right" : "left",
-                  padding: "8px 12px",
+                  padding: "10px 12px",
                   borderBottom: `1px solid ${COLOR_RULE}`,
                   borderTop: `1.5px solid ${COLOR_RULE}`,
+                  fontFamily: SANS,
                   fontWeight: 600,
-                  fontSize: "10px",
+                  fontSize: "11px",
                   letterSpacing: "0.14em",
                   color: COLOR_MUTED,
                   textTransform: "uppercase",
@@ -239,18 +295,19 @@ function BriefingTable({
                     key={ci}
                     style={{
                       textAlign: ci === 0 ? "left" : ci === 1 ? "right" : "left",
-                      padding: "8px 12px",
+                      padding: "9px 12px",
                       borderBottom: isTotal
                         ? `1.5px solid ${COLOR_RULE}`
                         : "1px dashed rgba(0,0,0,0.12)",
+                      fontFamily: SERIF,
                       fontWeight: isTotal ? 600 : 400,
-                      fontSize: "13px",
+                      fontSize: "14px",
                       color: ci === 2 ? COLOR_MUTED : COLOR_INK,
                       fontVariantNumeric: ci === 1 ? "tabular-nums" : "normal",
                       wordBreak: "keep-all",
                     }}
                   >
-                    {cell}
+                    {ci === 2 ? renderFootnotes(cell) : cell}
                   </td>
                 ))}
               </tr>
@@ -276,15 +333,15 @@ function BriefingTable({
 }
 
 function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?: number }) {
-  // Section (장) — IMF 스타일 bold serif. 가로선 없이 spacing으로만 구분.
+  // Section (장) — IMF bold serif heading + leftmost body (Tufte: nested indent 최소화)
   if (depth === 0) {
     return (
-      <section style={{ marginTop: "36px" }}>
+      <section style={{ marginTop: "40px" }}>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "52px 1fr",
-            columnGap: "16px",
+            gridTemplateColumns: `${NUM_COL_SECTION}px 1fr`,
+            columnGap: `${COL_GAP}px`,
             alignItems: "baseline",
           }}
         >
@@ -317,8 +374,8 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
             {section.title}
           </h2>
         </div>
-        <div style={{ paddingLeft: "68px", marginTop: "10px" }}>
-          {section.body && <Paragraph>{section.body}</Paragraph>}
+        <div style={{ marginTop: "10px" }}>
+          {section.body && <Paragraph>{renderFootnotes(section.body)}</Paragraph>}
           {section.items && <ItemList items={section.items} />}
           {section.table && <BriefingTable table={section.table} />}
           {section.subsections?.map((sub) => (
@@ -329,36 +386,48 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
     );
   }
 
-  // Subsection (절) — IMF 스타일 bold serif. 사이즈만 작게, 가로선 없음.
+  // Subsection (절) — IMF bold serif italic + hanging indent (장과 동일 grid 컨벤션)
   return (
-    <div style={{ marginTop: "20px" }}>
+    <div style={{ marginTop: "26px" }}>
       <h3
         style={{
-          fontFamily: SERIF,
-          fontSize: "14px",
-          fontWeight: 700,
-          color: COLOR_INK,
-          margin: 0,
-          marginBottom: "4px",
-          lineHeight: 1.35,
-          wordBreak: "keep-all",
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: `${NUM_COL_SUBSECTION}px 1fr`,
+          columnGap: `${COL_GAP}px`,
           alignItems: "baseline",
-          gap: "8px",
+          margin: 0,
+          marginBottom: "6px",
         }}
       >
         <span
           style={{
+            fontFamily: SERIF,
+            fontSize: "16px",
             fontWeight: 500,
             color: COLOR_INK,
+            lineHeight: 1.4,
             fontVariantNumeric: "tabular-nums",
+            textAlign: "right",
           }}
         >
           {section.num}
         </span>
-        <span>{section.title}</span>
+        <span
+          style={{
+            fontFamily: SERIF,
+            fontSize: "16px",
+            fontWeight: 700,
+            fontStyle: "italic",
+            color: COLOR_INK,
+            lineHeight: 1.4,
+            wordBreak: "keep-all",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {section.title}
+        </span>
       </h3>
-      {section.body && <Paragraph>{section.body}</Paragraph>}
+      {section.body && <Paragraph>{renderFootnotes(section.body)}</Paragraph>}
       {section.items && <ItemList items={section.items} />}
       {section.table && <BriefingTable table={section.table} />}
     </div>
@@ -552,9 +621,9 @@ export function CountryBriefingDocument({
               margin: "14px 0 0",
               paddingLeft: 0,
               listStyle: "none",
-              fontFamily: SANS,
-              fontSize: "12px",
-              lineHeight: 1.7,
+              fontFamily: SERIF,
+              fontSize: "13px",
+              lineHeight: "22px",
               color: COLOR_INK,
             }}
           >
@@ -563,26 +632,26 @@ export function CountryBriefingDocument({
                 key={r.num}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "26px 1fr",
+                  gridTemplateColumns: "28px 1fr",
                   columnGap: "8px",
-                  marginBottom: "8px",
+                  marginBottom: "10px",
                   alignItems: "baseline",
-                  fontFamily: SANS,
-                  fontSize: "12px",
-                  lineHeight: 1.7,
+                  fontFamily: SERIF,
+                  fontSize: "13px",
+                  lineHeight: "22px",
                 }}
               >
                 <span
                   style={{
-                    fontFamily: SANS,
-                    fontSize: "12px",
+                    fontFamily: SERIF,
+                    fontSize: "13px",
                     fontWeight: 600,
                     color: COLOR_STAMP,
                     fontVariantNumeric: "tabular-nums",
                     textAlign: "right",
                   }}
                 >
-                  {r.num}.
+                  [{r.num}]
                 </span>
                 <span
                   style={{
@@ -593,7 +662,7 @@ export function CountryBriefingDocument({
                   {r.issuer}.{" "}
                   <span style={{ fontStyle: "italic" }}>{r.title}</span>
                   {r.year ? `, ${r.year}` : ""}.{" "}
-                  <span style={{ color: COLOR_MUTED, fontSize: "11px" }}>
+                  <span style={{ color: COLOR_MUTED, fontSize: "12px" }}>
                     ({r.url})
                   </span>
                 </span>

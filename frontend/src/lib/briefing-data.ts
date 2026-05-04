@@ -3,23 +3,25 @@
 /**
  * Country Briefing 양식 데이터 타입 + mock 팩토리.
  *
- * 양식 컨셉: IMF Country Report / Australian DFAT Country Brief / UN Policy Brief 합성.
- * - Document ID: NNAI-{country}-{date}-{userhash6}
- * - Classification: "Personal Briefing"
- * - Section numbering: 1. / 1.1. / 1.1.1.
- * - References: 영문 통일
+ * 양식 spec 출처:
+ *   - Document № 포맷:    IMF Country Report (`No. YY/NNN` mirror) → `NNAI-{cc}-{date}-{userhash6}`
+ *                         https://www.elibrary.imf.org/fileasset/IMF_Editorial_Style_Guide_2024.pdf
+ *   - Section numbering:  IMF (1./1.1./1.1.1. 3-level)
+ *   - References 4-field: Chicago author-date — issuer · *title* italic · year · url
+ *   - Mock body 정책:     country-agnostic (가짜 specific 정보 금지). 도시/국가 specific은
+ *                         visa_db / city_scores 동적 plug-in으로만.
  */
 
 export type BriefingSection = {
   num: string; // "1" 또는 "2.1"
   title: string;
   body?: string;
-  items?: string[]; // bullet list, footnote 마커 superscript는 본문에 직접 (e.g. "여권 사본¹")
+  items?: string[]; // bullet list, footnote 마커 superscript는 본문에 직접 (e.g. "여권 사본[1]")
   subsections?: BriefingSection[];
   table?: {
     headers: string[];
     rows: string[][];
-    sourceLabel?: string; // "Source: Numbeo Bangkok³"
+    sourceLabel?: string; // "Source: Numbeo Bangkok[3]"
   };
 };
 
@@ -226,10 +228,10 @@ export async function buildMockBriefing(input: {
             num: "2.1",
             title: "Entry & Documentation",
             items: [
-              "여권 사본 (유효기간 6개월 이상)¹",
-              "왕복 항공권 또는 출국 증빙¹",
-              "거주 증명 (호텔 예약 또는 임대 계약서)²",
-              "재정 능력 증빙 (요청 시 제출)²",
+              "여권 사본 (유효기간 6개월 이상)[1]",
+              "왕복 항공권 또는 출국 증빙[1]",
+              "거주 증명 (호텔 예약 또는 임대 계약서)[2]",
+              "재정 능력 증빙 (요청 시 제출)[2]",
             ],
           },
           {
@@ -237,7 +239,7 @@ export async function buildMockBriefing(input: {
             title: "Long-Term Options",
             body:
               "장기 체류 옵션은 디지털 노마드 비자, 거주자 비자, 투자 이민 비자 등의 경로가 있습니다. " +
-              "비자별 소득 요건·신청 절차·갱신 가능성은 영사관 공식 안내를 참조하시기 바랍니다.²",
+              "비자별 소득 요건·신청 절차·갱신 가능성은 영사관 공식 안내를 참조하시기 바랍니다.[2]",
           },
         ],
       },
@@ -254,11 +256,11 @@ export async function buildMockBriefing(input: {
                 ["Rent", "—", "Mid-range 1BR, central district"],
                 ["Food", "—", "Mix of local and grocery"],
                 ["Coworking", "—", "Hot desk, monthly"],
-                ["Insurance", "—", "Nomad plan⁴"],
+                ["Insurance", "—", "Nomad plan[4]"],
                 ["Misc", "—", "Transport, leisure, SIM"],
                 ["Total", "—", ""],
               ],
-              sourceLabel: `Source: Numbeo Cost of Living, ${cityName}³`,
+              sourceLabel: `Source: Numbeo Cost of Living, ${cityName}[3]`,
             },
           },
           {
@@ -267,7 +269,7 @@ export async function buildMockBriefing(input: {
             body:
               "거주국 세무 규정에 따라 누적 체류 일수가 임계점을 초과하면 해당국 세무 거주자 " +
               "신분으로 전환될 수 있습니다. 글로벌 소득에 대한 과세 의무, 한국과의 이중과세 협정 " +
-              "적용 여부는 출국 전 사전 검토를 권장합니다.²",
+              "적용 여부는 출국 전 사전 검토를 권장합니다.[2]",
           },
         ],
       },
@@ -279,7 +281,7 @@ export async function buildMockBriefing(input: {
             num: "4.1",
             title: "First 30 Days",
             items: [
-              "건강보험 임의계속가입 신청 (퇴직 후 2개월 이내, 기한 초과 시 영구 불가)³",
+              "건강보험 임의계속가입 신청 (퇴직 후 2개월 이내, 기한 초과 시 영구 불가)[3]",
               "Wise 또는 Revolut 국제 계좌 개설",
               "현지 SIM/eSIM 개통 및 결제 앱 설정",
               "단기 숙소 1개월 확보 + 장기 임대 탐색",
@@ -290,8 +292,8 @@ export async function buildMockBriefing(input: {
             title: "Days 31–60",
             items: [
               "코워킹 멤버십 1개월 (커뮤니티 합류)",
-              "현지 병원 1곳 방문 (보험 처리 절차 사전 검증)⁵",
-              "한인회 또는 노마드 모임 등록²",
+              "현지 병원 1곳 방문 (보험 처리 절차 사전 검증)[5]",
+              "한인회 또는 노마드 모임 등록[2]",
               "은행 계좌 개설 (외국인 등록증 요건 확인)",
             ],
           },
@@ -310,7 +312,7 @@ export async function buildMockBriefing(input: {
         num: "5",
         title: "Risk Notes",
         items: [
-          "입국 심사 시 원격근무 사실 발설 시 일부 국가에서 입국 거부 사례 보고됨²",
+          "입국 심사 시 원격근무 사실 발설 시 일부 국가에서 입국 거부 사례 보고됨[2]",
           "기후·계절 영향 (도시별 우기·태풍·혹서·혹한 시기 사전 확인)",
           "세무 거주지 자동 전환 위험 — 누적 체류일 사전 관리",
           "현지 결제 인프라 격차 (현금 의존도 및 신용카드 수용도)",
