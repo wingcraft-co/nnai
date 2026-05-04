@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
@@ -17,6 +18,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const cityScores = require('../data/city_scores.json');
+const journeyModalSource = readFileSync(new URL('../components/journey/NomadJourneyModal.tsx', import.meta.url), 'utf8');
 
 test('builds journey options from the full provided city list', () => {
   const options = buildJourneyCityOptions(cityScores);
@@ -109,4 +111,9 @@ test('resolves journey flag colors from supported and gps state', () => {
   assert.equal(resolveJourneyFlagColor({ supported: true, gpsVerified: true }), 'green');
   assert.equal(resolveJourneyFlagColor({ supported: true, gpsVerified: false }), 'red');
   assert.equal(resolveJourneyFlagColor({ supported: false, gpsVerified: true }), 'yellow');
+});
+
+test('journey easter egg renders the pixel globe instead of the flat world map', () => {
+  assert.equal(journeyModalSource.includes('/earth_web.gif'), true);
+  assert.equal(journeyModalSource.includes('/world-map-low-resolution.svg'), false);
 });

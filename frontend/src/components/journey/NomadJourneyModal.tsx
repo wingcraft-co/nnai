@@ -127,15 +127,6 @@ function nearestCity(lat: number, lng: number) {
   }, { city: CITY_OPTIONS[0], score: Number.POSITIVE_INFINITY }).city;
 }
 
-function routePoints(stops: JourneyStop[]) {
-  return stops
-    .map((stop) => {
-      const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
-      return `${point.x},${point.y}`;
-    })
-    .join(" ");
-}
-
 function markerStyle(point: { x: number; y: number }) {
   return {
     left: `${(point.x / 950) * 100}%`,
@@ -517,134 +508,43 @@ export function NomadJourneyModal({
         className="relative mx-auto h-full max-h-[860px] max-w-6xl overflow-hidden border border-white/20 bg-[#1a1a2e] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(255,250,242,0.08),transparent_58%)]" />
-      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-3 py-20 lg:px-8 lg:py-10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/earth_web.gif"
-          alt=""
-          className="absolute size-[min(68vh,72vw)] max-h-[560px] max-w-[560px] opacity-25 [image-rendering:pixelated]"
-        />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/world-map-low-resolution.svg"
-          alt=""
-          className="h-full max-h-full w-full max-w-[150vh] object-contain opacity-38 [image-rendering:pixelated]"
-        />
-        <svg
-          viewBox="0 0 950 620"
-          className="pointer-events-none absolute h-[calc(100%-10rem)] max-h-full w-[calc(100%-1rem)] max-w-[150vh] lg:h-[calc(100%-5rem)] lg:w-[calc(100%-4rem)]"
-          aria-label="Nomad journey world map"
-        >
-          <style>
-            {`
-              @keyframes journeyFlagDrop {
-                0% { opacity: 0; transform: translateY(-38px) scale(0.72); }
-                62% { opacity: 1; transform: translateY(4px) scale(1.04); }
-                100% { opacity: 1; transform: translateY(0) scale(1); }
-              }
-              @keyframes journeyFlagPulse {
-                0% { opacity: 0.38; transform: scale(0.65); }
-                100% { opacity: 0; transform: scale(2.4); }
-              }
-              .journey-preview-flag { animation: journeyFlagDrop 520ms cubic-bezier(.2,.9,.2,1) both; transform-box: fill-box; transform-origin: center bottom; }
-              .journey-preview-pulse { animation: journeyFlagPulse 900ms ease-out both; transform-box: fill-box; transform-origin: center; }
-            `}
-          </style>
-          {!activeContinent && CONTINENT_MARKERS.map((marker) => (
-            <g key={marker.id} transform={`translate(${marker.x} ${marker.y})`}>
-              <circle r={marker.size / 2} fill="currentColor" className="text-[#d1842c]" opacity="0.18" />
-              <circle r={marker.size / 2 - 3} fill="none" stroke="currentColor" strokeWidth="2" className="text-[#fffaf2]" opacity="0.55" />
-              <text textAnchor="middle" y="4" fontSize="13" fontWeight="800" fill="currentColor" className="text-[#fffaf2]">
-                {marker.label}
-              </text>
-            </g>
-          ))}
-
-          {activeCountries.map((country) => {
-            const point = projectJourneyPoint(country.lat, country.lng);
-            const selected = activeCountryCode === country.country_code;
-            return (
-              <g key={country.country_code} transform={`translate(${point.x} ${point.y})`}>
-                <circle r={selected ? "13" : "10"} fill="currentColor" className="text-[#d1842c]" opacity={selected ? "0.9" : "0.58"} />
-                <circle r={selected ? "18" : "14"} fill="none" stroke="currentColor" strokeWidth="2" className="text-[#fffaf2]" opacity="0.72" />
-                <text textAnchor="middle" y="-20" fontSize="10" fontWeight="800" fill="currentColor" className="text-[#fffaf2]">
-                  {country.country_code}
-                </text>
-              </g>
-            );
-          })}
-
-          {activeCities.map((city) => {
-            const point = projectJourneyPoint(city.lat, city.lng);
-            const selected = selectedCityId === city.id;
-            return (
-              <g key={city.id} transform={`translate(${point.x} ${point.y})`}>
-                <circle r={selected ? "7" : "4.5"} fill="currentColor" className={selected ? "text-[#fffaf2]" : "text-[#d1842c]"} opacity={selected ? "0.95" : "0.72"} />
-              </g>
-            );
-          })}
-
-          {myStops.length > 1 && (
-            <polyline
-              points={routePoints(myStops)}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[#d1842c]"
-              opacity="0.92"
-            />
-          )}
-
-          {showCommunity &&
-            visibleCommunity.map((stop) => {
-              const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
-              return (
-                <g key={`${stop.city}-${stop.country}`} transform={`translate(${point.x} ${point.y})`}>
-                  <circle r={Math.min(13, 5 + stop.cnt * 1.2)} fill="currentColor" className={flagColorClass(stop.flag_color)} opacity={showPersona ? "0.34" : "0.22"} />
-                  <circle r="3.2" fill="currentColor" className={flagColorClass(stop.flag_color)} opacity="0.88" />
-                  <text y="-9" textAnchor="middle" fontSize="11" fontWeight="700" fill="currentColor" className="text-[#fffaf2]">
-                    {stop.city} {stop.cnt}
-                  </text>
-                </g>
-              );
-            })}
-
-          {myStops.map((stop) => {
-            const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
-            return (
-              <g key={stop.id} transform={`translate(${point.x} ${point.y})`}>
-                <circle r="8" fill="currentColor" className={flagColorClass(stop.flag_color)} opacity="0.22" />
-                <path d="M0 0 L0 -24 L19 -15 L0 -7 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2" className={flagColorClass(stop.flag_color)} />
-                <circle r="4" fill="#fffaf2" />
-              </g>
-            );
-          })}
-
-          {selectedLocation && selectedPoint && (
-            <g key={`preview-${selectedLocation.city}-${previewAnimationKey}`} transform={`translate(${selectedPoint.x} ${selectedPoint.y})`}>
-              <circle r="12" fill="currentColor" className={`journey-preview-pulse ${flagColorClass(pendingFlagColor)}`} />
-              <g className="journey-preview-flag">
-                <path d="M0 0 L0 -30 L23 -19 L0 -9 Z" fill="currentColor" stroke="#fffaf2" strokeWidth="2.3" className={flagColorClass(pendingFlagColor)} />
-                <circle r="4.5" fill="#fffaf2" />
-              </g>
-            </g>
-          )}
-        </svg>
-        <div className="pointer-events-auto absolute h-[calc(100%-10rem)] max-h-full w-[calc(100%-1rem)] max-w-[150vh] lg:h-[calc(100%-5rem)] lg:w-[calc(100%-4rem)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_45%,rgba(120,191,224,0.16),transparent_42%),radial-gradient(circle_at_50%_55%,rgba(255,250,242,0.08),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-3 py-20 lg:justify-start lg:px-16 lg:py-12">
+        <style>
+          {`
+            @keyframes journeyFlagDrop {
+              0% { opacity: 0; transform: translate(-50%, -50%) translateY(-38px) scale(0.72); }
+              62% { opacity: 1; transform: translate(-50%, -50%) translateY(4px) scale(1.04); }
+              100% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+            }
+            @keyframes journeyFlagPulse {
+              0% { opacity: 0.38; transform: translate(-50%, -50%) scale(0.65); }
+              100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+            }
+            .journey-preview-flag { animation: journeyFlagDrop 520ms cubic-bezier(.2,.9,.2,1) both; transform-origin: center bottom; }
+            .journey-preview-pulse { animation: journeyFlagPulse 900ms ease-out both; transform-origin: center; }
+          `}
+        </style>
+        <div className="relative aspect-square w-[min(78vh,calc(100vw-2rem))] max-w-[720px] overflow-hidden rounded-full border-[6px] border-[#fffaf2]/70 bg-[#78bfe0]/20 shadow-[0_0_0_6px_rgba(39,34,37,0.65),16px_16px_0_rgba(8,8,14,0.42)] lg:w-[min(76vh,calc(100vw-470px))]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/earth_web.gif"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-95 [image-rendering:pixelated]"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_34%_28%,rgba(255,250,242,0.28),transparent_24%),radial-gradient(circle_at_72%_72%,rgba(10,11,22,0.32),transparent_42%)]" />
+          <div className="pointer-events-auto absolute inset-[7%]">
           {!activeContinent && CONTINENT_MARKERS.map((marker) => (
             <button
               key={marker.id}
               type="button"
               aria-label={`${marker.label} 선택`}
               onClick={() => selectContinent(marker.id)}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#fffaf2]/65 bg-[#d1842c]/22 text-xs font-extrabold text-[#fffaf2] shadow-[0_0_28px_rgba(209,132,44,0.26)] transition hover:bg-[#d1842c]/42 focus:outline-none focus:ring-2 focus:ring-[#fffaf2]"
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center border-4 border-[#fffaf2]/80 bg-[#d1842c]/72 text-xs font-black text-[#fffaf2] shadow-[5px_5px_0_rgba(8,8,14,0.42)] transition hover:-translate-y-[54%] hover:bg-[#d1842c] focus:outline-none focus:ring-2 focus:ring-[#fffaf2]"
               style={{
                 ...markerStyle(marker),
-                width: marker.size,
-                height: marker.size,
+                width: Math.max(76, marker.size - 10),
+                height: Math.max(76, marker.size - 10),
               }}
             >
               {marker.label}
@@ -659,7 +559,7 @@ export function NomadJourneyModal({
                 type="button"
                 aria-label={`${country.country} 선택, 지원 도시 ${country.city_count}개`}
                 onClick={() => selectCountry(country)}
-                className={`absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border text-xs font-extrabold shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#fffaf2] ${
+                className={`absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center border-4 text-xs font-black shadow-[4px_4px_0_rgba(8,8,14,0.45)] transition focus:outline-none focus:ring-2 focus:ring-[#fffaf2] ${
                   activeCountryCode === country.country_code
                     ? "border-[#fffaf2] bg-[#d1842c] text-white"
                     : "border-[#fffaf2]/70 bg-[#fffaf2]/90 text-[#1D1D1F] hover:bg-white"
@@ -680,7 +580,7 @@ export function NomadJourneyModal({
                 type="button"
                 aria-label={selected ? `${city.city} 선택 해제` : `${city.city} 선택`}
                 onClick={() => selectCity(city)}
-                className={`absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#fffaf2] ${
+                className={`absolute size-7 -translate-x-1/2 -translate-y-1/2 border-4 shadow-[3px_3px_0_rgba(8,8,14,0.45)] transition focus:outline-none focus:ring-2 focus:ring-[#fffaf2] ${
                   selected
                     ? "border-[#fffaf2] bg-[#d1842c]"
                     : "border-[#fffaf2]/80 bg-[#d1842c]/70 hover:bg-[#d1842c]"
@@ -689,6 +589,49 @@ export function NomadJourneyModal({
               />
             );
           })}
+
+          {showCommunity &&
+            visibleCommunity.map((stop) => {
+              const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
+              return (
+                <div
+                  key={`${stop.city}-${stop.country}`}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+                  style={markerStyle(point)}
+                >
+                  <span className={`mx-auto block size-3 border-2 border-[#fffaf2] shadow-[2px_2px_0_rgba(8,8,14,0.5)] ${flagBgClass(stop.flag_color ?? "red")}`} />
+                  <span className="mt-1 block max-w-24 truncate bg-[#272225]/72 px-1.5 py-0.5 text-[10px] font-black text-[#fffaf2]">
+                    {stop.city} {stop.cnt}
+                  </span>
+                </div>
+              );
+            })}
+
+          {myStops.map((stop) => {
+            const point = projectJourneyPoint(Number(stop.lat), Number(stop.lng));
+            return (
+              <div
+                key={stop.id}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={markerStyle(point)}
+                aria-label={`${stop.city} 깃발`}
+              >
+                <span className={`block h-8 w-6 border-2 border-[#fffaf2] shadow-[3px_3px_0_rgba(8,8,14,0.5)] ${flagBgClass(stop.flag_color ?? "red")}`} />
+              </div>
+            );
+          })}
+
+          {selectedLocation && selectedPoint && (
+            <div
+              key={`preview-${selectedLocation.city}-${previewAnimationKey}`}
+              className="absolute"
+              style={markerStyle(selectedPoint)}
+            >
+              <span className={`journey-preview-pulse absolute left-0 top-0 size-8 ${flagBgClass(pendingFlagColor)}`} />
+              <span className={`journey-preview-flag absolute left-0 top-0 h-10 w-7 border-2 border-[#fffaf2] shadow-[4px_4px_0_rgba(8,8,14,0.55)] ${flagBgClass(pendingFlagColor)}`} />
+            </div>
+          )}
+          </div>
         </div>
       </div>
 
