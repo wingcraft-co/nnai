@@ -401,8 +401,9 @@ function SectionBlock({ section, depth = 0 }: { section: BriefingSection; depth?
   }
 
   // Subsection (절) — mdpi MDPI22heading2: italic + 500 weight (mdpi 400을 디지털에서 살짝 강화)
+  // marginTop 8: 장-절 간격을 장-본문 간격(16)과 일치시킴 (장 body wrapper 8 + 절 wrapper 8)
   return (
-    <div style={{ marginTop: "24px" }}>
+    <div style={{ marginTop: "8px" }}>
       <h3
         style={{
           display: "grid",

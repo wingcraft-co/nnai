@@ -139,7 +139,7 @@ function buildUserPrompt(input: {
       {
         num: "5",
         title: "Risk Notes",
-        items: [`${input.cityName} 기준 실제 리스크 4-5개. 추상적 일반론 금지.`],
+        body: `${input.cityName} 기준 실제 리스크 4-5개를 서술형 단락으로 작성. 추상적 일반론 금지. 학술 보고서 톤. 첫째/둘째/셋째 등 enumeration 단어로 구조화.`,
       },
     ],
     references: [

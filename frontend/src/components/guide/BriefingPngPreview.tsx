@@ -78,6 +78,8 @@ export function BriefingPngPreview({
           left: "-99999px",
           top: 0,
           pointerEvents: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
         }}
         aria-hidden
       >
@@ -91,7 +93,13 @@ export function BriefingPngPreview({
           src={pngUrl}
           alt={`${data.cityName} Country Briefing`}
           draggable={false}
-          style={{ width: "100%", display: "block", userSelect: "none" }}
+          style={{
+            width: "100%",
+            display: "block",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            pointerEvents: "none",
+          }}
         />
       ) : error ? (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
