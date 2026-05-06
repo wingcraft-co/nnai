@@ -21,7 +21,17 @@ const SYSTEM_PROMPT = `너는 디지털 노마드 이민 전문 애널리스트�
 - 한국인 기준으로 재해석된 정보만 작성 (한국-해당국 이중과세협약, 한국 여권 무비자 일수, 한국 거주자 기준 183일 규칙 등).
 - 수치에는 반드시 근거 출처 명시 (Numbeo / 대사관 / MOFA / 현지 규정 / 해당국 통계청 등).
 - 단점과 주의사항을 반드시 포함. 긍정 일변도 금지.
-- 불확실한 정보는 작성하지 말고 "현지 확인 필요" 표기.
+- 불확실한 정보는 작성 금지 (작성하지 않는 것이 추정보다 나음).
+
+보고서 톤 (필수):
+- 우리는 유료 개인화 리포트를 제공한다. 사용자에게 "확인 바람", "사전 점검", "검토 필요" 등 가이드 어투 금지.
+- 우리가 직접 정보를 보고: "○○월 평균 기온 N도", "우기는 ○월~○월", "비자 요건은 ...", "이중과세 협정 발효일 ..." 형태.
+- 어투: 정중체 (-합니다 / -됩니다 / -보고됩니다)로 통일. 중립체 (-된다 / -한다) 금지.
+
+인용 규칙 (필수):
+- 본문, items, table notes의 모든 구체적 진술(수치, 정책, 통계, 사례, 정부 안내)에 [N] 인용 마커 필수.
+- references 배열은 본문에 인용된 모든 출처를 등록. 최소 5개, 최대 10개. 5개 cap이 아니라 본문 인용 출처 수에 맞춤.
+- 동일 출처는 한 번만 등록. 본문에 여러 번 인용 가능.
 
 출처 인용 표기:
 - 본문/items/table notes 내 출처 인용은 [1] [2] [3] 등 square bracket 마커를 사용한다 (superscript ¹²³ 금지).
@@ -139,15 +149,18 @@ function buildUserPrompt(input: {
       {
         num: "5",
         title: "Risk Notes",
-        body: `${input.cityName} 기준 실제 리스크 4-5개를 서술형 단락으로 작성. 추상적 일반론 금지. 학술 보고서 톤. 첫째/둘째/셋째 등 enumeration 단어로 구조화.`,
+        body: `${input.cityName} 기준 도시별 실제 리스크 4-5개를 서술형 단락으로 작성. 추상적 일반론 금지. 도시 specific 정보 (예: 우기 ○월~○월, 평균 기온 N도, 환율 변동성, 치안 사례) 반드시 포함. 학술 보고서 정중체. 가이드 어투 금지. 첫째/둘째/셋째 등 enumeration 단어로 구조화.`,
       },
     ],
     references: [
+      // 5-10개 작성. 본문 [N] 인용된 모든 출처 등록.
+      // 권장 출처: MOFA Korea, 거주국 영사관, 거주국 통계청/이민청,
+      //   거주국 세무청, Numbeo, SafetyWing, 한국 NHIS 등
       {
         num: 1,
-        issuer: "발행 주체",
+        issuer: "발행 주체 (예: Ministry of Foreign Affairs, Republic of Korea)",
         title: "문서명",
-        url: "실제 URL",
+        url: "실제 URL (도메인 또는 path)",
         year: 2025,
       },
     ],
@@ -236,6 +249,8 @@ export async function buildBriefing(input: {
   visaFreeDays?: number | null;
   stayMonths?: number | null;
   monthlyCostUsd?: number | null;
+  midTermRentUsd?: number | null;
+  coworkUsdMonth?: number | null;
 }): Promise<BriefingData> {
   const fallback = await buildMockBriefing(input);
 

@@ -102,7 +102,7 @@ export function preparedForLabel(userProfile: Record<string, unknown> | null | u
   return personaLabel;
 }
 
-/** Mock briefing — country/city agnostic 본문 + 실제 도시 데이터 plug-in Quick Facts */
+/** Mock briefing — country/city agnostic 본문 + 실제 도시 데이터 plug-in Quick Facts/Cost */
 export async function buildMockBriefing(input: {
   cityName?: string;
   cityKr?: string | null;
@@ -112,6 +112,8 @@ export async function buildMockBriefing(input: {
   visaFreeDays?: number | null;
   stayMonths?: number | null;
   monthlyCostUsd?: number | null;
+  midTermRentUsd?: number | null;
+  coworkUsdMonth?: number | null;
 }): Promise<BriefingData> {
   const cityName = input.cityName || "Bangkok";
   const cityKr = input.cityKr ?? null;
@@ -129,6 +131,14 @@ export async function buildMockBriefing(input: {
     PT: 183,
   };
   const taxDays = TAX_RESIDENCY_DAYS[countryId] ?? 183;
+
+  // Cost Profile 표 USD plug-in (city_scores.json enrichment)
+  const totalUsd = typeof input.monthlyCostUsd === "number" ? input.monthlyCostUsd : null;
+  const rentUsd = typeof input.midTermRentUsd === "number" ? input.midTermRentUsd : null;
+  const coworkUsd = typeof input.coworkUsdMonth === "number" ? input.coworkUsdMonth : null;
+  const insuranceUsd = 50; // SafetyWing nomad plan 기본 reference [4]
+  const fmtUsd = (n: number | null): string =>
+    n !== null && n > 0 ? n.toLocaleString() : "—";
 
   const COUNTRY_OFFICIAL: Record<string, string> = {
     TH: "Kingdom of Thailand",
@@ -238,8 +248,8 @@ export async function buildMockBriefing(input: {
             num: "2.2",
             title: "Long-Term Options",
             body:
-              "장기 체류 옵션은 디지털 노마드 비자, 거주자 비자, 투자 이민 비자 등의 경로가 있습니다. " +
-              "비자별 소득 요건, 신청 절차, 갱신 가능성은 영사관 공식 안내를 참조하시기 바랍니다.[2]",
+              "장기 체류 옵션은 디지털 노마드 비자, 거주자 비자, 투자 이민 비자로 구성됩니다. " +
+              "각 비자의 소득 요건, 신청 절차, 갱신 가능성은 거주국 영사관 공식 안내에 명시되어 있습니다[2].",
           },
         ],
       },
@@ -253,12 +263,12 @@ export async function buildMockBriefing(input: {
             table: {
               headers: ["Category", "USD", "Notes"],
               rows: [
-                ["Rent", "—", "Mid-range 1BR, central district"],
-                ["Food", "—", "Mix of local and grocery"],
-                ["Coworking", "—", "Hot desk, monthly"],
-                ["Insurance", "—", "Nomad plan[4]"],
+                ["Rent", fmtUsd(rentUsd), "Mid-range 1BR, central district"],
+                ["Food", "—", "Local groceries and dining mix"],
+                ["Coworking", fmtUsd(coworkUsd), "Hot desk, monthly"],
+                ["Insurance", fmtUsd(insuranceUsd), "SafetyWing nomad plan reference[4]"],
                 ["Misc", "—", "Transport, leisure, SIM"],
-                ["Total", "—", ""],
+                ["Total", fmtUsd(totalUsd), "City DB monthly estimate"],
               ],
               sourceLabel: `Source: Numbeo Cost of Living, ${cityName}[3]`,
             },
@@ -268,8 +278,8 @@ export async function buildMockBriefing(input: {
             title: "Tax Residency Notes",
             body:
               "거주국 세무 규정에 따라 누적 체류 일수가 임계점을 초과하면 해당국 세무 거주자 " +
-              "신분으로 전환될 수 있습니다. 글로벌 소득에 대한 과세 의무, 한국과의 이중과세 협정 " +
-              "적용 여부는 출국 전 사전 검토를 권장합니다.[2]",
+              "신분으로 전환됩니다. 글로벌 소득에 대한 과세 의무와 한국과의 이중과세 협정 " +
+              "적용 여부는 거주국과 한국 양국의 세법 기준에 따라 결정됩니다[2].",
           },
         ],
       },
@@ -312,15 +322,15 @@ export async function buildMockBriefing(input: {
         num: "5",
         title: "Risk Notes",
         body:
-          "이민과 체류 과정에서 점검이 필요한 주요 리스크는 네 가지로 정리된다. " +
-          "첫째, 입국 심사 시 원격근무 사실을 직접 발설할 경우 일부 국가에서 입국 거부 " +
-          "사례가 보고되어, 사전 확인 없이 발설하지 않는 것이 권장된다[2]. " +
-          "둘째, 도시별 우기, 태풍, 혹서, 혹한 등 기후 영향은 거주 만족도와 일상 운영에 " +
-          "직접적인 영향을 미치므로 출국 전 계절 정보를 사전에 확인할 필요가 있다. " +
-          "셋째, 누적 체류일이 거주국 세법 임계점을 초과하면 세무 거주지가 자동 전환될 수 " +
-          "있어 출입국 일정과 누적 일수의 사전 관리가 권장된다. " +
-          "넷째, 현지 결제 인프라의 격차(현금 의존도, 신용카드 수용도, 디지털 결제 보급률)는 " +
-          "일상 비용과 편의성에 영향을 주므로 도착 전 점검이 필요하다.",
+          "이민과 체류 과정에서 발생하는 주요 리스크는 네 가지 영역으로 정리됩니다. " +
+          "첫째, 일부 국가에서는 입국 심사 시 원격근무 사실 발설이 입국 거부 사유가 된 " +
+          "사례가 보고되어 있습니다[2]. " +
+          "둘째, 거주 만족도에 직접 영향을 미치는 기후 요인은 도시별로 우기, 태풍, 혹서, " +
+          "혹한의 시기와 강도에서 차이를 보입니다. " +
+          "셋째, 누적 체류일이 거주국 세법 임계점을 초과하면 세무 거주지로 자동 전환되며, " +
+          "한국과의 이중과세 협정 적용 여부도 별도로 결정됩니다[2]. " +
+          "넷째, 현지 결제 인프라는 도시별로 현금 의존도, 신용카드 수용도, 디지털 결제 " +
+          "보급률에서 격차가 있으며, 이는 일상 비용 구조에 영향을 미칩니다.",
       },
     ],
     references: [
