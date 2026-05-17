@@ -16,12 +16,17 @@ test("returns Korean legal footer labels", () => {
   assert.equal(labels.footer.terms, "이용약관");
   assert.equal(labels.footer.privacy, "개인정보처리방침");
   assert.equal(labels.footer.support, "문의");
-  assert.equal(labels.footer.privacySettings, "분석 설정");
+  assert.equal(labels.footer.privacySettings, "쿠키설정");
+  assert.equal(labels.footer.close, "닫기");
 });
 
 test("returns account menu labels", () => {
   assert.equal(getLegalLabels("ko").account.logout, "로그아웃");
+  assert.equal(getLegalLabels("ko").account.login, "로그인");
+  assert.equal(getLegalLabels("ko").account.loggedOutName, "Guest");
   assert.equal(getLegalLabels("en").account.logout, "Log out");
+  assert.equal(getLegalLabels("en").account.login, "login");
+  assert.equal(getLegalLabels("en").footer.privacySettings, "Cookie");
 });
 
 test("builds Google login URL with encoded return_to", () => {

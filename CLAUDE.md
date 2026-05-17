@@ -307,6 +307,10 @@ PAYG burst guard: recommend 3 req/sec, detail 5 req/sec. 초과 시 `429`.
 프론트엔드 작업 시 `docs/frontguide.docx` (iCloud) 참조.
 워크플로우: 레이아웃 → 인터랙션 → API 연결 순서로 진행.
 
+### UI 인터랙션 규칙
+
+- 클릭 가능한 버튼과 링크는 hover 시 항상 손모양 커서가 보여야 한다 (`cursor-pointer` 명시).
+
 ### 기술 스택
 - **Next.js 16** (App Router) — `node_modules/next/dist/docs/` 참조 (훈련 데이터와 다를 수 있음)
 - **Tailwind CSS 4** — 유틸리티 기반 스타일링

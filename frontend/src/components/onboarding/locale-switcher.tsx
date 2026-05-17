@@ -17,7 +17,7 @@ export function LocaleSwitcher() {
     <button
       type="button"
       onClick={switchLocale}
-      className="fixed right-4 top-4 z-50 rounded-lg border border-[var(--onboarding-card-border)] bg-[var(--onboarding-card-bg)] px-3 py-1.5 font-serif text-xs text-[var(--onboarding-text-secondary)] transition-colors hover:border-[var(--onboarding-card-border-active)] hover:text-[var(--onboarding-text-primary)]"
+      className="fixed right-4 top-4 z-50 flex h-9 min-w-12 cursor-pointer items-center justify-center rounded-md bg-transparent px-3 font-serif text-xs text-[var(--onboarding-text-secondary)] transition-colors hover:bg-transparent hover:text-[var(--onboarding-text-primary)]"
     >
       {locale === "ko" ? "EN" : "KO"}
     </button>

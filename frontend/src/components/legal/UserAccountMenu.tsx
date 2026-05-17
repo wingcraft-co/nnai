@@ -3,12 +3,19 @@
 import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { buildLogoutUrl, getLegalLabels } from "@/lib/legal-content.mjs";
+import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
+import { resolveAccountMenuDisplay } from "@/lib/account-menu.mjs";
+import {
+  buildGoogleLoginUrl,
+  buildLogoutUrl,
+  getLegalLabels,
+} from "@/lib/legal-content.mjs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 type UserAccountMenuProps = {
   locale: string;
+  hasLocaleSwitcher?: boolean;
 };
 
 type AuthUser = {
@@ -17,7 +24,7 @@ type AuthUser = {
   picture?: string | null;
 };
 
-export function UserAccountMenu({ locale }: UserAccountMenuProps) {
+export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccountMenuProps) {
   const labels = getLegalLabels(locale).account;
   const [auth, setAuth] = useState<AuthUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -44,30 +51,47 @@ export function UserAccountMenu({ locale }: UserAccountMenuProps) {
     };
   }, []);
 
-  if (!auth?.logged_in) {
-    return null;
-  }
-
-  const displayName = auth.name || labels.fallbackName;
+  const display = resolveAccountMenuDisplay(auth, labels);
+  const displayName = display.displayName;
   const initial = displayName.trim().charAt(0).toUpperCase() || "N";
+
+  function startLogin() {
+    markLoginPending();
+    trackLoginClick("google");
+    window.location.assign(buildGoogleLoginUrl(API_BASE, window.location.href));
+  }
 
   function startLogout() {
     window.location.assign(buildLogoutUrl(API_BASE, window.location.href));
   }
 
+  const positionClass = hasLocaleSwitcher ? "right-20" : "right-4";
+
+  if (!display.isLoggedIn) {
+    return (
+      <button
+        type="button"
+        onClick={startLogin}
+        className={`fixed ${positionClass} top-4 z-50 h-9 cursor-pointer bg-transparent px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-transparent hover:text-muted-foreground`}
+      >
+        {displayName}
+      </button>
+    );
+  }
+
   return (
-    <div className="fixed right-16 top-4 z-50">
+    <div className={`fixed ${positionClass} top-4 z-50`}>
       <button
         type="button"
         aria-label={labels.menuLabel}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
-        className="flex h-9 max-w-[180px] items-center gap-2 rounded-lg border border-[var(--onboarding-card-border)] bg-[var(--onboarding-card-bg)] px-2 pr-3 text-left font-serif text-xs text-[var(--onboarding-text-primary)] shadow-sm transition-colors hover:border-[var(--onboarding-card-border-active)]"
+        className="flex h-9 max-w-[180px] cursor-pointer items-center gap-2 rounded-md bg-transparent px-2 pr-3 text-left font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-transparent"
       >
-        {auth.picture ? (
+        {display.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={auth.picture}
+            src={display.picture}
             alt=""
             className="size-6 shrink-0 rounded-full object-cover"
             referrerPolicy="no-referrer"
@@ -81,14 +105,14 @@ export function UserAccountMenu({ locale }: UserAccountMenuProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-36 rounded-lg border border-[var(--onboarding-card-border)] bg-[var(--onboarding-card-bg)] p-1 shadow-lg">
+        <div className="absolute right-0 mt-2 w-36 rounded-md bg-white p-1 shadow-lg">
           <button
             type="button"
-            onClick={startLogout}
-            className="flex h-8 w-full items-center gap-2 rounded-md px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-white/10"
+            onClick={display.isLoggedIn ? startLogout : startLogin}
+            className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-black/5"
           >
-            <LogOut className="size-3.5" aria-hidden="true" />
-            <span>{labels.logout}</span>
+            {display.isLoggedIn && <LogOut className="size-3.5" aria-hidden="true" />}
+            <span>{display.isLoggedIn ? labels.logout : labels.login}</span>
           </button>
         </div>
       )}

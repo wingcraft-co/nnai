@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Noto_Serif_KR, Roboto, Source_Serif_4, Inter } from "next/font/google";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
+import { readPrivacyBodyHtml } from "@/lib/legal-docs";
 import "./globals.css";
 
 const fontMono = Geist_Mono({
@@ -40,17 +41,19 @@ export const metadata: Metadata = {
   description: "AI 기반 디지털 노마드 이민 설계 서비스",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const privacyBodyHtml = await readPrivacyBodyHtml();
+
   return (
     <html lang="ko">
       <body
         className={`${fontMono.variable} ${fontKR.variable} ${fontRoboto.variable} ${fontBriefingSerif.variable} ${fontBriefingSans.variable} antialiased`}
       >
-        <PostHogProvider>{children}</PostHogProvider>
+        <PostHogProvider privacyBodyHtml={privacyBodyHtml}>{children}</PostHogProvider>
       </body>
     </html>
   );

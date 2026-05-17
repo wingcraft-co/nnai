@@ -5,6 +5,10 @@ import { routing } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/onboarding/locale-switcher";
 import { LegalFooter } from "@/components/legal/LegalFooter";
 import { UserAccountMenu } from "@/components/legal/UserAccountMenu";
+import { readPrivacyBodyHtml, readTermsBlocks } from "@/lib/legal-docs";
+import { isDebugMode } from "@/lib/runtime-locale.mjs";
+
+const IS_DEBUG = isDebugMode(process.env.NEXT_PUBLIC_DEBUG_MODE);
 
 type Props = {
   children: React.ReactNode;
@@ -18,18 +22,26 @@ export default async function LocaleLayout({ children, params }: Props) {
     notFound();
   }
 
-  const messages = (await import(`../../../messages/${locale}.json`)).default;
+  const [messages, termsBlocks, privacyBodyHtml] = await Promise.all([
+    import(`../../../messages/${locale}.json`).then((module) => module.default),
+    readTermsBlocks(),
+    readPrivacyBodyHtml(),
+  ]);
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="flex min-h-screen flex-col">
         <PageViewTracker locale={locale} />
-        <UserAccountMenu locale={locale} />
-        <LocaleSwitcher />
-        <div className="flex-1">
+        <UserAccountMenu locale={locale} hasLocaleSwitcher={IS_DEBUG} />
+        {IS_DEBUG && <LocaleSwitcher />}
+        <div className="flex flex-1">
           {children}
         </div>
-        <LegalFooter locale={locale} />
+        <LegalFooter
+          locale={locale}
+          termsBlocks={termsBlocks}
+          privacyBodyHtml={privacyBodyHtml}
+        />
       </div>
     </NextIntlClientProvider>
   );

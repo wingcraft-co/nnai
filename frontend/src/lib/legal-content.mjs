@@ -8,7 +8,8 @@ const legalLabels = {
       terms: "이용약관",
       privacy: "개인정보처리방침",
       support: "문의",
-      privacySettings: "분석 설정",
+      privacySettings: "쿠키설정",
+      close: "닫기",
     },
     login: {
       eyebrow: "NNAI Account",
@@ -23,7 +24,9 @@ const legalLabels = {
     },
     account: {
       fallbackName: "NNAI user",
+      loggedOutName: "Guest",
       menuLabel: "계정 메뉴",
+      login: "로그인",
       logout: "로그아웃",
     },
     legal: {
@@ -37,7 +40,8 @@ const legalLabels = {
       terms: "Terms",
       privacy: "Privacy",
       support: "Support",
-      privacySettings: "Analytics settings",
+      privacySettings: "Cookie",
+      close: "Close",
     },
     login: {
       eyebrow: "NNAI Account",
@@ -52,7 +56,9 @@ const legalLabels = {
     },
     account: {
       fallbackName: "NNAI user",
+      loggedOutName: "Guest",
       menuLabel: "Account menu",
+      login: "login",
       logout: "Log out",
     },
     legal: {

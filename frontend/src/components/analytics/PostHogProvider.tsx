@@ -26,9 +26,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 type Props = {
   children: React.ReactNode;
+  privacyBodyHtml: string;
 };
 
-export function PostHogProvider({ children }: Props) {
+export function PostHogProvider({ children, privacyBodyHtml }: Props) {
   const pathname = usePathname();
   const checkingRef = useRef(false);
   const [consent, setConsent] = useState<AnalyticsConsent>("unknown");
@@ -97,6 +98,7 @@ export function PostHogProvider({ children }: Props) {
           effectiveMode={getActiveAnalyticsMode()}
           fullTrackingAvailable={isFullTrackingAvailable()}
           locale={locale}
+          privacyBodyHtml={privacyBodyHtml}
           onSelect={handleConsentSelect}
           onClose={consent === "unknown" ? undefined : () => setBannerOpen(false)}
         />
