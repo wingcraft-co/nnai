@@ -49,7 +49,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "local_saved_events",
     "move_checklist_items",
     "move_plans",
-    "pins",
+    "nomad_journey_stops",
     "pioneer_milestones",
     "planner_boards",
     "planner_tasks",
@@ -125,6 +125,31 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "radius_m",
     },
     "pioneer_milestones": {"country", "city", "category", "status", "target_date", "note"},
+    "nomad_journey_stops": {
+        "id",
+        "user_id",
+        "city",
+        "country",
+        "country_code",
+        "lat",
+        "lng",
+        "note",
+        "persona_type",
+        "verified_method",
+        "supported_city_id",
+        "is_supported_city",
+        "location_source",
+        "line_style",
+        "geocode_place_id",
+        "geocode_confidence",
+        "geocoded_at",
+        "gps_verified",
+        "flag_color",
+        "github_issue_url",
+        "github_issue_key",
+        "github_issue_status",
+        "created_at",
+    },
 }
 
 
@@ -316,19 +341,115 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_bucket_window_created
             ON rate_limit_hits(bucket_key, window_name, created_at);
         """)
+        cur.execute("DROP TABLE IF EXISTS pins;")
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS pins (
-                id         SERIAL PRIMARY KEY,
-                user_id    TEXT NOT NULL REFERENCES users(id),
-                city       TEXT NOT NULL,
-                display    TEXT,
-                note       TEXT,
-                lat        REAL NOT NULL,
-                lng        REAL NOT NULL,
-                user_lat   REAL,
-                user_lng   REAL,
-                created_at TEXT NOT NULL
+            CREATE TABLE IF NOT EXISTS nomad_journey_stops (
+                id              SERIAL PRIMARY KEY,
+                user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                city            TEXT NOT NULL,
+                country         TEXT NOT NULL,
+                country_code    TEXT,
+                lat             DOUBLE PRECISION NOT NULL,
+                lng             DOUBLE PRECISION NOT NULL,
+                note            TEXT NOT NULL CHECK (char_length(note) <= 10),
+                persona_type    TEXT,
+                verified_method TEXT NOT NULL DEFAULT 'gps_city_confirmed',
+                supported_city_id TEXT,
+                is_supported_city BOOLEAN NOT NULL DEFAULT FALSE,
+                location_source TEXT NOT NULL DEFAULT 'legacy',
+                line_style TEXT NOT NULL DEFAULT 'solid',
+                geocode_place_id TEXT,
+                geocode_confidence DOUBLE PRECISION,
+                geocoded_at TIMESTAMPTZ,
+                gps_verified BOOLEAN NOT NULL DEFAULT FALSE,
+                flag_color TEXT NOT NULL DEFAULT 'red',
+                github_issue_url TEXT,
+                github_issue_key TEXT,
+                github_issue_status TEXT NOT NULL DEFAULT 'not_required',
+                CHECK (lat BETWEEN -90 AND 90),
+                CHECK (lng BETWEEN -180 AND 180),
+                CHECK (line_style IN ('solid', 'dashed')),
+                CHECK (flag_color IN ('green', 'red', 'yellow')),
+                CHECK (github_issue_status IN ('not_required', 'created', 'linked', 'failed')),
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+        """)
+        for column_sql in [
+            "ADD COLUMN IF NOT EXISTS supported_city_id TEXT",
+            "ADD COLUMN IF NOT EXISTS is_supported_city BOOLEAN NOT NULL DEFAULT FALSE",
+            "ADD COLUMN IF NOT EXISTS location_source TEXT NOT NULL DEFAULT 'legacy'",
+            "ADD COLUMN IF NOT EXISTS line_style TEXT NOT NULL DEFAULT 'solid'",
+            "ADD COLUMN IF NOT EXISTS geocode_place_id TEXT",
+            "ADD COLUMN IF NOT EXISTS geocode_confidence DOUBLE PRECISION",
+            "ADD COLUMN IF NOT EXISTS geocoded_at TIMESTAMPTZ",
+            "ADD COLUMN IF NOT EXISTS gps_verified BOOLEAN NOT NULL DEFAULT FALSE",
+            "ADD COLUMN IF NOT EXISTS flag_color TEXT NOT NULL DEFAULT 'red'",
+            "ADD COLUMN IF NOT EXISTS github_issue_url TEXT",
+            "ADD COLUMN IF NOT EXISTS github_issue_key TEXT",
+            "ADD COLUMN IF NOT EXISTS github_issue_status TEXT NOT NULL DEFAULT 'not_required'",
+        ]:
+            cur.execute(f"ALTER TABLE nomad_journey_stops {column_sql};")
+        cur.execute("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_lat_range'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_lat_range CHECK (lat BETWEEN -90 AND 90) NOT VALID;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_lng_range'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_lng_range CHECK (lng BETWEEN -180 AND 180) NOT VALID;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_line_style'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_line_style CHECK (line_style IN ('solid', 'dashed')) NOT VALID;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_flag_color'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_flag_color CHECK (flag_color IN ('green', 'red', 'yellow')) NOT VALID;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'chk_nomad_journey_stops_github_issue_status'
+                      AND conrelid = 'nomad_journey_stops'::regclass
+                ) THEN
+                    ALTER TABLE nomad_journey_stops
+                    ADD CONSTRAINT chk_nomad_journey_stops_github_issue_status CHECK (github_issue_status IN ('not_required', 'created', 'linked', 'failed')) NOT VALID;
+                END IF;
+            END $$;
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_user_created
+            ON nomad_journey_stops(user_id, created_at);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_city
+            ON nomad_journey_stops(city, country);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_nomad_journey_stops_persona
+            ON nomad_journey_stops(persona_type);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS visits (

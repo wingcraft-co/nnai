@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache/
 dist/
 *.egg-info/
+.venv
 .venv/
 reports/
 *.png
@@ -13,6 +14,7 @@ reports/
 *.jpeg
 *.log
 .playwright-mcp/
+.worktrees/
 .superpowers/
 docs/superpowers/
 .claude/CLAUDE.local.md

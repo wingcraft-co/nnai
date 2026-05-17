@@ -1,5 +1,5 @@
 # CONTEXT.md
-_Last updated: 2026-04-20 KST (세션 7)_
+_Last updated: 2026-05-01 KST (세션 8)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
@@ -47,6 +47,30 @@ _Last updated: 2026-04-20 KST (세션 7)_
 - visa_db.json에 `visa_free_days` 필드 추가 (39개국, 한국 여권 기준)
 - 결과 카드에 비자 배지 (무비자 N일 / 셴겐 / 비자 필요)
 
+### 테마 zone (세션 8 명문화)
+- **Dark zone (ritual)**: /result + Lightbox + /guide. 자기 발견 경험 입구, 5장 펼침→reveal→상세 reading 흐름이 ritual moment
+- **Light zone (일상)**: 랜딩 + form + quiz + /dashboard. 입력/관리/일상 모드. rosie의 dashboard apple-style light theme이 zone semantics와 정합 (의미 있는 분리, 통일 시도 금지)
+- **RitualTransition** (`frontend/src/components/transition/RitualTransition.tsx`): /result mount(light→dark 진입), /dashboard mount(dark→light 출구) 두 경계에 600ms black overlay fade-out. CSS @keyframes ritual-transition-fade
+
+### 상세 가이드 양식 (세션 8 신규)
+- **Country Briefing 양식** — IMF Country Report / DFAT Country Brief / Tufte LaTeX 합성 정부 보고서 톤
+- 위치: `frontend/src/components/guide/CountryBriefingDocument.tsx` (1080px 고정 width HTML), `frontend/src/components/guide/BriefingPngPreview.tsx` (html-to-image 캡쳐 wrapper)
+- **구조**: Masthead(NomadNavigator AI · Wingcraft + Personal Briefing 도장) → Document № NNAI-{cc}-{date}-{userhash6}(SHA-256 6 hex) → Title(SERIF 38/700) + 공식 국명(italic) → Issued / Prepared for 메타 → Quick Facts 4 컬럼(VISA/STAY/MONTHLY/TAX RES.) → 1./1.1./1.1.1. 본문 → References(4-field 학술 인용) → Footer
+- **Typography**: 장 SERIF 22/700 + 52px gutter 번호 / 절 SERIF 14/700 normal case 인라인 번호 / 항 SANS 13/400 + italic (a)(b)(c) marker (Tufte 컨벤션, 같은 폰트 메트릭으로 baseline lock)
+- **층위는 typography + spacing 만으로** — 가로선으로 hierarchy 만들기 금지(Tufte/USWDS 컨벤션). 가로선은 document zone boundary(masthead↔doc control, meta↔quickfacts, body↔footer, 표 top/bottom) 4곳만
+- **본문 paragraph**: 첫 줄 16px 들여쓰기 (인쇄 컨벤션, parskip 0)
+- **References**: { issuer, title (italic), year, url } 4-field 학술 인용. 추적 가능 URL 필수 (overseas.mofa.go.kr/{cc}-ko, numbeo.com/cost-of-living/in/{slug}). 5개 출처(MFA/Embassy/NHIS/Numbeo/SafetyWing) 동적 plug-in
+- **Quick Facts**: city object의 enriched 필드(visa_type/visa_free_days/monthly_cost_usd/stay_months) 실값 plug-in. 값 없으면 em-dash "—". placeholder("Refer to..."), § 기호 절대 금지
+- **워터마크 (필름풍)**: "WINGCRAFT · NNAI · {date}" condensed sans 500 26px letter-spacing 0.22em opacity 0.07 -30° 회전 brick pattern
+- **deps**: html-to-image ^1.11.13 (~30KB no transitive deps), Source_Serif_4 + Inter `next/font/google`
+
+### dev preview 진입점 (세션 8 신규)
+- 랜딩 하단 [로그인 후 플로우] FREE / PRO 토글 — 백엔드 호출 우회 + mock 데이터로 result→guide→dashboard 시각 검증
+- URL flag: `?dev_preview=1&plan=free|pro`
+- Hook 4지점: TarotDeck(isLoggedIn 강제 true + /auth/me 우회), guide 페이지(/api/billing/status·/api/detail 우회 + mock briefing), dashboard 페이지(/api/dashboard 우회 + mock plan/widgets), handleDetailClick(navigation 시 flag propagate)
+- Mock 데이터: `frontend/src/lib/dev-preview.ts` (billing/quota/dashboard) + `frontend/src/lib/briefing-data.ts` (Country Briefing)
+- 본 인프라는 향후 모든 백엔드-게이트 흐름 시각 디버깅에 재사용 가능
+
 ## 주요 API 변경사항 (아내팀 주의)
 
 ### POST /api/recommend — 응답 구조 변경
@@ -74,6 +98,30 @@ _Last updated: 2026-04-20 KST (세션 7)_
 ### 타로 세션 (인메모리)
 - `api/tarot_session.py` — 서버 메모리에 5장 저장, reveal 시 3장 반환
 - **Railway 재배포 시 세션 초기화됨** — 추후 DB/Redis 마이그레이션 필요
+
+### 팀 작업 — Pro 도시 대시보드 신규 (rosie, 2026-04-26)
+> 자세한 스펙은 `cowork/backend/api-reference.md` / `db-schema.md` 참조
+
+- `GET /api/dashboard` → 활성 플랜 + 위젯 설정 + catalog 반환
+- `POST /api/dashboard/confirm` → 도시 확정 (기존 active → archived, 사용자당 1개 active)
+- `PATCH /api/dashboard/widgets` → enabled/order/settings 저장
+- `PATCH /api/dashboard/plan` → arrived_at/visa_type/coworking_space/tax_profile 갱신
+- 신규 테이블: `user_city_plans` (active 1개 unique partial index), `dashboard_widget_settings`
+- 권한: `plan_tier='pro'` + `status IN ('active','grace')` 만 쓰기/조회
+
+### 팀 작업 — Detail 가이드 캐시 + 무료 quota (rosie, 2026-04-26)
+- `POST /api/detail` 응답에 `cached`, `quota` 필드 추가
+- 신규 테이블: `detail_guide_cache` (PK = user_id + cache_key, cache_key = `_user_profile + selected_city` SHA-256)
+- 무료: cache miss 기준 2회. Pro: 무제한
+- 402 에러 포맷 변경 (`Free detail guide quota reached.` + quota 객체)
+- `frontend/src/lib/guide-export.*` — 가이드 내보내기 plan-gating
+
+### 팀 작업 — DB hardening (rosie, 2026-04-21~22)
+- `utils.db.ensure_database_ready()` 도입 — readiness check 우선, 빈 DB일 때만 advisory lock 후 `init_db()`
+- DB connection recovery / transaction release / auth flow 강화 (DB 다운 시 `/auth/me` 503 + `auth_error=db` redirect)
+- `DATABASE_PUBLIC_URL` env fallback 추가 (로컬 접속용)
+- `scripts/init_db.py` 신설 (수동 초기화 진입점)
+- `frontend/src/components/legal/UserAccountMenu.tsx` 신규
 
 ## 스코어링 로직 전체 구조
 
@@ -117,6 +165,11 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [x] Lightbox 잠금 카드 skeleton teaser (추론 방지, Pro CTA)
 - [x] Lightbox 7차 align center 3종 (External links / city_insight / Login CTA) + CTA 하단 여백 확보(pb-4→pb-8) + city_insight 좌측 세로선 제거
 - [x] 뱃지 시스템 전환 — 점수 N/10 고정 → qualitative 태그 top 3 (Method B: 임계 초과 폭 + 카테고리 우선순위 tie-break, 7 카테고리, 0개면 섹션 생략)
+- [x] **dev preview 진입점** — `?dev_preview=1&plan=free|pro` URL flag, 백엔드 무변경 + mock으로 result→guide→dashboard 시각 검증 (세션 8, test/dev-preview-flow 브랜치)
+- [x] **RitualTransition** — /result, /dashboard mount 시 600ms black overlay fade-out, ritual zone 경계 마킹 (세션 8)
+- [x] **테마 zone 분리 명문화** — dark = ritual / light = 일상, 통일 시도 금지 (세션 8)
+- [x] **Country Briefing 양식 (v6)** — IMF 톤 / 1./1.1. 숫자 / bold serif / 가로선 0개 / paragraph indent / Document № / References 4-field 학술 인용 (세션 8, test 브랜치)
+- [ ] **Country Briefing v6 시각 검증 미완** — Vercel preview 401 gated로 사용자 직접 확인. 가로선 0개 + IMF bold serif + paragraph indent + Quick Facts 실값이 양식 신뢰도를 만드는지 체감 (세션 8)
 - [ ] `computeCityTags` 52개 도시 snapshot 테스트 추가
 - [ ] 영문 라벨 worst case 2줄 여부 실측 (필요시 `TAG_LABELS` 추가 축약)
 - [ ] Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영)
@@ -127,7 +180,13 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [ ] 도시 데이터 확충 (북미/중동 커버리지 부족 → 빈 결과 원인)
 - [ ] **T3: 영어 번역 데이터 pipeline** — `city_insights.en.json`, `city_descriptions.en.json`, `visa_db` 한/영 분리. Gemini 일괄 번역 + 매년 갱신. 별도 이니셔티브.
 - [ ] **Two-step 모달 분리 (Q4 백로그)** — Google 버튼과 프로젝트 amber 팔레트 구조적 부조화 해결. Lightbox CTA는 프로젝트 자유 디자인 + 클릭 시 모달에서 Google 공식 버튼. 즉시 아님.
-- [ ] Light Theme 전환 검토 (카드 전체 + Google 버튼 Light Theme 통일)
+- [ ] **city 매칭 fallback 버그** — `/guide/{cityId}` 진입 시 `revealedCities.find(c => c.id === cityId)` 실패 시 `[0]` fallback (세션 8 발견, 메데인→바르셀로나 케이스). enrichCities `id` 필드 부여 검증 필요
+- [ ] **backend CORS 정책** — Vercel preview 동적 URL `*.vercel.app` allowlist 추가 (rosie와 합의 필요)
+- [ ] **Pro 동선 통합** — Lightbox CTA → /pricing → 결제 → /dashboard confirm 단계별 카피/플로우 정리 (세션 8 외 항목으로 보류)
+- [ ] **Detail API quota UI 노출** — `/api/detail` 응답의 `cached`/`quota` 필드를 frontend 사용자에게 노출 방식 미정 (1/2 사용 임박 알림 등)
+- [ ] **LLM JSON → BriefingData 매핑** — 현재 dev preview만 Country Briefing 사용, 실서비스는 markdown+canvas. 다음 단계로 LLM Step 2 출력 스키마를 BriefingData에 매핑 (또는 schema 확장)
+- [ ] **테스트 브랜치 머지/삭제** — `test/dev-preview-flow` 사용자 검증 완료 시 develop merge → 삭제. 세션 문서는 머지 시점 갱신
+- [ ] Light Theme 전환 검토 (백로그 — 테마 zone 분리 명문화로 상위 변경 가능성 감소)
 
 ## 주요 결정사항
 - Gradio UI 레거시 전환, 신규 UI는 Next.js로만 구현
@@ -146,6 +205,15 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - **서버사이드 OAuth redirect 유지**: Authorization Code Flow. `gapi.auth2` / FedCM migration 대상 아님.
 - **HEX 금지 규칙 예외 목록**: Google 로고 4색(#EA4335/#4285F4/#FBBC05/#34A853) + Google Dark Theme 3색(#131314/#E3E3E3/#8E918F) — 공식 브랜드 가이드 준수.
 - **내부 점수 vs UI 표기 분리 원칙**: safety/english/nomad/coworking 등 점수 필드는 근거 강도가 이질적(외부 지표 블렌딩 vs 내부 에디토리얼). 내부는 raw score로 sort/filter 계속 사용하되, 사용자 노출은 qualitative 태그(임계 돌파만, 객관성 착시 방지) 로 통일. 수치 직접 노출은 Pro 가이드 같은 상세 컨텍스트에서만.
+- **테마 zone 분리 명문화** (세션 8): dark = ritual zone (/result+Lightbox+/guide), light = 일상 zone (/dashboard). dashboard light theme이 우연이 아니라 의미 있는 분리. 통일 시도 금지. 진입/출구에 RitualTransition 600ms 적용
+- **Country Briefing 양식** (세션 8): 학술 / 컨설팅 / 정부 Country Brief 3안 중 정부 톤 선택. 콘텐츠 자연 매핑 + 권위감 + 서비스 정체성과 일치. IMF Editorial Style + Tufte LaTeX + USWDS 합성
+- **레이아웃 작업 시 reference 우선** (세션 8): 가로선으로 hierarchy 만드는 충동은 typography 약함의 신호 = amateur. 비-trivial 레이아웃 작업 전 실제 문서 spec 학습 필수 (Tufte / USWDS / IMF / Bringhurst)
+- **References 학술 인용 톤 의무화** (세션 8): { issuer, title (italic), year, url } 4-field 구조. "Korean Embassy in Spain"만 적기 금지. overseas.mofa.go.kr/{cc}-ko 같은 추적 가능 URL 필수. 사용자 인용: "사람들 우리 서비스 믿고 큰 돈 써서 떠날텐데, 이런 식이면 우리 망해"
+- **Mock 데이터 country-agnostic body 원칙** (세션 8): TH 하드코딩으로 Spain briefing에 TH 정보 leak → 공신력 즉시 붕괴 사례. 본문은 country-agnostic, specific은 동적 plug-in. 값 없으면 em-dash "—". placeholder 텍스트 / § 기호 사용 금지
+- **숫자 체계** (세션 8): 1./1.1./1.1.1 사용. § 기호 사용 금지
+- **Document № 체계** (세션 8): NNAI-{cc}-{date}-{userhash6}. userhash는 user_profile SHA-256 prefix 6 hex (개인화 표시)
+- **Path A (HTML + html-to-image) 선택** (세션 8): 양식 fidelity가 캔버스 직접 그리기 한계 초과. 1080px hidden DOM 렌더 후 toPng 캡쳐. 단 캡쳐 시 root clone에 `style: { position:'static', left:'auto' }` 필수 — opacity:0/visibility:hidden/offscreen 위치 모두 SVG foreignObject에 그대로 전이됨
+- **테스트 브랜치 컨벤션** (세션 8): test/* 브랜치는 머지+삭제 라이프사이클. 세션 문서는 develop merge 시점에 갱신 (격리 브랜치 작업 기록은 본 CONTEXT/CHANGELOG에 명시)
 
 ## 참고 링크
 - Repository: git@github.com:wingcraft-co/nnai.git

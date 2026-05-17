@@ -17,6 +17,7 @@ export type Provider = "google" | "polar";
 export type OnboardingFlow = "quiz" | "form";
 export type ResultCardAction = "open_city" | "open_locked" | "unlock_click" | "guide_click";
 export type PricingSection = "free_plan" | "pro_plan" | "faq" | "pro_expansion";
+export type JourneyContinent = "Europe" | "Asia" | "Americas" | "Middle East" | "Africa";
 export type PageKey =
   | "home"
   | "quiz"
@@ -259,4 +260,68 @@ export function trackPricingSectionEngagement({
     section,
     action,
   });
+}
+
+export function trackJourneyMapOpen(): void {
+  captureFullAnalyticsEvent("journey_map_open", {});
+}
+
+export function trackJourneyContinentSelect(continent: JourneyContinent): void {
+  captureFullAnalyticsEvent("journey_continent_select", { continent });
+}
+
+export function trackJourneyCountrySelect(countryCode: string): void {
+  captureFullAnalyticsEvent("journey_country_select", { country_code: countryCode });
+}
+
+export function trackJourneyCitySelect(cityId: string): void {
+  captureFullAnalyticsEvent("journey_city_select", { city_id: cityId });
+}
+
+export function trackJourneySaveClick(loggedIn: boolean): void {
+  captureFullAnalyticsEvent("journey_save_click", { logged_in: loggedIn });
+}
+
+export function trackJourneySaveSuccess(cityId: string): void {
+  captureFullAnalyticsEvent("journey_save_success", { city_id: cityId });
+}
+
+export function trackJourneyGpsVerifyClick(): void {
+  captureFullAnalyticsEvent("journey_gps_verify_click", {});
+}
+
+export function trackJourneyGpsVerifySuccess(): void {
+  captureFullAnalyticsEvent("journey_gps_verify_success", {});
+}
+
+export function trackJourneyGpsVerifyFailure(reason: string): void {
+  captureFullAnalyticsEvent("journey_gps_verify_failure", { reason });
+}
+
+export function trackJourneyUnsupportedSearchSubmit(countryCode: string): void {
+  captureFullAnalyticsEvent("journey_unsupported_search_submit", { country_code: countryCode });
+}
+
+export function trackJourneyUnsupportedCitySelect(countryCode: string): void {
+  captureFullAnalyticsEvent("journey_unsupported_city_select", { country_code: countryCode });
+}
+
+export function trackJourneyFlagSaveSuccess({
+  flagColor,
+  supported,
+  gpsVerified,
+}: {
+  flagColor: "green" | "red" | "yellow";
+  supported: boolean;
+  gpsVerified: boolean;
+}): void {
+  captureFullAnalyticsEvent("journey_flag_save_success", {
+    flag_color: flagColor,
+    supported,
+    gps_verified: gpsVerified,
+  });
+}
+
+export function trackJourneyGithubIssueLinked(status: string): void {
+  captureFullAnalyticsEvent("journey_github_issue_linked", { status });
 }

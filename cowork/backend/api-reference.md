@@ -583,16 +583,16 @@ Cookie: nnai_session=...
 
 ---
 
-## 핀 API
+## Nomad Journey API
 
-저장된 관심 도시를 관리합니다. **로그인 필요** (community 조회 제외).
+픽셀 지구본 이스터에그의 노마드 여정 기록 API입니다. 기존 관심 도시 `pins` API는 제거되었고, 기존 `pins` 데이터는 새 여정 데이터로 마이그레이션하지 않습니다.
 
-### GET /api/pins
+### GET /api/journey/me
 
-내 저장 도시 목록 조회. 미로그인 시 빈 배열 반환.
+내 인증 도시 목록을 시간순으로 조회합니다. **로그인 필요.**
 
 ```
-GET /api/pins
+GET /api/journey/me
 Cookie: nnai_session=...
 ```
 
@@ -600,128 +600,219 @@ Cookie: nnai_session=...
 ```json
 [
   {
-    "city": "방콕",
-    "display": "Bangkok, Thailand",
-    "note": "좋아요",
-    "lat": 13.75,
-    "lng": 100.5,
-    "created_at": "2026-03-30T10:00:00+00:00"
+    "id": 42,
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "country_code": "MY",
+    "lat": 3.139,
+    "lng": 101.6869,
+    "note": "KL좋아",
+    "persona_type": "planner",
+    "verified_method": "gps_city_confirmed",
+    "supported_city_id": null,
+    "is_supported_city": false,
+    "location_source": "legacy",
+    "line_style": "solid",
+    "geocode_place_id": null,
+    "geocode_confidence": null,
+    "geocoded_at": null,
+    "gps_verified": false,
+    "flag_color": "red",
+    "github_issue_url": null,
+    "github_issue_key": null,
+    "github_issue_status": "not_required",
+    "created_at": "2026-05-01T05:00:00+00:00"
   }
 ]
 ```
 
+**에러:**
+- `401` — 미로그인
+
 ---
 
-### POST /api/pins
+### POST /api/journey/geocode
 
-관심 도시 저장. **로그인 필요.**
+국가 선택 후 지원 목록에 없는 도시를 사용자가 명시적으로 검색할 때 호출합니다. **인증 불필요.** 자동완성 용도로 매 키 입력마다 호출하지 않습니다.
 
 ```
-POST /api/pins
+POST /api/journey/geocode
 Content-Type: application/json
-Cookie: nnai_session=...
 ```
 
 **요청 바디:**
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `city` | string | ✅ | 도시명 (한국어 또는 영어) |
-| `display` | string | ✅ | 표시 이름 (예: `"Bangkok, Thailand"`) |
-| `note` | string | ✅ | 메모 |
-| `lat` | float | ✅ | 위도 |
-| `lng` | float | ✅ | 경도 |
-| `user_lat` | float \| null | ❌ | 사용자 현재 위치 위도 |
-| `user_lng` | float \| null | ❌ | 사용자 현재 위치 경도 |
+| `query` | string | ✅ | 검색할 도시명. 2~80자 |
+| `country_code` | string | ✅ | ISO-2 국가 코드 |
 
 **응답 (200 OK):**
 ```json
 {
-  "id": 42,
-  "city": "방콕",
-  "created_at": "2026-03-30T10:00:00+00:00"
+  "query": "Granada",
+  "country_code": "ES",
+  "results": [
+    {
+      "city": "Granada",
+      "country": "Spain",
+      "country_code": "ES",
+      "lat": 37.1773,
+      "lng": -3.5986,
+      "supported": false,
+      "supported_city_id": null,
+      "geocode_result_id": "geo_<signed-result-token>",
+      "location_source": "nominatim",
+      "display_name": "Granada, Andalusia, Spain",
+      "geocode_place_id": "es-granada",
+      "geocode_confidence": 0.9
+    }
+  ],
+  "attribution": "Geocoding data from OpenStreetMap contributors"
 }
 ```
 
-**에러 (401):** 미로그인
-```json
-{ "detail": "로그인이 필요합니다" }
-```
+지원 도시와 매칭되는 경우 `supported: true`, `supported_city_id`, canonical 좌표를 반환하며 `geocode_result_id`는 `null`입니다. 미지원 도시는 서명된 단기 `geocode_result_id`를 반환하며 여행 로그용 위치로만 사용합니다. 추천/비자/예산/세금 상세 데이터와 연결하지 않습니다.
+
+**운영/보안 제약:**
+- 서버에서 IP/사용자 기준 1분당 12회로 제한합니다.
+- provider 결과와 빈 결과는 bounded TTL cache에 저장됩니다.
+- 외부 geocoder 장애는 `503`으로 반환합니다.
+
+**에러:**
+- `422` — 검색어 길이 또는 국가 코드 형식 오류
+- `503` — 외부 geocoder 장애 또는 timeout
 
 ---
 
-### PUT /api/pins/{pin_id}
+### POST /api/journey/stops
 
-저장한 핀의 메모를 수정합니다. **로그인 필요. 본인 핀만 수정 가능.**
+사용자가 확정한 여정 도시를 저장합니다. **로그인 필요.** 신규 안전 경로는 지원 도시 `city_id` 또는 백엔드가 발급한 `geocode_result_id`를 사용합니다. 기존 프론트엔드 호환을 위해 legacy `city/country/lat/lng` 요청도 계속 허용합니다.
 
 ```
-PUT /api/pins/{pin_id}
+POST /api/journey/stops
 Content-Type: application/json
 Cookie: nnai_session=...
 ```
 
-**요청 바디:**
+**요청 바디 — 지원 도시:**
+```json
+{
+  "city_id": "LIS",
+  "gps_verified": true,
+  "note": "리스본"
+}
+```
+
+**요청 바디 — 미지원 검증 도시:**
+```json
+{
+  "geocode_result_id": "geo_<signed-result-token>",
+  "gps_verified": true,
+  "note": "추억"
+}
+```
+
+미지원 검증 도시는 `gps_verified: true`일 때만 저장할 수 있습니다. 지원 도시는 GPS 인증 성공 시 초록 깃발(`green`), GPS 미인증 시 빨간 깃발(`red`)로 저장됩니다. 미지원 검증 도시는 노란 깃발(`yellow`)로 저장되며 GitHub 도시 추가 요청 이슈 생성/연결을 시도합니다.
+
+**요청 바디 — legacy 호환:**
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `note` | string | ✅ | 변경할 메모 |
+| `city` | string | ✅ | 인증한 도시명 |
+| `country` | string | ✅ | 국가명 |
+| `country_code` | string \| null | ❌ | ISO-2 국가 코드 |
+| `lat` | float | ✅ | 도시 중심 위도 |
+| `lng` | float | ✅ | 도시 중심 경도 |
+| `note` | string | ✅ | 10글자 이하 방명록 |
+| `gps_verified` | boolean | ❌ | legacy 호환 요청에서는 무시되며 `false`로 저장 |
 
 **응답 (200 OK):**
 ```json
 {
   "id": 42,
-  "note": "변경된 메모"
+  "city": "Kuala Lumpur",
+  "country": "Malaysia",
+  "country_code": "MY",
+  "lat": 3.139,
+  "lng": 101.6869,
+  "note": "KL좋아",
+  "persona_type": "planner",
+  "verified_method": "gps_city_confirmed",
+  "supported_city_id": null,
+  "is_supported_city": false,
+  "location_source": "legacy",
+  "line_style": "solid",
+  "geocode_place_id": null,
+  "geocode_confidence": null,
+  "geocoded_at": null,
+  "gps_verified": false,
+  "flag_color": "red",
+  "github_issue_url": null,
+  "github_issue_key": null,
+  "github_issue_status": "not_required",
+  "created_at": "2026-05-01T05:00:00+00:00"
 }
 ```
 
+`line_style`은 프론트엔드 여정 연결선 렌더링용입니다. 지원 도시는 `solid`, 미지원 검증 도시는 `dashed`입니다. 서버가 계산하므로 클라이언트 요청 바디로 받지 않습니다.
+
+`flag_color`는 깃발 렌더링용입니다.
+
+| 값 | 조건 |
+|----|------|
+| `green` | 지원 도시 + GPS 인증 |
+| `red` | 지원 도시 또는 legacy 저장 + GPS 미인증 |
+| `yellow` | 미지원 검증 도시 + GPS 인증 |
+
+`github_issue_status`는 노란 깃발 저장 시 GitHub 이슈 자동화 상태입니다.
+
+| 값 | 설명 |
+|----|------|
+| `not_required` | GitHub 이슈가 필요 없거나 로컬/테스트 환경에서 토큰이 없음 |
+| `created` | 새 도시 추가 요청 이슈 생성 |
+| `linked` | 기존 도시 추가 요청 이슈 연결 |
+| `failed` | 이슈 생성/조회 실패. journey stop 저장은 유지 |
+
 **에러:**
 - `401` — 미로그인
-- `404` — 핀 없음 또는 다른 유저의 핀
+- `422` — 필수 필드 누락, `note` 10글자 초과, invalid 좌표, 알 수 없는 `city_id`, 만료/위조된 `geocode_result_id`, `city_id`와 `geocode_result_id` 동시 전달, 미지원 도시 GPS 미인증 저장
 
 ---
 
-### DELETE /api/pins/{pin_id}
+### GET /api/journey/community
 
-저장한 핀을 삭제합니다. **로그인 필요. 본인 핀만 삭제 가능.**
-
-```
-DELETE /api/pins/{pin_id}
-Cookie: nnai_session=...
-```
-
-**응답 (200 OK):**
-```json
-{ "ok": true }
-```
-
-**에러:**
-- `401` — 미로그인
-- `404` — 핀 없음 또는 다른 유저의 핀
-
----
-
-### GET /api/pins/community
-
-전체 사용자의 핀을 도시별로 집계합니다. **인증 불필요.**
+전체 사용자의 인증 도시를 도시별로 집계합니다. **인증 불필요.** 개별 사용자, 개별 방명록, 원본 GPS 좌표는 반환하지 않습니다.
 
 ```
-GET /api/pins/community
+GET /api/journey/community
+GET /api/journey/community?persona_type=planner
 ```
+
+**쿼리 파라미터:**
+
+| 파라미터 | 설명 |
+|----------|------|
+| `persona_type` | 선택. 같은 노마드 타입 사용자만 도시별 집계 |
 
 **응답 (200 OK):**
 ```json
 [
   {
-    "city": "방콕",
-    "display": "Bangkok, Thailand",
-    "lat": 13.75,
-    "lng": 100.5,
-    "cnt": 12
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "country_code": "MY",
+    "lat": 3.139,
+    "lng": 101.6869,
+    "cnt": 12,
+    "supported_city_id": "KL",
+    "line_style": "solid",
+    "flag_color": "green"
   }
 ]
 ```
 
-> `cnt` — 해당 도시를 저장한 유저 수. 내림차순 정렬, 최대 100개.
+> `cnt` — 해당 도시를 인증한 서로 다른 사용자 수. 내림차순 정렬, 최대 100개. 모든 community row는 privacy 보호를 위해 필터 적용 후 서로 다른 사용자 3명 이상일 때만 공개 응답에 포함됩니다. Legacy 좌표 직접 저장 row는 public community에서 제외됩니다.
 
 ---
 
@@ -802,8 +893,6 @@ GET /api/visits?path=/dev
   - `GET /api/mobile/cities/{city_id}`
   - `GET /api/mobile/circles`
   - `POST /api/mobile/circles/{id}/join`
-  - `GET /api/mobile/pins`
-  - `POST /api/mobile/pins`
   - `GET /api/mobile/city-stays`
   - `POST /api/mobile/city-stays`
   - `PATCH /api/mobile/city-stays/{id}`
@@ -842,7 +931,7 @@ GET /api/visits?path=/dev
   - `persona_type` (`wanderer|local|planner|free_spirit|pioneer|null`)
   - `character` (`persona_type`가 없으면 `rocky`)
   - `badges: string[]`
-  - `stats: { pins, posts, circles }`
+  - `stats: { journey_stops, posts, circles }`
 - `GET/POST/PATCH /api/mobile/type-actions/wanderer/hops*`
   - `status`: `planned | booked`
   - `conditions: [{ id, label, is_done }]`

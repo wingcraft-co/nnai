@@ -4,7 +4,7 @@ Output: earth_web.gif / earth_web.png
 """
 import math
 import os
-from PIL import Image, ImageDraw
+from PIL import Image
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -91,10 +91,6 @@ def draw_globe_frame(angle):
             sx = round(CX + px)
             sy = round(CY + py)
             draw_block(im, sx, sy, col)
-
-    # Match the header's thin outline glow.
-    draw = ImageDraw.Draw(im)
-    draw.ellipse((CX - R, CY - R, CX + R, CY + R), outline=(120, 190, 255, 128), width=1)
 
     return im
 
