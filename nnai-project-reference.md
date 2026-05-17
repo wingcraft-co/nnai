@@ -83,14 +83,13 @@ Gemini 2.5 Flash로 최적 거주 도시 TOP 3 추천 + 비자/예산/세금 상
 
 ```
 nnai/
-├── server.py               # FastAPI 서버 (API 엔드포인트 + Gradio 마운트)
+├── server.py               # FastAPI 서버 (API 엔드포인트)
 ├── app.py                  # 핵심 로직 (nomad_advisor, show_city_detail)
 ├── recommender.py          # DB 기반 추천 엔진
 ├── api/                    # LLM, 파싱, 인증, 핀
 ├── prompts/                # 프롬프트 엔지니어링
 ├── utils/                  # DB, 환율, 페르소나, 세금, 숙소
 ├── data/                   # visa_db(29국), city_scores(50도시), visa_urls
-├── ui/                     # Gradio UI (레거시, 참고용)
 ├── tests/                  # pytest 테스트
 └── frontend/               # Next.js 프론트엔드 (신규)
 ```

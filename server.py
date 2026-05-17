@@ -16,14 +16,6 @@ from api.auth import router as auth_router, extract_user_id
 from api.billing import router as billing_router
 from api.dashboard import router as dashboard_router
 from api.detail_cache import build_detail_cache_key, build_detail_quota
-from api.mobile_auth import router as mobile_auth_router
-from api.mobile_discover import router as mobile_discover_router
-from api.mobile_feed import router as mobile_feed_router
-from api.mobile_plans import router as mobile_plans_router
-from api.mobile_profile import router as mobile_profile_router
-from api.mobile_recommend import router as mobile_recommend_router
-from api.mobile_type_actions import router as mobile_type_actions_router
-from api.mobile_uploads import router as mobile_uploads_router
 from api.journey import router as journey_router
 from api.visits import router as visits_router
 from utils.db import (
@@ -155,14 +147,6 @@ app.include_router(billing_router)
 app.include_router(dashboard_router)
 app.include_router(journey_router, prefix="/api")
 app.include_router(visits_router, prefix="/api")
-app.include_router(mobile_auth_router)
-app.include_router(mobile_feed_router)
-app.include_router(mobile_discover_router)
-app.include_router(mobile_plans_router)
-app.include_router(mobile_profile_router)
-app.include_router(mobile_recommend_router)
-app.include_router(mobile_type_actions_router)
-app.include_router(mobile_uploads_router)
 
 _RATE_LIMIT_POLICY = RateLimitPolicy()
 

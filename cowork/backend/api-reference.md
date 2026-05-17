@@ -20,7 +20,7 @@
 3. [핀 API](#핀-api)
 4. [결제 API](#결제-api)
 5. [방문자 카운터 API](#방문자-카운터-api)
-6. [모바일 API (JWT)](#모바일-api-jwt)
+6. [모바일 API](#모바일-api)
 7. [공통 에러](#공통-에러)
 8. [CORS & 쿠키 정책](#cors--쿠키-정책)
 
@@ -876,82 +876,11 @@ GET /api/visits?path=/dev
 
 ---
 
-## 모바일 API (JWT)
+## 모바일 API
 
-모바일 API는 `Authorization: Bearer <jwt>`를 사용합니다.
+모바일 전용 API는 제거되었습니다. 현재 지원되는 API 표면은 웹 인증, 추천/상세, 결제, 대시보드, 여정 지도, 방문 집계 엔드포인트입니다.
 
-### 모바일 Auth
-
-- `POST /auth/mobile/token` → `{ token, user }`
-- `GET /auth/mobile/me` → `User(uid, name, picture, email, persona_type, character)`
-
-### Core Mobile
-
-- Feed: `GET/POST /api/mobile/posts`, `POST /api/mobile/posts/{post_id}/like`, `GET/POST /api/mobile/posts/{post_id}/comments`
-- Discover/City:
-  - `GET /api/mobile/cities`
-  - `GET /api/mobile/cities/{city_id}`
-  - `GET /api/mobile/circles`
-  - `POST /api/mobile/circles/{id}/join`
-  - `GET /api/mobile/city-stays`
-  - `POST /api/mobile/city-stays`
-  - `PATCH /api/mobile/city-stays/{id}`
-  - `POST /api/mobile/city-stays/{id}/leave`
-- Plans: `GET/POST/PATCH/DELETE /api/mobile/moves`, `PATCH /api/mobile/moves/{id}/items/{item_id}`
-- Profile: `GET /api/mobile/profile`
-- Recommend: `POST /api/mobile/recommend`, `POST /api/mobile/detail`
-- Upload:
-  - `POST /api/mobile/uploads/image` (multipart form-data, field: `file`) -> `{ url, image_url }`
-  - `GET /api/mobile/uploads/{filename}` (업로드 이미지 파일 조회)
-
-### Type Actions
-
-- Planner:
-  - `GET/POST /api/mobile/type-actions/planner/boards`
-  - `POST /api/mobile/type-actions/planner/boards/{board_id}/tasks`
-  - `PATCH /api/mobile/type-actions/planner/tasks/{task_id}`
-- Free Spirit: `POST /api/mobile/type-actions/free-spirit/spins`
-- Wanderer:
-  - `GET /api/mobile/type-actions/wanderer/hops`
-  - `POST /api/mobile/type-actions/wanderer/hops`
-  - `PATCH /api/mobile/type-actions/wanderer/hops/{hop_id}`
-  - `DELETE /api/mobile/type-actions/wanderer/hops/{hop_id}`
-- Local:
-  - `GET /api/mobile/type-actions/local/events/saved`
-  - `POST /api/mobile/type-actions/local/events/save`
-  - `PATCH /api/mobile/type-actions/local/events/{event_id}`
-- Pioneer:
-  - `GET /api/mobile/type-actions/pioneer/milestones`
-  - `PATCH /api/mobile/type-actions/pioneer/milestones/{milestone_id}`
-
-### 모바일 응답 계약 (필수 필드)
-
-- `GET /api/mobile/profile`
-  - `uid`, `name`, `picture`, `email`
-  - `persona_type` (`wanderer|local|planner|free_spirit|pioneer|null`)
-  - `character` (`persona_type`가 없으면 `rocky`)
-  - `badges: string[]`
-  - `stats: { journey_stops, posts, circles }`
-- `GET/POST/PATCH /api/mobile/type-actions/wanderer/hops*`
-  - `status`: `planned | booked`
-  - `conditions: [{ id, label, is_done }]`
-  - `is_focus: boolean`
-  - `from_country`, `to_country`, `to_city`, `target_month`, `note`
-- `GET/POST/PATCH /api/mobile/city-stays*`
-  - `id, city, country, arrived_at, left_at, visa_expires_at, budget_total, budget_remaining, created_at, updated_at`
-- `GET /api/mobile/posts`
-  - `author_persona_type` 포함
-- `POST /api/mobile/uploads/image`
-  - 응답 `url`/`image_url`는 그대로 `<Image uri>`에 사용할 수 있는 경로(`/api/mobile/uploads/{filename}`)
-- `GET/POST /api/mobile/type-actions/planner/*`
-  - Board: `id, country, city, title, created_at, updated_at`
-  - Task: `id, board_id, text, is_done, due_date, sort_order`
-- `POST /api/mobile/type-actions/free-spirit/spins`
-  - `{ spin_id, selected, candidates_count }`
-- `GET /api/mobile/type-actions/local/events/saved`
-  - `id, source, source_event_id, title, venue_name, address, country, city, starts_at, ends_at, lat, lng, radius_m, status`
-- `GET/PATCH /api/mobile/type-actions/pioneer/milestones*`
-  - `id, country, city, category, title, status, target_date, note`
+`/api/mobile/*` 및 `/auth/mobile/*` 경로는 서버에 등록하지 않습니다.
 
 ---
 

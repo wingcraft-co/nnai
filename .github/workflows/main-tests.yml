@@ -57,7 +57,7 @@ jobs:
             tests/test_language_policy.py \
             tests/test_hf_client.py \
             tests/test_link_validator.py \
-            tests/test_mobile_auth_oauth_payload.py \
+            tests/test_mobile_api_removed.py \
             tests/test_rate_limit_storage.py \
             tests/test_rate_limit_entitlements.py \
             tests/test_parser.py \
@@ -74,9 +74,7 @@ jobs:
             tests/test_tax_warning.py \
             tests/test_verification_metadata.py \
             tests/test_visa_db.py \
-            tests/test_visits_api.py \
-            tests/test_mobile_contract_api.py \
-            tests/test_mobile_uploads_route.py
+            tests/test_visits_api.py
 
       - name: Frontend regression tests
         run: |

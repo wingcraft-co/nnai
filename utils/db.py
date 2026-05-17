@@ -40,24 +40,10 @@ _REQUIRED_SCHEMA_TABLES = {
     "billing_entitlements",
     "billing_provider_events",
     "billing_usage_ledger",
-    "circle_members",
-    "circles",
-    "city_stays",
-    "free_spirit_spins",
     "dashboard_widget_settings",
     "detail_guide_cache",
-    "local_saved_events",
-    "move_checklist_items",
-    "move_plans",
     "nomad_journey_stops",
-    "pioneer_milestones",
-    "planner_boards",
-    "planner_tasks",
-    "post_comments",
-    "post_likes",
-    "posts",
     "rate_limit_hits",
-    "user_badges",
     "user_city_plans",
     "users",
     "verification_logs",
@@ -67,7 +53,6 @@ _REQUIRED_SCHEMA_TABLES = {
     "verified_countries",
     "verified_sources",
     "visits",
-    "wanderer_hops",
 }
 
 _REQUIRED_SCHEMA_COLUMNS = {
@@ -92,8 +77,6 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "grace_until",
         "last_webhook_at",
     },
-    "posts": {"image_url"},
-    "city_stays": {"country"},
     "user_city_plans": {
         "city_id",
         "city_kr",
@@ -107,24 +90,6 @@ _REQUIRED_SCHEMA_COLUMNS = {
     },
     "dashboard_widget_settings": {"enabled_widgets", "widget_order", "widget_settings"},
     "detail_guide_cache": {"cache_key", "markdown", "parsed_snapshot", "city_snapshot"},
-    "wanderer_hops": {"conditions", "is_focus", "from_country", "to_country", "note", "target_month"},
-    "planner_boards": {"country", "city"},
-    "planner_tasks": {"text", "due_date", "sort_order"},
-    "free_spirit_spins": {"selected", "candidates_count"},
-    "local_saved_events": {
-        "source",
-        "source_event_id",
-        "venue_name",
-        "address",
-        "country",
-        "city",
-        "starts_at",
-        "ends_at",
-        "lat",
-        "lng",
-        "radius_m",
-    },
-    "pioneer_milestones": {"country", "city", "category", "status", "target_date", "note"},
     "nomad_journey_stops": {
         "id",
         "user_id",
@@ -459,105 +424,6 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             );
         """)
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS posts (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                title       TEXT NOT NULL,
-                body        TEXT NOT NULL,
-                tags        JSONB NOT NULL DEFAULT '[]',
-                city        TEXT,
-                image_url   TEXT,
-                likes_count INTEGER NOT NULL DEFAULT 0,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE posts
-            ADD COLUMN IF NOT EXISTS image_url TEXT;
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS post_likes (
-                post_id     BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                PRIMARY KEY (post_id, user_id)
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS post_comments (
-                id          BIGSERIAL PRIMARY KEY,
-                post_id     BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                body        TEXT NOT NULL,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS circles (
-                id           BIGSERIAL PRIMARY KEY,
-                name         TEXT NOT NULL,
-                description  TEXT,
-                member_count INTEGER NOT NULL DEFAULT 0,
-                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS circle_members (
-                circle_id   BIGINT NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                joined_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                PRIMARY KEY (circle_id, user_id)
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS move_plans (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                title       TEXT NOT NULL,
-                from_city   TEXT,
-                to_city     TEXT,
-                stage       TEXT NOT NULL DEFAULT 'planning'
-                            CHECK (stage IN ('planning', 'booked', 'completed')),
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS move_checklist_items (
-                id          BIGSERIAL PRIMARY KEY,
-                plan_id     BIGINT NOT NULL REFERENCES move_plans(id) ON DELETE CASCADE,
-                text        TEXT NOT NULL,
-                is_done     BOOLEAN NOT NULL DEFAULT FALSE,
-                sort_order  INTEGER NOT NULL DEFAULT 0
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS user_badges (
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                badge       TEXT NOT NULL
-                            CHECK (badge IN ('host', 'verified_reviewer', 'community_builder')),
-                earned_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                PRIMARY KEY (user_id, badge)
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS city_stays (
-                id                BIGSERIAL PRIMARY KEY,
-                user_id           TEXT NOT NULL REFERENCES users(id),
-                city              TEXT NOT NULL,
-                country           TEXT,
-                arrived_at        TEXT,
-                left_at           TEXT,
-                visa_expires_at   TEXT,
-                budget_total      DOUBLE PRECISION,
-                budget_remaining  DOUBLE PRECISION,
-                created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE city_stays
-            ALTER COLUMN country DROP NOT NULL;
-        """)
-        cur.execute("""
             CREATE TABLE IF NOT EXISTS user_city_plans (
                 id               BIGSERIAL PRIMARY KEY,
                 user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -641,254 +507,6 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE (user_id, cache_key)
             );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS wanderer_hops (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                from_city   TEXT,
-                from_country TEXT,
-                to_country  TEXT,
-                to_city     TEXT,
-                note        TEXT,
-                target_month TEXT,
-                status      TEXT NOT NULL DEFAULT 'planned',
-                conditions  JSONB NOT NULL DEFAULT '[]'::jsonb,
-                is_focus    BOOLEAN NOT NULL DEFAULT FALSE,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD COLUMN IF NOT EXISTS conditions JSONB NOT NULL DEFAULT '[]'::jsonb;
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD COLUMN IF NOT EXISTS is_focus BOOLEAN NOT NULL DEFAULT FALSE;
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD COLUMN IF NOT EXISTS from_country TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD COLUMN IF NOT EXISTS to_country TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD COLUMN IF NOT EXISTS note TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD COLUMN IF NOT EXISTS target_month TEXT;
-        """)
-        cur.execute("""
-            UPDATE wanderer_hops
-            SET status = 'planned'
-            WHERE status NOT IN ('planned', 'booked');
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            DROP CONSTRAINT IF EXISTS wanderer_hops_status_check;
-        """)
-        cur.execute("""
-            ALTER TABLE wanderer_hops
-            ADD CONSTRAINT wanderer_hops_status_check
-            CHECK (status IN ('planned', 'booked'));
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS planner_boards (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                country     TEXT,
-                city        TEXT,
-                title       TEXT NOT NULL,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE planner_boards
-            ADD COLUMN IF NOT EXISTS country TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE planner_boards
-            ADD COLUMN IF NOT EXISTS city TEXT;
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS planner_tasks (
-                id          BIGSERIAL PRIMARY KEY,
-                board_id    BIGINT NOT NULL REFERENCES planner_boards(id) ON DELETE CASCADE,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                text        TEXT,
-                title       TEXT NOT NULL,
-                is_done     BOOLEAN NOT NULL DEFAULT FALSE,
-                due_date    TEXT,
-                sort_order  INTEGER NOT NULL DEFAULT 0,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE planner_tasks
-            ADD COLUMN IF NOT EXISTS text TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE planner_tasks
-            ADD COLUMN IF NOT EXISTS due_date TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE planner_tasks
-            ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
-        """)
-        cur.execute("""
-            UPDATE planner_tasks SET text = title WHERE text IS NULL;
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS free_spirit_spins (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                result      TEXT NOT NULL,
-                selected    JSONB NOT NULL DEFAULT '{}'::jsonb,
-                candidates_count INTEGER NOT NULL DEFAULT 1,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE free_spirit_spins
-            ADD COLUMN IF NOT EXISTS selected JSONB NOT NULL DEFAULT '{}'::jsonb;
-        """)
-        cur.execute("""
-            ALTER TABLE free_spirit_spins
-            ADD COLUMN IF NOT EXISTS candidates_count INTEGER NOT NULL DEFAULT 1;
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS local_saved_events (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                event_id    TEXT NOT NULL,
-                source      TEXT,
-                source_event_id TEXT,
-                title       TEXT,
-                venue_name  TEXT,
-                address     TEXT,
-                country     TEXT,
-                city        TEXT,
-                starts_at   TEXT,
-                ends_at     TEXT,
-                lat         DOUBLE PRECISION,
-                lng         DOUBLE PRECISION,
-                radius_m    INTEGER NOT NULL DEFAULT 1500,
-                status      TEXT NOT NULL DEFAULT 'saved',
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                UNIQUE (user_id, event_id)
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS source TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS source_event_id TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS venue_name TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS address TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS country TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS city TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS starts_at TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS ends_at TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
-        """)
-        cur.execute("""
-            ALTER TABLE local_saved_events
-            ADD COLUMN IF NOT EXISTS radius_m INTEGER NOT NULL DEFAULT 1500;
-        """)
-        cur.execute("""
-            UPDATE local_saved_events
-            SET source_event_id = event_id
-            WHERE source_event_id IS NULL;
-        """)
-        cur.execute("""
-            UPDATE local_saved_events
-            SET source = 'google_places'
-            WHERE source IS NULL;
-        """)
-        cur.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_local_saved_events_user_source_event
-            ON local_saved_events (user_id, source, source_event_id);
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS pioneer_milestones (
-                id          BIGSERIAL PRIMARY KEY,
-                user_id     TEXT NOT NULL REFERENCES users(id),
-                country     TEXT,
-                city        TEXT,
-                category    TEXT,
-                title       TEXT NOT NULL,
-                status      TEXT NOT NULL DEFAULT 'todo',
-                target_date TEXT,
-                note        TEXT,
-                is_done     BOOLEAN NOT NULL DEFAULT FALSE,
-                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                UNIQUE (user_id, title)
-            );
-        """)
-        cur.execute("""
-            ALTER TABLE pioneer_milestones
-            ADD COLUMN IF NOT EXISTS country TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE pioneer_milestones
-            ADD COLUMN IF NOT EXISTS city TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE pioneer_milestones
-            ADD COLUMN IF NOT EXISTS category TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE pioneer_milestones
-            ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'todo';
-        """)
-        cur.execute("""
-            ALTER TABLE pioneer_milestones
-            ADD COLUMN IF NOT EXISTS target_date TEXT;
-        """)
-        cur.execute("""
-            ALTER TABLE pioneer_milestones
-            ADD COLUMN IF NOT EXISTS note TEXT;
-        """)
-        cur.execute("""
-            UPDATE pioneer_milestones
-            SET status = CASE WHEN is_done THEN 'done' ELSE 'todo' END
-            WHERE status IS NULL;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS verified_sources (

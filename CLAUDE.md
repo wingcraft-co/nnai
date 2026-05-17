@@ -65,16 +65,17 @@ nnai/
 ├── server.py               # FastAPI 서버 (production entry) + API 엔드포인트 + CORS
 ├── recommender.py          # DB 기반 도시 필터링 & 랭킹
 │
-├── api/                    # LLM 호출, 파싱, 인증, 핀, 타로/모바일 라우터
+├── api/                    # LLM 호출, 파싱, 인증, 결제, 대시보드, 여정/방문 라우터
 │   ├── hf_client.py        # Gemini 2.5 Flash (OpenAI compat)
 │   ├── parser.py           # JSON 파싱 + 마크다운 포맷
 │   ├── cache_manager.py    # Gemini 서버사이드 Context Caching
 │   ├── schengen_calculator.py
 │   ├── auth.py             # Google OAuth 2.0 (FastAPI router)
-│   ├── pins.py             # 저장 도시 CRUD API
 │   ├── tarot_session.py    # 타로 카드 세션 인메모리 스토어 (recommend → reveal)
 │   ├── visits.py           # 페이지 방문자 카운터 API
-│   └── mobile_*.py         # 모바일 API 8종 (auth/discover/feed/plans/profile/recommend/type_actions/uploads)
+│   ├── billing.py          # Polar 결제/entitlement API
+│   ├── dashboard.py        # Pro 대시보드 API
+│   └── journey.py          # 노마드 여정 지도 API
 │
 ├── prompts/                # 프롬프트 엔지니어링
 │   ├── builder.py          # build_prompt(), build_detail_prompt(), validate_user_profile()
@@ -123,7 +124,7 @@ nnai/
 | DB | PostgreSQL | — |
 | Auth | Google OAuth 2.0 | — |
 
-> UI는 Next.js로만 구현. Gradio UI는 삭제됨.
+> UI는 Next.js로만 구현.
 
 ## Commands
 
@@ -182,9 +183,8 @@ DELETE /api/pins/{pin_id}      → 삭제
 # Visits
 POST /api/visits/ping          → 페이지 방문자 카운터 증가/조회
 
-# Mobile API (모바일 앱 전용, JWT 인증) — prefix는 각 라우터 내부에서 정의
-mobile_auth, mobile_discover, mobile_feed, mobile_plans,
-mobile_profile, mobile_recommend, mobile_type_actions, mobile_uploads
+# Mobile API
+모바일 전용 `/api/mobile/*`, `/auth/mobile/*` API는 제거됨.
 ```
 
 ### POST /api/recommend
@@ -420,7 +420,7 @@ Railway Project (nnai)
 ### 기타 배포
 
 ```bash
-# HuggingFace Spaces (삭제됨 — Gradio 레거시)
+# HuggingFace Spaces (삭제됨)
 ```
 
 ## 관련 문서
@@ -456,4 +456,3 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
-

@@ -88,9 +88,6 @@ nnai/
 │   ├── planb.py            # 비쉥겐 버퍼 국가 추천
 │   └── accommodation.py    # 중기 숙소 딥링크
 │
-├── ui/                     # Gradio UI (레거시, 사용하지 않음)
-│   └── layout.py           # 참고용만 — 경고 로직, 입력 필드 목록 확인
-│
 ├── data/                   # 정적 데이터
 │   ├── visa_db.json        # 29개국 비자
 │   ├── city_scores.json    # 50개 도시
@@ -117,7 +114,7 @@ nnai/
 | DB | PostgreSQL | — |
 | Auth | Google OAuth 2.0 | — |
 
-> UI는 Next.js로만 구현. Gradio UI는 삭제됨.
+> UI는 Next.js로만 구현.
 
 ## Commands
 
@@ -312,7 +309,7 @@ Railway Project (nnai)
 ### 기타 배포
 
 ```bash
-# HuggingFace Spaces (Gradio 버전, 레거시)
+# HuggingFace Spaces (삭제됨)
 git push origin main
 git push "https://flexxiblethinking:{HUGGINGFACE_TOKEN}@huggingface.co/spaces/flexxiblethinking/nomad-navigator-ai" main
 ```
@@ -324,3 +321,4 @@ git push "https://flexxiblethinking:{HUGGINGFACE_TOKEN}@huggingface.co/spaces/fl
 - `IMPLEMENTATION_STATUS.md` — Phase별 구현 현황
 - `nnai-project-reference.md` — Agent Team 공통 참조
 - `docs/frontguide.docx` (iCloud) — 프론트엔드 워크플로우 가이드
+� 가이드

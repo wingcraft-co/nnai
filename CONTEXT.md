@@ -74,7 +74,7 @@ nnai/
 ├── .github/
 │   └── workflows/main-tests.yml  # GitHub Actions CI
 │
-├── app.py                      # Gradio 진입점: nomad_advisor(), show_city_detail()
+├── app.py                      # 핵심 로직 진입점: nomad_advisor(), show_city_detail()
 ├── server.py                   # FastAPI 서버 (production entry) + API 엔드포인트
 ├── recommender.py              # DB 기반 도시 필터링 & 랭킹
 │
@@ -194,7 +194,6 @@ nnai/
 - AuthMiddleware: 쿠키에서 user_id 추출 → request.state.user_id
 - `POST /api/recommend` → nomad_advisor() 래핑
 - `POST /api/detail` → show_city_detail_with_nationality() 래핑
-- Gradio demo를 `/` 에 마운트 (레거시)
 - `/ads.txt`, `/privacy` 정적 서빙
 
 ### `app.py` — 핵심 함수
@@ -254,14 +253,7 @@ nnai/
 
 ## 7. UI 구조
 
-### 현재: Gradio UI (레거시, ui/layout.py)
-- Tab 1: 도시 추천 — 입력 폼(20+ 컴포넌트) + 결과 마크다운
-- Tab 2: 상세 가이드 — 도시 선택 + 결과 마크다운
-- 실시간 경고 시스템: check_income_warning(), check_companion_warning()
-- 로딩 오버레이: 픽셀아트 지구본 애니메이션
-- 노마드 게스트북 지도: Leaflet.js 모달
-
-### 신규: Next.js Frontend (frontend/)
+### Next.js Frontend (frontend/)
 - 현재 스캐폴드만 생성. UI 구현 예정.
 - 기술 스택: Next.js 16, Tailwind CSS 4, shadcn/ui, Framer Motion
 - 디자인: 딥 네이비 (#1a1a2e) 배경, 타로 카드 UI (2:3 비율, 3장 가로), 세리프 폰트
@@ -413,5 +405,8 @@ python server.py
 cd frontend && npm install && npm run dev
 
 # 테스트
+SKIP_EXTERNAL_INIT=1 .venv/bin/pytest tests/ -v
+```
+ 테스트
 SKIP_EXTERNAL_INIT=1 .venv/bin/pytest tests/ -v
 ```
