@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { PERSONAS, type PersonaType } from "@/data/personas";
+import type { PersonaType } from "@/data/personas";
+import { getOnboardingCopy } from "@/lib/onboarding-content";
 
 const personaGif: Record<PersonaType, string> = {
   wanderer: "/wanderer.gif",
@@ -13,13 +14,15 @@ const personaGif: Record<PersonaType, string> = {
 };
 
 interface PersonaResultCardProps {
+  locale: string;
   personaType: PersonaType;
   onFindCountry: () => void;
   onRetry: () => void;
 }
 
-export function PersonaResultCard({ personaType, onFindCountry, onRetry }: PersonaResultCardProps) {
-  const persona = PERSONAS[personaType];
+export function PersonaResultCard({ locale, personaType, onFindCountry, onRetry }: PersonaResultCardProps) {
+  const copy = getOnboardingCopy(locale);
+  const persona = copy.result.personas[personaType];
 
   const fadeUp = (delay: number) => ({
     initial: { opacity: 0, y: 16 },
@@ -27,10 +30,10 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
   });
 
   const sections = [
-    { label: "이런 도시가 어울려요", lines: persona.city, delay: 0.3 },
-    { label: "이렇게 일해요", lines: persona.work, delay: 0.6 },
-    { label: "이런 순간이 행복해요", lines: persona.moment, delay: 0.9 },
-    { label: "당신에게 중요한 건", lines: persona.value, delay: 1.2 },
+    { label: copy.result.sections.city, lines: persona.city, delay: 0.3 },
+    { label: copy.result.sections.work, lines: persona.work, delay: 0.6 },
+    { label: copy.result.sections.moment, lines: persona.moment, delay: 0.9 },
+    { label: copy.result.sections.value, lines: persona.value, delay: 1.2 },
   ];
 
   return (
@@ -38,7 +41,7 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
       {/* 헤더 */}
       <motion.div {...fadeUp(0)}>
         <p className="text-base text-muted-foreground mb-1">
-          당신의 노마드 타입은,
+          {copy.result.headerPrefix}
         </p>
         <div className="flex items-end justify-between mb-8">
           <h1 className="text-4xl font-bold text-primary">
@@ -91,16 +94,16 @@ export function PersonaResultCard({ personaType, onFindCountry, onRetry }: Perso
         <button
           type="button"
           onClick={onFindCountry}
-          className="w-full rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="w-full cursor-pointer rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          나에게 맞는 국가 찾으러 가기
+          {copy.result.actions.findCountry}
         </button>
         <button
           type="button"
           onClick={onRetry}
-          className="w-full py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="w-full cursor-pointer py-1.5 text-xs text-muted-foreground/60 transition-colors hover:text-muted-foreground"
         >
-          처음부터 다시하기
+          {copy.result.actions.retry}
         </button>
       </motion.div>
     </div>

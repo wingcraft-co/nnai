@@ -2,7 +2,8 @@
   "common": {
     "next": "Next",
     "back": "Back",
-    "startAnalysis": "Start Analysis"
+    "startAnalysis": "Start Analysis",
+    "analyzing": "Analyzing..."
   },
   "quiz": {
     "questions": [

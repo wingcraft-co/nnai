@@ -58,7 +58,7 @@ export function StepForm({
             type="button"
             onClick={onBack}
             disabled={isLoading}
-            className="flex-1 rounded-lg border border-border py-3 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground disabled:opacity-30"
+            className="flex-1 cursor-pointer rounded-lg border border-border py-3 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
           >
             {t("back")}
           </button>
@@ -67,9 +67,9 @@ export function StepForm({
           type="button"
           onClick={onNext}
           disabled={!canProceed || isLoading}
-          className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex-1 cursor-pointer rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-30"
         >
-          {isLoading ? "분석 중..." : isLast ? t("startAnalysis") : t("next")}
+          {isLoading ? t("analyzing") : isLast ? t("startAnalysis") : t("next")}
         </button>
       </div>
     </div>

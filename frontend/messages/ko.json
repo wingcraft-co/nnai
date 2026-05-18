@@ -2,7 +2,8 @@
   "common": {
     "next": "다음",
     "back": "이전",
-    "startAnalysis": "분석 시작"
+    "startAnalysis": "분석 시작",
+    "analyzing": "분석 중..."
   },
   "quiz": {
     "questions": [

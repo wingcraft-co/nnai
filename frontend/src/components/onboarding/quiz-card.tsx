@@ -25,7 +25,7 @@ export function QuizCard({ question, options, onSelect }: QuizCardProps) {
               setSelected(i);
               onSelect(i);
             }}
-            className={`w-full rounded-lg px-4 py-4 text-left text-sm font-medium transition-colors ${
+            className={`w-full cursor-pointer rounded-lg px-4 py-4 text-left text-sm font-medium transition-colors ${
               selected === i
                 ? "bg-primary/10 border border-primary text-primary"
                 : "bg-muted text-foreground hover:bg-accent"

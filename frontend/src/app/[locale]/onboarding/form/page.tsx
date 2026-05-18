@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { PersonaType } from "@/data/personas";
-import { PERSONAS } from "@/data/personas";
 import { House } from "lucide-react";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { SelectCard } from "@/components/onboarding/select-card";
+import { getOnboardingCopy } from "@/lib/onboarding-content";
 import {
   trackFormAbandon,
   trackFormStepComplete,
@@ -21,87 +22,6 @@ const IS_DEBUG = process.env.NEXT_PUBLIC_DEBUG_MODE === "1";
 const CityDebugPanel = IS_DEBUG
   ? dynamic(() => import("@/components/debug/CityDebugPanel"), { ssr: false })
   : null;
-
-// ── Options ──────────────────────────────────────────────────────
-
-const PURPOSE_OPTIONS = [
-  { label: "원격 근무", value: "원격 근무" },
-  { label: "프리랜서 활동", value: "프리랜서 활동" },
-  { label: "온라인 비즈니스 운영", value: "온라인 비즈니스 운영" },
-  { label: "장기 여행", value: "장기 여행" },
-  { label: "은퇴 후 거주", value: "은퇴 후 거주" },
-];
-
-const TIMELINE_OPTIONS = [
-  { label: "1~3개월 단기 체류", value: "1~3개월 단기 체류" },
-  { label: "6개월 중기 체류", value: "6개월 중기 체류" },
-  { label: "1년 장기 체류", value: "1년 장기 체류" },
-  { label: "영주권/이민 목표", value: "영주권/이민 목표" },
-];
-
-const STAY_STYLE_OPTIONS = [
-  { label: "한 도시에 오래 머물기", value: "정착형" },
-  { label: "2~3개 도시 순환하기", value: "순환형" },
-  { label: "여러 나라 자유롭게 이동하기", value: "이동형" },
-];
-
-const BUDGET_RANGE_OPTIONS = [
-  { label: "200 이하", value: "100" },
-  { label: "200~400", value: "300" },
-  { label: "400~600", value: "500" },
-  { label: "600~800", value: "700" },
-  { label: "800 이상", value: "900" },
-  { label: "비공개", value: "0" },
-];
-
-const INCOME_RANGE_OPTIONS = [
-  { label: "200 이하", value: "150" },
-  { label: "200~300", value: "250" },
-  { label: "300~500", value: "400" },
-  { label: "500~700", value: "600" },
-  { label: "700 이상", value: "800" },
-  { label: "비공개", value: "0" },
-];
-
-const TAX_SENSITIVITY_OPTIONS = [
-  { label: "중요해요", value: "optimize" },
-  { label: "크게 중요하지 않아요", value: "simple" },
-  { label: "잘 모르겠어요", value: "unknown" },
-];
-
-const TRAVEL_TYPE_OPTIONS = [
-  { label: "혼자", value: "혼자 (솔로)" },
-  { label: "배우자 동반", value: "배우자/파트너 동반" },
-  { label: "자녀 동반", value: "자녀 동반 (배우자 없이)" },
-  { label: "가족 전체 동반", value: "가족 전체 동반" },
-];
-
-const SPOUSE_INCOME_OPTIONS = [
-  { label: "없음", value: "없음" },
-  { label: "있음", value: "있음" },
-];
-
-const CHILDREN_AGE_OPTIONS = [
-  { label: "영아 (0~2세)", value: "0~2" },
-  { label: "미취학 (3~6세)", value: "3~6" },
-  { label: "초등 (7~12세)", value: "7~12" },
-  { label: "중고등 (13~18세)", value: "13~18" },
-];
-
-const REGION_OPTIONS = [
-  { label: "아시아", value: "아시아" },
-  { label: "유럽", value: "유럽" },
-  { label: "중남미", value: "중남미" },
-  { label: "중동/아프리카", value: "중동/아프리카" },
-  { label: "북미", value: "북미" },
-];
-
-const LIFESTYLE_OPTIONS = [
-  { label: "일하기 좋은 인프라", value: "일하기 좋은 인프라" },
-  { label: "한인 커뮤니티 활성화", value: "한인 커뮤니티 활성화" },
-  { label: "저렴한 물가와 생활비", value: "저렴한 물가와 생활비" },
-  { label: "영어로 생활 가능", value: "영어로 생활 가능" },
-];
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -137,14 +57,6 @@ const INITIAL_FORM: FormData = {
 
 const TOTAL_STEPS = 5;
 
-const STEP_TITLES = [
-  "어떤 목적으로 노마드를\n준비하고 있어요?",
-  "어떻게 지낼 계획이에요?",
-  "비자 조건 확인을 위해,\n소득 구간을 알려주세요.",
-  "같이 가는 사람이 있어요?",
-  "마지막으로,\n더 알아야 할게 있다면 알려주세요.",
-];
-
 const personaGif: Record<string, string> = {
   wanderer: "/wanderer.gif",
   local: "/local.gif",
@@ -163,13 +75,12 @@ function hasSpouse(travelType: string) {
   return travelType.includes("배우자") || travelType.includes("가족") || travelType.includes("파트너");
 }
 
-const INPUT_CLASS =
-  "w-full rounded-none border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-ring focus:outline-none";
-
 // ── Component ────────────────────────────────────────────────────
 
 export default function FormPage() {
+  const locale = useLocale();
   const router = useRouter();
+  const copy = getOnboardingCopy(locale);
   const [personaType, setPersonaType] = useState<PersonaType | null>(null);
   const [personaVector, setPersonaVector] = useState<Record<string, number> | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -266,7 +177,7 @@ export default function FormPage() {
       const payload = {
         nationality: "한국",
         languages: [],
-        preferred_language: "한국어",
+        preferred_language: copy.form.preferredLanguage,
         dual_nationality: false,
         readiness_stage: "",
         persona_type: personaType ?? null,
@@ -294,7 +205,7 @@ export default function FormPage() {
       submittedRef.current = true;
       router.push("/result");
     } catch {
-      setError("뭔가 막혔어요. 다시 해볼까요?");
+      setError(copy.form.navigation.error);
     } finally {
       setIsLoading(false);
     }
@@ -403,7 +314,7 @@ export default function FormPage() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+            className="shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
           >
             <House className="size-4" />
           </button>
@@ -411,9 +322,9 @@ export default function FormPage() {
           <button
             type="button"
             onClick={handleBack}
-            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="shrink-0 cursor-pointer text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            이전
+            {copy.form.navigation.back}
           </button>
         )}
         <ProgressBar current={currentStep} total={TOTAL_STEPS} />
@@ -467,15 +378,22 @@ export default function FormPage() {
         </div>
 
         {/* 페르소나 배지 */}
-        {personaType && (
-          <div className="mb-6 border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
-            {PERSONAS[personaType].label}{(() => {
-              const lastChar = PERSONAS[personaType].label.slice(-1);
-              const code = lastChar.charCodeAt(0) - 0xAC00;
-              return code >= 0 && code % 28 > 0 ? "을" : "를";
-            })()} 위한 도시를 찾아볼게요
-          </div>
-        )}
+        {personaType && (() => {
+          const label = copy.result.personas[personaType].label;
+          const badgeText = locale === "ko"
+            ? `${label}${(() => {
+                const lastChar = label.slice(-1);
+                const code = lastChar.charCodeAt(0) - 0xAC00;
+                return code >= 0 && code % 28 > 0 ? "을" : "를";
+              })()}${copy.form.personaBadge.suffix}`
+            : `${copy.form.personaBadge.prefix}${label}${copy.form.personaBadge.suffix}`;
+
+          return (
+            <div className="mb-6 border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
+              {badgeText}
+            </div>
+          );
+        })()}
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -486,15 +404,15 @@ export default function FormPage() {
           >
             <h2 className="whitespace-pre-line text-xl font-medium leading-relaxed text-foreground mb-8">
               {currentStep === 3 && isShortStay
-                ? "어울리는 도시 추천을 위해,\n이번 여정의 예산을 알려주세요."
-                : STEP_TITLES[currentStep - 1]}
+                ? copy.form.shortStayBudgetTitle
+                : copy.form.stepTitles[currentStep - 1]}
             </h2>
 
             {/* Step 1: 목적 */}
             {currentStep === 1 && (
               <div className="space-y-2">
                 <SelectCard
-                  options={PURPOSE_OPTIONS}
+                  options={copy.form.options.purpose}
                   selected={form.immigration_purpose}
                   onSelect={(v) => setForm({ ...form, immigration_purpose: v })}
                   mode="single"
@@ -506,9 +424,9 @@ export default function FormPage() {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">체류 기간</label>
+                  <label className="text-sm text-muted-foreground">{copy.form.labels.timeline}</label>
                   <SelectCard
-                    options={TIMELINE_OPTIONS}
+                    options={copy.form.options.timeline}
                     selected={form.timeline}
                     onSelect={(v) => setForm({ ...form, timeline: v })}
                     mode="single"
@@ -516,9 +434,9 @@ export default function FormPage() {
                 </div>
                 {!isShortStay && form.timeline !== "" && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">체류 형태</label>
+                    <label className="text-sm text-muted-foreground">{copy.form.labels.stayStyle}</label>
                     <SelectCard
-                      options={STAY_STYLE_OPTIONS}
+                      options={copy.form.options.stayStyle}
                       selected={form.stay_style}
                       onSelect={(v) => setForm({ ...form, stay_style: v })}
                       mode="single"
@@ -534,17 +452,17 @@ export default function FormPage() {
                 {isShortStay ? (
                   <div className="space-y-2">
                     <label className="text-sm text-muted-foreground">
-                      월 예산 (만원)
+                      {copy.form.labels.monthlyBudget}
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {BUDGET_RANGE_OPTIONS.map((option) => {
+                      {copy.form.options.budgetRange.map((option) => {
                         const isActive = form.total_budget === option.value;
                         return (
                           <button
                             key={option.value}
                             type="button"
                             onClick={() => setForm({ ...form, total_budget: option.value, income_range: option.value === "0" ? "0" : "" })}
-                            className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                            className={`w-full cursor-pointer border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
                               isActive
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-muted text-foreground hover:bg-accent"
@@ -556,21 +474,21 @@ export default function FormPage() {
                       })}
                     </div>
                     {form.total_budget === "0" && (
-                      <p className="text-xs text-destructive mt-1">비자 추천 정확도가 낮아질 수 있어요.</p>
+                      <p className="text-xs text-destructive mt-1">{copy.form.labels.visaAccuracyWarning}</p>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">월 소득 (만원)</label>
+                    <label className="text-sm text-muted-foreground">{copy.form.labels.monthlyIncome}</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {INCOME_RANGE_OPTIONS.map((option) => {
+                      {copy.form.options.incomeRange.map((option) => {
                         const isActive = form.income_range === option.value;
                         return (
                           <button
                             key={option.value}
                             type="button"
                             onClick={() => setForm({ ...form, income_range: option.value })}
-                            className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                            className={`w-full cursor-pointer border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
                               isActive
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-muted text-foreground hover:bg-accent"
@@ -582,16 +500,16 @@ export default function FormPage() {
                       })}
                     </div>
                     {form.income_range === "0" && (
-                      <p className="text-xs text-destructive mt-1">비자 추천 정확도가 낮아질 수 있어요.</p>
+                      <p className="text-xs text-destructive mt-1">{copy.form.labels.visaAccuracyWarning}</p>
                     )}
                   </div>
                 )}
 
                 {!isShortStay && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">세금 혜택은 중요한가요?</label>
+                    <label className="text-sm text-muted-foreground">{copy.form.labels.taxSensitivity}</label>
                     <SelectCard
-                      options={TAX_SENSITIVITY_OPTIONS}
+                      options={copy.form.options.taxSensitivity}
                       selected={form.tax_sensitivity}
                       onSelect={(v) => setForm({ ...form, tax_sensitivity: v })}
                       mode="single"
@@ -606,7 +524,7 @@ export default function FormPage() {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <SelectCard
-                    options={TRAVEL_TYPE_OPTIONS}
+                    options={copy.form.options.travelType}
                     selected={form.travel_type}
                     onSelect={(v) => setForm({ ...form, travel_type: v })}
                     mode="single"
@@ -615,25 +533,25 @@ export default function FormPage() {
 
                 {hasSpouse(form.travel_type) && !isShortStay && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">배우자는 소득이 있나요?</label>
+                    <label className="text-sm text-muted-foreground">{copy.form.labels.spouseIncome}</label>
                     <SelectCard
-                      options={SPOUSE_INCOME_OPTIONS}
+                      options={copy.form.options.spouseIncome}
                       selected={form.has_spouse_income}
                       onSelect={(v) => setForm({ ...form, has_spouse_income: v })}
                       mode="single"
                     />
                     {form.has_spouse_income === "있음" && (
                       <div className="mt-3 space-y-2">
-                        <label className="text-sm text-muted-foreground">배우자의 월 소득 구간 (만원)</label>
+                        <label className="text-sm text-muted-foreground">{copy.form.labels.spouseIncomeRange}</label>
                         <div className="grid grid-cols-2 gap-2">
-                          {INCOME_RANGE_OPTIONS.filter(o => o.value !== "0").map((option) => {
+                          {copy.form.options.incomeRange.filter(o => o.value !== "0").map((option) => {
                             const isActive = String(form.spouse_income_krw) === option.value;
                             return (
                               <button
                                 key={option.value}
                                 type="button"
                                 onClick={() => setForm({ ...form, spouse_income_krw: Number(option.value) })}
-                                className={`w-full border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
+                                className={`w-full cursor-pointer border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
                                   isActive
                                     ? "border-primary bg-primary text-primary-foreground"
                                     : "border-border bg-muted text-foreground hover:bg-accent"
@@ -651,9 +569,9 @@ export default function FormPage() {
 
                 {hasChildren(form.travel_type) && (
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">아이들 나이대는 어떻게 돼요?</label>
+                    <label className="text-sm text-muted-foreground">{copy.form.labels.childrenAges}</label>
                     <SelectCard
-                      options={CHILDREN_AGE_OPTIONS}
+                      options={copy.form.options.childrenAge}
                       selected={form.children_ages}
                       onSelect={(v) => toggleMulti("children_ages", v)}
                       mode="multi"
@@ -667,18 +585,18 @@ export default function FormPage() {
             {currentStep === 5 && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">가고 싶은 지역이 있어요?</label>
+                  <label className="text-sm text-muted-foreground">{copy.form.labels.preferredRegion}</label>
                   <SelectCard
-                    options={REGION_OPTIONS}
+                    options={copy.form.options.region}
                     selected={form.preferred_countries}
                     onSelect={(v) => toggleMulti("preferred_countries", v)}
                     mode="multi"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">노마드 선호 환경은요?</label>
+                  <label className="text-sm text-muted-foreground">{copy.form.labels.lifestyle}</label>
                   <SelectCard
-                    options={LIFESTYLE_OPTIONS}
+                    options={copy.form.options.lifestyle}
                     selected={form.lifestyle}
                     onSelect={(v) => toggleMulti("lifestyle", v)}
                     mode="multi"
@@ -704,17 +622,17 @@ export default function FormPage() {
                     type="button"
                     onClick={handleNext}
                     disabled={!canProceed() || isLoading}
-                    className="w-full bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-full cursor-pointer bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-30"
                   >
-                    {isLoading ? "당신에게 맞는 도시를 찾는 중이에요..." : currentStep === TOTAL_STEPS ? "도시 추천 받기" : "다음"}
+                    {isLoading ? copy.form.navigation.loading : currentStep === TOTAL_STEPS ? copy.form.navigation.submit : copy.form.navigation.next}
                   </button>
                   {currentStep === 5 && !isLoading && (
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      className="w-full py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      className="w-full cursor-pointer py-1.5 text-xs font-medium text-muted-foreground/60 transition-colors hover:text-muted-foreground"
                     >
-                      건너뛰기
+                      {copy.form.navigation.skip}
                     </button>
                   )}
                 </div>

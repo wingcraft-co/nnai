@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import type { PersonaType } from "@/data/personas";
 import { PersonaResultCard } from "@/components/onboarding/persona-result-card";
 
 export default function QuizResultPage() {
+  const locale = useLocale();
   const router = useRouter();
   const [personaType] = useState<PersonaType | null>(() => {
     if (typeof window === "undefined") return null;
@@ -27,6 +29,7 @@ export default function QuizResultPage() {
 
   return (
     <PersonaResultCard
+      locale={locale}
       personaType={personaType}
       onFindCountry={() => router.push("/onboarding/form")}
       onRetry={handleRetry}

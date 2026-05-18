@@ -43,7 +43,7 @@ export function SelectCard({
             type="button"
             onClick={() => handleSelect(option.value)}
             className={cn(
-              "w-full rounded-lg border px-4 py-3.5 text-left text-sm font-medium transition-colors",
+              "w-full cursor-pointer rounded-lg border px-4 py-3.5 text-left text-sm font-medium transition-colors",
               isActive
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-muted text-foreground hover:bg-accent"

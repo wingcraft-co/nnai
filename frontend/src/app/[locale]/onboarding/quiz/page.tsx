@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { QUIZ_QUESTIONS, calculatePersona, calculatePersonaVector } from "@/data/quiz-questions";
+import { calculatePersona, calculatePersonaVector } from "@/data/quiz-questions";
 import type { PersonaType } from "@/data/personas";
 import { House } from "lucide-react";
 import { QuizCard } from "@/components/onboarding/quiz-card";
 import { ProgressBar } from "@/components/onboarding/progress-bar";
+import { getOnboardingCopy } from "@/lib/onboarding-content";
 import {
   trackFormAbandon,
   trackOnboardingStepDwell,
@@ -15,7 +17,10 @@ import {
 } from "@/lib/analytics/events";
 
 export default function QuizPage() {
+  const locale = useLocale();
   const router = useRouter();
+  const copy = getOnboardingCopy(locale);
+  const quizQuestions = copy.quiz.questions;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<PersonaType[]>([]);
   const previousStepRef = useRef<number | null>(null);
@@ -23,7 +28,7 @@ export default function QuizPage() {
   const currentStepRef = useRef(1);
   const completedRef = useRef(false);
 
-  const currentQuestion = QUIZ_QUESTIONS[currentIndex];
+  const currentQuestion = quizQuestions[currentIndex];
 
   useEffect(() => {
     const stepNumber = currentIndex + 1;
@@ -67,7 +72,7 @@ export default function QuizPage() {
     const newAnswers = [...answers, currentQuestion.options[answerIndex].persona];
     setAnswers(newAnswers);
 
-    if (currentIndex < QUIZ_QUESTIONS.length - 1) {
+    if (currentIndex < quizQuestions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
       const persona = calculatePersona(newAnswers);
@@ -94,7 +99,7 @@ export default function QuizPage() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+            className="shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
           >
             <House className="size-4" />
           </button>
@@ -102,12 +107,12 @@ export default function QuizPage() {
           <button
             type="button"
             onClick={handleBack}
-            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="shrink-0 cursor-pointer text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            이전
+            {copy.form.navigation.back}
           </button>
         )}
-        <ProgressBar current={currentIndex + 1} total={QUIZ_QUESTIONS.length} />
+        <ProgressBar current={currentIndex + 1} total={quizQuestions.length} />
       </div>
       <div className="flex flex-1 flex-col justify-start pt-24 px-4">
         <AnimatePresence mode="wait">
