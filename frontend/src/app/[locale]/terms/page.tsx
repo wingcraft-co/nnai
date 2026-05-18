@@ -9,7 +9,7 @@ type Props = {
 export default async function TermsPage({ params }: Props) {
   const { locale } = await params;
   const labels = getLegalLabels(locale);
-  const blocks = await readTermsBlocks();
+  const blocks = await readTermsBlocks(locale);
 
   return (
     <LegalPageShell locale={locale} title={labels.legal.termsTitle}>

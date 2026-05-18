@@ -1,6 +1,6 @@
 import { LegalPageShell } from "@/components/legal/LegalPageShell";
 import { AnalyticsSettingsButton } from "@/components/analytics/AnalyticsSettingsButton";
-import { getLegalLabels } from "@/lib/legal-content.mjs";
+import { getAnalyticsConsentCopy, getLegalLabels } from "@/lib/legal-content.mjs";
 import { readPrivacyBodyHtml } from "@/lib/legal-docs";
 
 type Props = {
@@ -10,7 +10,8 @@ type Props = {
 export default async function PrivacyPage({ params }: Props) {
   const { locale } = await params;
   const labels = getLegalLabels(locale);
-  const bodyHtml = await readPrivacyBodyHtml();
+  const analyticsCopy = getAnalyticsConsentCopy(locale);
+  const bodyHtml = await readPrivacyBodyHtml(locale);
 
   return (
     <LegalPageShell locale={locale} title={labels.legal.privacyTitle}>
@@ -20,10 +21,10 @@ export default async function PrivacyPage({ params }: Props) {
             Analytics
           </p>
           <h2 className="mt-2 text-lg font-semibold text-foreground">
-            분석 동의 설정
+            {analyticsCopy.title}
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            필수 분석과 전체 허용 사이를 언제든 다시 선택할 수 있습니다.
+            {analyticsCopy.description}
           </p>
           <AnalyticsSettingsButton
             label={labels.footer.privacySettings}

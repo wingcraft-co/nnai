@@ -24,8 +24,8 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   const [messages, termsBlocks, privacyBodyHtml] = await Promise.all([
     import(`../../../messages/${locale}.json`).then((module) => module.default),
-    readTermsBlocks(),
-    readPrivacyBodyHtml(),
+    readTermsBlocks(locale),
+    readPrivacyBodyHtml(locale),
   ]);
 
   return (

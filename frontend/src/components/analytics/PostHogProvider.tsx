@@ -26,18 +26,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 type Props = {
   children: React.ReactNode;
-  privacyBodyHtml: string;
+  privacyBodyHtmlByLocale: Record<"ko" | "en", string>;
 };
 
-export function PostHogProvider({ children, privacyBodyHtml }: Props) {
+export function PostHogProvider({ children, privacyBodyHtmlByLocale }: Props) {
   const pathname = usePathname();
   const checkingRef = useRef(false);
   const [consent, setConsent] = useState<AnalyticsConsent>("unknown");
   const [bannerOpen, setBannerOpen] = useState(false);
 
-  const locale = useMemo(() => {
+  const locale = useMemo<"ko" | "en">(() => {
     const match = pathname?.match(/^\/(ko|en)(?=\/|$)/);
-    return match?.[1] ?? "ko";
+    return match?.[1] === "en" ? "en" : "ko";
   }, [pathname]);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ export function PostHogProvider({ children, privacyBodyHtml }: Props) {
           effectiveMode={getActiveAnalyticsMode()}
           fullTrackingAvailable={isFullTrackingAvailable()}
           locale={locale}
-          privacyBodyHtml={privacyBodyHtml}
+          privacyBodyHtml={privacyBodyHtmlByLocale[locale]}
           onSelect={handleConsentSelect}
           onClose={consent === "unknown" ? undefined : () => setBannerOpen(false)}
         />

@@ -5,9 +5,13 @@ import {
   buildGoogleLoginUrl,
   buildLogoutUrl,
   extractHtmlBody,
+  getAnalyticsConsentCopy,
+  getLegalDocumentNames,
   getLegalLabels,
   parseMarkdownBlocks,
   shouldHideLegalFooter,
+  stripLeadingHeadingBlock,
+  stripLeadingHtmlHeading,
 } from "./legal-content.mjs";
 
 test("returns Korean legal footer labels", () => {
@@ -87,4 +91,46 @@ test("extracts the body fragment from trusted html", () => {
   const body = extractHtmlBody(`<!DOCTYPE html><html><body><h1>Privacy</h1><p>Safe.</p></body></html>`);
 
   assert.equal(body, "<h1>Privacy</h1><p>Safe.</p>");
+});
+
+test("strips the document title before rendering legal popups", () => {
+  const blocks = parseMarkdownBlocks(`# Terms of Service
+
+Last updated: Today
+`);
+
+  assert.deepEqual(stripLeadingHeadingBlock(blocks), [
+    { type: "p", text: "Last updated: Today" },
+  ]);
+  assert.equal(
+    stripLeadingHtmlHeading(`<h1>Privacy Policy</h1><p>Last updated.</p>`),
+    "<p>Last updated.</p>",
+  );
+});
+
+test("selects localized legal document filenames", () => {
+  assert.deepEqual(getLegalDocumentNames("ko"), {
+    terms: "TERMS.md",
+    privacy: "privacy.html",
+  });
+  assert.deepEqual(getLegalDocumentNames("en"), {
+    terms: "TERMS.en.md",
+    privacy: "privacy.en.html",
+  });
+});
+
+test("returns English analytics consent popup copy", () => {
+  const copy = getAnalyticsConsentCopy("en", "full", "full");
+  const essentialCopy = getAnalyticsConsentCopy("en", "essential", "essential");
+
+  assert.equal(copy.title, "Cookie Settings");
+  assert.equal(copy.description.includes("분석"), false);
+  assert.equal(copy.description.includes("cookies"), true);
+  assert.equal(copy.buttons.essential, "Essential only");
+  assert.equal(copy.buttons.full, "Allow all");
+  assert.equal(copy.currentSelection, "Current choice: Allow all · Full analytics");
+  assert.equal(
+    essentialCopy.currentSelection,
+    "Current choice: Essential only · Essential analytics",
+  );
 });

@@ -73,6 +73,81 @@ export function getLegalLabels(locale) {
   return legalLabels[normalizeLegalLocale(locale)];
 }
 
+export function getLegalDocumentNames(locale) {
+  return normalizeLegalLocale(locale) === "en"
+    ? { terms: "TERMS.en.md", privacy: "privacy.en.html" }
+    : { terms: "TERMS.md", privacy: "privacy.html" };
+}
+
+const analyticsConsentCopy = {
+  ko: {
+    title: "쿠키 설정",
+    detailsLabel: "자세히 보기",
+    closeLabel: "닫기",
+    privacyTitle: "개인정보처리방침",
+    description:
+      "더 나은 사용자 경험과 사이트 개선을 위해 분석을 사용합니다. 필수 분석은 익명 최소 추적만, 전체 허용은 쿠키 기반 추적을 포함합니다.",
+    unavailableNotice: "현재 preview에서는 전체 허용도 필수 분석으로 동작합니다.",
+    currentPrefix: "현재 선택",
+    buttons: {
+      essential: "필수 분석만 허용",
+      full: "전체 허용",
+    },
+    consentLabels: {
+      essential: "필수 분석만 허용",
+      full: "전체 허용",
+      unknown: "선택 전",
+    },
+    modeLabels: {
+      full: "전체 분석",
+      essential: "필수 분석",
+      pending: "대기",
+    },
+  },
+  en: {
+    title: "Cookie Settings",
+    detailsLabel: "Details",
+    closeLabel: "Close",
+    privacyTitle: "Privacy Policy",
+    description:
+      "We use analytics to improve the product experience. Essential analytics uses minimal anonymous tracking, while full consent may use cookies for persistent tracking.",
+    unavailableNotice: "In preview, full consent currently behaves as essential analytics.",
+    currentPrefix: "Current choice",
+    buttons: {
+      essential: "Essential only",
+      full: "Allow all",
+    },
+    consentLabels: {
+      essential: "Essential only",
+      full: "Allow all",
+      unknown: "Not selected",
+    },
+    modeLabels: {
+      full: "Full analytics",
+      essential: "Essential analytics",
+      pending: "Pending",
+    },
+  },
+};
+
+export function getAnalyticsConsentCopy(locale, consent = "unknown", effectiveMode = "pending") {
+  const copy = analyticsConsentCopy[normalizeLegalLocale(locale)];
+  const consentLabel = copy.consentLabels[consent] ?? copy.consentLabels.unknown;
+  const modeLabel = copy.modeLabels[effectiveMode] ?? copy.modeLabels.pending;
+
+  return {
+    title: copy.title,
+    detailsLabel: copy.detailsLabel,
+    closeLabel: copy.closeLabel,
+    privacyTitle: copy.privacyTitle,
+    description: copy.description,
+    unavailableNotice: copy.unavailableNotice,
+    buttons: copy.buttons,
+    currentSelection:
+      consent === "unknown" ? null : `${copy.currentPrefix}: ${consentLabel} · ${modeLabel}`,
+  };
+}
+
 export function buildGoogleLoginUrl(apiBase, returnTo) {
   const base = apiBase.replace(/\/$/, "");
   if (!returnTo) return `${base}/auth/google`;
@@ -151,4 +226,13 @@ export function extractHtmlBody(html) {
   const match = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   if (!match) return html.trim();
   return match[1].trim();
+}
+
+export function stripLeadingHeadingBlock(blocks) {
+  if (!Array.isArray(blocks) || blocks.length === 0) return blocks;
+  return blocks[0]?.type === "h1" ? blocks.slice(1) : blocks;
+}
+
+export function stripLeadingHtmlHeading(html) {
+  return html.trim().replace(/^<h1\b[^>]*>[\s\S]*?<\/h1>\s*/i, "");
 }

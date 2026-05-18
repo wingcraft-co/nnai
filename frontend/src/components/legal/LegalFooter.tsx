@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { AnalyticsSettingsButton } from "@/components/analytics/AnalyticsSettingsButton";
-import { getLegalLabels, shouldHideLegalFooter } from "@/lib/legal-content.mjs";
+import {
+  getLegalLabels,
+  shouldHideLegalFooter,
+  stripLeadingHeadingBlock,
+  stripLeadingHtmlHeading,
+} from "@/lib/legal-content.mjs";
 
 type LegalBlock = {
   type: string;
@@ -26,6 +31,8 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
   const labels = getLegalLabels(locale);
   const dialogTitle =
     activeDialog === "terms" ? labels.legal.termsTitle : labels.legal.privacyTitle;
+  const dialogTermsBlocks = stripLeadingHeadingBlock(termsBlocks) as LegalBlock[];
+  const dialogPrivacyBodyHtml = stripLeadingHtmlHeading(privacyBodyHtml);
 
   useEffect(() => {
     if (!activeDialog) return;
@@ -110,7 +117,7 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
 
             {activeDialog === "terms" ? (
               <div className="space-y-3 text-xs leading-5 text-muted-foreground">
-                {termsBlocks.map((block, index) => {
+                {dialogTermsBlocks.map((block, index) => {
                   if (block.type === "h1" || block.type === "h2") {
                     return (
                       <h3 key={index} className="pt-2 text-sm font-semibold text-foreground">
@@ -145,7 +152,7 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
             ) : (
               <div
                 className="prose prose-slate max-w-none text-xs leading-5 prose-headings:text-foreground prose-headings:font-serif prose-h1:text-base prose-h2:text-sm prose-h3:text-xs prose-p:text-muted-foreground prose-li:text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: privacyBodyHtml }}
+                dangerouslySetInnerHTML={{ __html: dialogPrivacyBodyHtml }}
               />
             )}
           </div>

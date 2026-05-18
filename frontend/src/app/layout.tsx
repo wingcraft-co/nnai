@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Noto_Serif_KR, Roboto, Source_Serif_4, Inter } from "next/font/google";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
-import { readPrivacyBodyHtml } from "@/lib/legal-docs";
+import { readPrivacyBodyHtmlByLocale } from "@/lib/legal-docs";
 import "./globals.css";
 
 const fontMono = Geist_Mono({
@@ -46,14 +46,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const privacyBodyHtml = await readPrivacyBodyHtml();
+  const privacyBodyHtmlByLocale = await readPrivacyBodyHtmlByLocale();
 
   return (
     <html lang="ko">
       <body
         className={`${fontMono.variable} ${fontKR.variable} ${fontRoboto.variable} ${fontBriefingSerif.variable} ${fontBriefingSans.variable} antialiased`}
       >
-        <PostHogProvider privacyBodyHtml={privacyBodyHtml}>{children}</PostHogProvider>
+        <PostHogProvider privacyBodyHtmlByLocale={privacyBodyHtmlByLocale}>
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );
