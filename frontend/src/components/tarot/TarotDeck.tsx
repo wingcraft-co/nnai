@@ -180,8 +180,8 @@ function CityLightbox({
             type="button"
             onClick={onClose}
             aria-label={isEn ? "Close" : "닫기"}
-            className="absolute left-full bottom-full w-11 h-11 flex items-center justify-center transition-colors"
-            style={{ color: "rgba(255,255,255,0.8)" }}
+            className="absolute left-full bottom-full w-11 h-11 cursor-pointer flex items-center justify-center transition-colors"
+            style={{ color: "rgba(255,255,255,0.8)", cursor: "pointer" }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -564,7 +564,7 @@ function LightboxFrontContent({
                 letterSpacing: "0.03em",
               }}
             >
-              상세 페이지 받기
+              맞춤 보고서 받기
             </button>
           </div>
         )}
@@ -587,8 +587,8 @@ function LightboxLockedTeaser({
   const isEn = locale === "en";
   const label = isEn
     ? `PREMIUM PICK #${orderNumber}`
-    : `Pro 전용 카드 #${orderNumber}`;
-  const ctaText = isEn ? "Unlock all cities with Pro" : "Pro로 모든 도시 보기";
+    : `잠겨진 카드 #${orderNumber}`;
+  const ctaText = isEn ? "Unlock ($1)" : "잠금 해제 ($1)";
 
   return (
     <div className="flex-1 min-h-0 flex flex-col items-center justify-between px-6 py-8">
