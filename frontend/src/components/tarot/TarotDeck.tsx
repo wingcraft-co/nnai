@@ -849,7 +849,7 @@ export default function TarotDeck({
             <button
               type="button"
               onClick={onRetry}
-              className="text-xs transition-colors"
+              className="cursor-pointer text-xs transition-colors"
               style={{ color: "var(--muted-foreground)" }}
             >
               처음부터 다시하기

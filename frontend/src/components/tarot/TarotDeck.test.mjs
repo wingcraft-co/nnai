@@ -34,3 +34,7 @@ test("locked card Korean copy uses neutral lock wording", () => {
   assert.doesNotMatch(source, /Pro 전용 카드/);
   assert.doesNotMatch(source, /Pro로 모든 도시 보기/);
 });
+
+test("done retry CTA shows a pointer cursor", () => {
+  assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*처음부터 다시하기/);
+});

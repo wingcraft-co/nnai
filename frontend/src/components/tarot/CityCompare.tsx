@@ -154,7 +154,7 @@ export default function CityCompare({ cities, onRetry }: CityCompareProps) {
         <button
           type="button"
           onClick={onRetry}
-          className="text-sm transition-colors py-2"
+          className="cursor-pointer text-sm transition-colors py-2"
           style={{ color: "var(--muted-foreground)" }}
         >
           처음부터 다시하기

@@ -17,6 +17,7 @@ import {
 // ── Constants ──────────────────────────────────────────────────────
 
 const RECOMMEND_PAYLOAD_KEY = "recommend_payload";
+const RECOMMEND_SERVER_ERROR_MESSAGE = "잠시 연결이 불안정합니다.\n문제가 계속되면 고객센터로 문의주세요.";
 
 // ── Stage ──────────────────────────────────────────────────────────
 
@@ -131,7 +132,7 @@ export default function ResultPage() {
           stage: "recommend",
           errorKind: "invalid_payload",
         });
-        setError("추천 도시를 불러오지 못했어요. 다시 시도해주세요.");
+        setError(RECOMMEND_SERVER_ERROR_MESSAGE);
         setStage("loading");
         return;
       }
@@ -164,7 +165,7 @@ export default function ResultPage() {
         stage: "recommend",
         errorKind: resolveErrorKind(error),
       });
-      setError("추천을 불러오지 못했어요. 다시 시도해주세요.");
+      setError(RECOMMEND_SERVER_ERROR_MESSAGE);
       setStage("loading");
     }
   }, [router, saveSession]);
@@ -318,11 +319,11 @@ export default function ResultPage() {
         <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-4 px-4">
           {error ? (
             <>
-              <p className="text-sm text-destructive">{error}</p>
-              <button type="button" onClick={() => startRecommend()} className="px-6 py-2 text-sm font-medium bg-primary text-primary-foreground">
+              <p className="max-w-xs whitespace-pre-line text-center text-sm leading-6 text-red-500/80">{error}</p>
+              <button type="button" onClick={() => startRecommend()} className="cursor-pointer px-6 py-2 text-sm font-medium bg-primary text-primary-foreground">
                 다시 시도
               </button>
-              <button type="button" onClick={handleRetry} className="text-sm text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={handleRetry} className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                 처음부터 다시하기
               </button>
             </>
