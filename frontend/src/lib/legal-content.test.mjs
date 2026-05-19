@@ -10,6 +10,7 @@ import {
   getLegalLabels,
   parseMarkdownBlocks,
   shouldHideLegalFooter,
+  shouldUseDarkLegalChrome,
   stripLeadingHeadingBlock,
   stripLeadingHtmlHeading,
 } from "./legal-content.mjs";
@@ -65,6 +66,14 @@ test("hides legal footer on onboarding routes", () => {
 test("shows legal footer on pricing and login routes", () => {
   assert.equal(shouldHideLegalFooter("/ko/pricing"), false);
   assert.equal(shouldHideLegalFooter("/en/login"), false);
+});
+
+test("uses dark legal chrome only on the city card result route", () => {
+  assert.equal(shouldUseDarkLegalChrome("/ko/result"), true);
+  assert.equal(shouldUseDarkLegalChrome("/en/result"), true);
+  assert.equal(shouldUseDarkLegalChrome("/ko/result/lisbon"), false);
+  assert.equal(shouldUseDarkLegalChrome("/ko/onboarding/quiz/result"), false);
+  assert.equal(shouldUseDarkLegalChrome("/ko"), false);
 });
 
 test("parses markdown into headings, paragraphs, and lists", () => {

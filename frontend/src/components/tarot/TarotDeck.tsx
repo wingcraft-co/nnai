@@ -16,6 +16,7 @@ import {
   computeCityTags,
 } from "./format";
 import { buildGoogleLoginUrl } from "@/lib/legal-content.mjs";
+import { buildCityResourceLinks } from "@/lib/city-links.mjs";
 import {
   markLoginPending,
   trackLoginClick,
@@ -166,7 +167,7 @@ function CityLightbox({
           type="button"
           onClick={goPrev}
           aria-label={isEn ? "Previous" : "이전"}
-          className="shrink-0 w-8 h-8 flex items-center justify-center transition-colors"
+          className="shrink-0 w-8 h-8 cursor-pointer flex items-center justify-center transition-colors"
           style={{ color: "rgba(255,255,255,0.8)" }}
         >
           <ChevronLeft className="w-5 h-5" />
@@ -225,7 +226,7 @@ function CityLightbox({
           type="button"
           onClick={goNext}
           aria-label={isEn ? "Next" : "다음"}
-          className="shrink-0 w-8 h-8 flex items-center justify-center transition-colors"
+          className="shrink-0 w-8 h-8 cursor-pointer flex items-center justify-center transition-colors"
           style={{ color: "rgba(255,255,255,0.8)" }}
         >
           <ChevronRight className="w-5 h-5" />
@@ -492,25 +493,7 @@ function LightboxFrontContent({
 
         {/* 6. External links — 카테고리 3개 dot-joined 한 줄 (브랜드 노출 생략) */}
         {(() => {
-          const links: { url: string; label: string }[] = [];
-          if (city.flatio_search_url) {
-            links.push({
-              url: city.flatio_search_url,
-              label: isEn ? "Monthly stay" : "월세 숙소 찾기",
-            });
-          }
-          if (city.anyplace_search_url) {
-            links.push({
-              url: city.anyplace_search_url,
-              label: isEn ? "Short-term stay" : "단기 숙소 찾기",
-            });
-          }
-          if (city.nomad_meetup_url) {
-            links.push({
-              url: city.nomad_meetup_url,
-              label: isEn ? "Nomad meetup" : "노마드 모임 찾기",
-            });
-          }
+          const links: { url: string; label: string }[] = buildCityResourceLinks(city, locale);
           if (links.length === 0) return null;
           return (
             <p className="text-[11px] text-center" style={{ color: "var(--muted-foreground)" }}>
@@ -569,17 +552,11 @@ function LightboxFrontContent({
         )}
 
         {showDetailCta && (
-          <div className="flex flex-col gap-2">
-            <h3
-              className="font-serif text-[13px] font-medium leading-tight text-center"
-              style={{ color: "var(--foreground)" }}
-            >
-              {city.city_kr || city.city} 상세 페이지 받기
-            </h3>
+          <div className="flex flex-col">
             <button
               type="button"
               onClick={handleDetailClick}
-              className="w-full py-2.5 text-center font-mono text-xs font-medium"
+              className="w-full cursor-pointer py-2.5 text-center font-mono text-xs font-medium"
               style={{
                 background: "var(--primary)",
                 color: "var(--primary-foreground)",
@@ -728,6 +705,7 @@ export default function TarotDeck({
 
   const [lightboxStartIndex, setLightboxStartIndex] = useState<number | null>(null);
   const locale = useLocale();
+  const isEn = locale === "en";
 
   // ── Per-card helpers ────────────────────────────────────────────
 
@@ -834,7 +812,7 @@ export default function TarotDeck({
               type="button"
               onClick={onConfirm}
               disabled={isLoading}
-              className="px-8 py-3 text-sm font-semibold"
+              className="cursor-pointer px-8 py-3 text-sm font-semibold disabled:cursor-not-allowed"
               style={{
                 background: "var(--primary)",
                 color: "var(--primary-foreground)",
@@ -843,7 +821,13 @@ export default function TarotDeck({
                 transition: "opacity 0.3s ease",
               }}
             >
-              {isLoading ? "도시를 불러오고 있어요..." : "카드 열기"}
+              {isLoading
+                ? isEn
+                  ? "Loading cities..."
+                  : "도시를 불러오고 있어요..."
+                : isEn
+                  ? "Open cards"
+                  : "카드 열기"}
             </motion.button>
           )}
         </AnimatePresence>

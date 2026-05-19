@@ -164,6 +164,10 @@ export function shouldHideLegalFooter(pathname = "") {
   return /(^|\/)onboarding(\/|$)/.test(pathname);
 }
 
+export function shouldUseDarkLegalChrome(pathname = "") {
+  return /^\/(?:ko|en)\/result\/?$/.test(pathname);
+}
+
 export function parseMarkdownBlocks(markdown) {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
   const blocks = [];

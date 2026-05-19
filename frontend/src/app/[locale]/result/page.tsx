@@ -311,11 +311,11 @@ export default function ResultPage() {
   const isDeckStage = stage !== "loading";
 
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
+    <div className="dark flex min-h-0 w-full min-w-0 flex-1 flex-col bg-background text-foreground">
       <RitualTransition />
       {/* Loading */}
       {stage === "loading" && (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+        <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-4 px-4">
           {error ? (
             <>
               <p className="text-sm text-destructive">{error}</p>
@@ -336,7 +336,7 @@ export default function ResultPage() {
 
       {/* Deck: selecting → revealing → reading → done (5장 고정) */}
       {isDeckStage && (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 gap-6">
+        <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-6 px-4 py-10">
           {stage === "selecting" && (
             <div className="text-center">
               <h1 className="font-serif text-xl font-bold text-foreground mb-1">

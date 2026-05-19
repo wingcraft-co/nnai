@@ -7,6 +7,7 @@ import { AnalyticsSettingsButton } from "@/components/analytics/AnalyticsSetting
 import {
   getLegalLabels,
   shouldHideLegalFooter,
+  shouldUseDarkLegalChrome,
   stripLeadingHeadingBlock,
   stripLeadingHtmlHeading,
 } from "@/lib/legal-content.mjs";
@@ -33,6 +34,16 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
     activeDialog === "terms" ? labels.legal.termsTitle : labels.legal.privacyTitle;
   const dialogTermsBlocks = stripLeadingHeadingBlock(termsBlocks) as LegalBlock[];
   const dialogPrivacyBodyHtml = stripLeadingHtmlHeading(privacyBodyHtml);
+  const isDarkChrome = shouldUseDarkLegalChrome(pathname);
+  const footerClass = isDarkChrome
+    ? "border-t border-transparent bg-[oklch(0.1450_0_0)] px-4 py-6 text-xs text-white/24"
+    : "border-t border-border/60 bg-background/95 px-4 py-6 text-xs text-muted-foreground";
+  const footerLinkClass = isDarkChrome
+    ? "cursor-pointer transition-colors hover:text-white/55"
+    : "cursor-pointer transition-colors hover:text-foreground";
+  const footerBrandClass = isDarkChrome
+    ? "cursor-pointer text-center text-[11px] text-white/22 transition-colors hover:text-white/45"
+    : "cursor-pointer text-center text-[11px] text-muted-foreground/80 transition-colors hover:text-foreground";
 
   useEffect(() => {
     if (!activeDialog) return;
@@ -51,39 +62,39 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
 
   return (
     <>
-      <footer className="border-t border-border/60 bg-background/95 px-4 py-6 text-xs text-muted-foreground">
+      <footer className={footerClass}>
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-3 sm:justify-between">
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setActiveDialog("terms")}
-              className="cursor-pointer transition-colors hover:text-foreground"
+              className={footerLinkClass}
             >
               {labels.footer.terms}
             </button>
             <button
               type="button"
               onClick={() => setActiveDialog("privacy")}
-              className="cursor-pointer transition-colors hover:text-foreground"
+              className={footerLinkClass}
             >
               {labels.footer.privacy}
             </button>
             <a
               href="mailto:nnai.support@gmail.com"
-              className="transition-colors hover:text-foreground"
+              className={footerLinkClass}
             >
               {labels.footer.support}
             </a>
             <AnalyticsSettingsButton
               label={labels.footer.privacySettings}
-              className="cursor-pointer transition-colors hover:text-foreground"
+              className={footerLinkClass}
             />
           </div>
           <a
             href="https://wingcraft.co"
             target="_blank"
             rel="noreferrer"
-            className="cursor-pointer text-center text-[11px] text-muted-foreground/80 transition-colors hover:text-foreground"
+            className={footerBrandClass}
           >
             Wingcraft Co
           </a>

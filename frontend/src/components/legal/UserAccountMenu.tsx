@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
@@ -9,6 +10,7 @@ import {
   buildGoogleLoginUrl,
   buildLogoutUrl,
   getLegalLabels,
+  shouldUseDarkLegalChrome,
 } from "@/lib/legal-content.mjs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -25,9 +27,11 @@ type AuthUser = {
 };
 
 export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccountMenuProps) {
+  const pathname = usePathname();
   const labels = getLegalLabels(locale).account;
   const [auth, setAuth] = useState<AuthUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const isDarkChrome = shouldUseDarkLegalChrome(pathname);
 
   useEffect(() => {
     let isMounted = true;
@@ -66,13 +70,16 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
   }
 
   const positionClass = hasLocaleSwitcher ? "right-20" : "right-4";
+  const triggerTextClass = isDarkChrome
+    ? "text-white/70 hover:text-white/85"
+    : "text-[var(--onboarding-text-primary)] hover:text-muted-foreground";
 
   if (!display.isLoggedIn) {
     return (
       <button
         type="button"
         onClick={startLogin}
-        className={`fixed ${positionClass} top-4 z-50 h-9 cursor-pointer bg-transparent px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-transparent hover:text-muted-foreground`}
+        className={`fixed ${positionClass} top-4 z-50 h-9 cursor-pointer bg-transparent px-2 font-serif text-xs transition-colors hover:bg-transparent ${triggerTextClass}`}
       >
         {displayName}
       </button>
@@ -86,7 +93,7 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
         aria-label={labels.menuLabel}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
-        className="flex h-9 max-w-[180px] cursor-pointer items-center gap-2 rounded-md bg-transparent px-2 pr-3 text-left font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-transparent"
+        className={`flex h-9 max-w-[180px] cursor-pointer items-center gap-2 rounded-md bg-transparent px-2 pr-3 text-left font-serif text-xs transition-colors hover:bg-transparent ${triggerTextClass}`}
       >
         {display.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
