@@ -390,7 +390,7 @@ export default function GuidePage() {
   }
 
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
+    <div className="dark flex min-h-0 w-full min-w-0 flex-1 flex-col bg-background text-foreground">
       <div className="mx-auto max-w-3xl px-5 py-8">
         <button
           type="button"

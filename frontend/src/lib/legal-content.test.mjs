@@ -68,9 +68,11 @@ test("shows legal footer on pricing and login routes", () => {
   assert.equal(shouldHideLegalFooter("/en/login"), false);
 });
 
-test("uses dark legal chrome only on the city card result route", () => {
+test("uses dark legal chrome on card result and guide routes", () => {
   assert.equal(shouldUseDarkLegalChrome("/ko/result"), true);
   assert.equal(shouldUseDarkLegalChrome("/en/result"), true);
+  assert.equal(shouldUseDarkLegalChrome("/ko/guide/chiang-mai"), true);
+  assert.equal(shouldUseDarkLegalChrome("/en/guide/lisbon"), true);
   assert.equal(shouldUseDarkLegalChrome("/ko/result/lisbon"), false);
   assert.equal(shouldUseDarkLegalChrome("/ko/onboarding/quiz/result"), false);
   assert.equal(shouldUseDarkLegalChrome("/ko"), false);
