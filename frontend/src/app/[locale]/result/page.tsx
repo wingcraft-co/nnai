@@ -13,6 +13,7 @@ import {
   trackRecommendSuccess,
   trackResultRevealComplete,
 } from "@/lib/analytics/events";
+import { collectLibraryCities } from "@/lib/library-storage";
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -252,6 +253,7 @@ export default function ResultPage() {
         throw new Error(errData.error ?? `reveal error: ${res.status}`);
       }
       const data = (await res.json()) as { revealed_cities: CityData[] };
+      collectLibraryCities(data.revealed_cities);
 
       setRevealedCities(data.revealed_cities);
       setFlippedIndices([]);

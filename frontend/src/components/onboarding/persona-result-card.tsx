@@ -23,6 +23,7 @@ interface PersonaResultCardProps {
 export function PersonaResultCard({ locale, personaType, onFindCountry, onRetry }: PersonaResultCardProps) {
   const copy = getOnboardingCopy(locale);
   const persona = copy.result.personas[personaType];
+  const showMascotLine = !["wanderer", "local", "pioneer"].includes(personaType);
 
   const fadeUp = (delay: number) => ({
     initial: { opacity: 0, y: 16 },
@@ -55,7 +56,9 @@ export function PersonaResultCard({ locale, personaType, onFindCountry, onRetry 
               height={36}
               unoptimized
             />
-            <div className="absolute bottom-0 h-px bg-border" style={{ right: 0, width: 72 }} />
+            {showMascotLine && (
+              <div className="absolute bottom-0 h-px bg-border" style={{ right: 0, width: 72 }} />
+            )}
           </div>
         </div>
         <div className="space-y-1">

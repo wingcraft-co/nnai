@@ -27,6 +27,7 @@ const legalLabels = {
       loggedOutName: "Guest",
       menuLabel: "계정 메뉴",
       login: "로그인",
+      library: "보관함",
       logout: "로그아웃",
     },
     legal: {
@@ -59,6 +60,7 @@ const legalLabels = {
       loggedOutName: "Guest",
       menuLabel: "Account menu",
       login: "login",
+      library: "Library",
       logout: "Log out",
     },
     legal: {

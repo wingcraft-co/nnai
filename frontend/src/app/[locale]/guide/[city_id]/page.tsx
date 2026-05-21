@@ -18,6 +18,7 @@ import {
 import { buildBriefing } from "@/lib/briefing-generator";
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
 import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
+import { unlockLibraryGuide } from "@/lib/library-storage";
 
 const SESSION_V2_KEY = "result_session_v2";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -312,6 +313,7 @@ export default function GuidePage() {
           setMarkdown(detail.markdown);
           setDetailQuota(detail.quota ?? null);
           setQuotaExceeded(false);
+          unlockLibraryGuide(selected, detail.markdown);
           localStorage.setItem(
             SESSION_V2_KEY,
             JSON.stringify({ ...session, readingMarkdown: detail.markdown, readingCityIndex: selectedCityIndex })
@@ -389,18 +391,26 @@ export default function GuidePage() {
     downloadUrl(url, buildGuideExportFilename(cityExportLabel(), "png"));
   }
 
-  return (
-    <div className="dark flex min-h-0 w-full min-w-0 flex-1 flex-col bg-background text-foreground">
-      <div className="mx-auto max-w-3xl px-5 py-8">
-        <button
-          type="button"
-          onClick={() => router.push("/result")}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="size-4" />
-          결과로 돌아가기
-        </button>
+  function backToResult() {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
 
+    router.push(`/${locale}/result`);
+  }
+
+  return (
+    <div className="dark relative flex min-h-0 w-full min-w-0 flex-1 flex-col bg-background text-foreground">
+      <button
+        type="button"
+        onClick={backToResult}
+        className="fixed left-5 top-6 z-20 inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:left-8"
+      >
+        <ChevronLeft className="size-4" />
+        결과로 돌아가기
+      </button>
+      <div className="mx-auto w-full max-w-3xl px-5 py-8">
         {loading && (
           <div className="flex min-h-[50vh] items-center justify-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
@@ -427,18 +437,18 @@ export default function GuidePage() {
                 <LockKeyhole className="mt-0.5 size-5 text-primary" />
                 <div>
                   <h2 className="font-serif text-lg font-bold">무료 상세 가이드 횟수를 모두 사용했습니다.</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    무료 플랜은 상세 가이드를 {detailQuota?.limit ?? 2}회까지 받을 수 있습니다. 현재 남은 횟수는 0회입니다.
+                  <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
+                    {`나만의 맞춤 상세 가이드를 ${detailQuota?.limit ?? 2}회까지 무료로 받을 수 있습니다.\n현재 남은 횟수는 0회입니다.`}
                   </p>
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-5 flex w-full justify-end">
                 <PolarCheckoutButton
                   locale={locale}
                   returnPath={`/${locale}/guide/${cityId}?checkout=return`}
-                  idleLabel="Pro로 무제한 상세 가이드 받기"
+                  idleLabel="맞춤 가이드 받기"
                   loadingLabel="결제 페이지 여는 중..."
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  className="ml-auto flex h-10 cursor-pointer items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
             </section>

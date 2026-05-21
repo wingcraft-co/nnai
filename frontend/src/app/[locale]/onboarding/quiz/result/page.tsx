@@ -1,18 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import type { PersonaType } from "@/data/personas";
 import { PersonaResultCard } from "@/components/onboarding/persona-result-card";
 
+function subscribePersonaStore() {
+  return () => {};
+}
+
+function getStoredPersona() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("persona_type") as PersonaType | null;
+}
+
+function getServerPersona() {
+  return null;
+}
+
 export default function QuizResultPage() {
   const locale = useLocale();
   const router = useRouter();
-  const [personaType] = useState<PersonaType | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("persona_type") as PersonaType | null;
-  });
+  const personaType = useSyncExternalStore(subscribePersonaStore, getStoredPersona, getServerPersona);
 
   useEffect(() => {
     if (!personaType) {

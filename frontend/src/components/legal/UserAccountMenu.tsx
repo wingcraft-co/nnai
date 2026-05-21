@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { Archive, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -69,6 +69,10 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
     window.location.assign(buildLogoutUrl(API_BASE, window.location.href));
   }
 
+  function openLibrary() {
+    window.location.assign(`/${locale}/library`);
+  }
+
   const positionClass = hasLocaleSwitcher ? "right-20" : "right-4";
   const triggerTextClass = isDarkChrome
     ? "text-white/70 hover:text-white/85"
@@ -112,7 +116,15 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-36 rounded-md bg-white p-1 shadow-lg">
+        <div className="absolute right-0 mt-2 w-40 rounded-md bg-white p-1 shadow-lg">
+          <button
+            type="button"
+            onClick={openLibrary}
+            className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-black/5"
+          >
+            <Archive className="size-3.5" aria-hidden="true" />
+            <span>{labels.library}</span>
+          </button>
           <button
             type="button"
             onClick={display.isLoggedIn ? startLogout : startLogin}
