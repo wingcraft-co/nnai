@@ -26,6 +26,11 @@ JSON 재생성 후 프론트엔드 enrichment용 복사본도 갱신해야 한�
 - `frontend/src/data/city_scores.json`
 - `frontend/src/data/visa_db.json`
 
+### 작업 로그 기록
+
+작업을 진행하면 루트의 `tasklist.md`에 날짜별로 요약을 남긴다.
+작업자 이름이나 에이전트명은 쓰지 않고, 해당 날짜 아래에 진행 내용과 필요한 맥락을 2줄 정도로 정리한다.
+
 ### GitHub Actions 테스트
 
 새 테스트 파일을 추가할 때마다 `.github/workflows/main-tests.yml`의 테스트 목록에 함께 등록한다.
