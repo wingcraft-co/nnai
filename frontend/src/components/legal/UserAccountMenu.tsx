@@ -2,10 +2,12 @@
 
 import { Archive, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
 import { resolveAccountMenuDisplay } from "@/lib/account-menu.mjs";
+import { syncOnboardingDraftsAfterLogin } from "@/lib/onboarding-draft-sync.mjs";
+import { ONBOARDING_DRAFT_UPDATED_EVENT } from "@/lib/onboarding-form-draft";
 import {
   buildGoogleLoginUrl,
   buildLogoutUrl,
@@ -32,6 +34,14 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
   const [auth, setAuth] = useState<AuthUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const isDarkChrome = shouldUseDarkLegalChrome(pathname);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncOnboardingDrafts = useCallback(() => {
+    void syncOnboardingDraftsAfterLogin({
+      apiBase: API_BASE,
+      storage: localStorage,
+    }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -43,6 +53,7 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
         });
         const payload = await response.json();
         if (isMounted) setAuth(payload);
+        if (payload?.logged_in) syncOnboardingDrafts();
       } catch {
         if (isMounted) setAuth({ logged_in: false });
       }
@@ -53,7 +64,26 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [syncOnboardingDrafts]);
+
+  useEffect(() => {
+    if (!auth?.logged_in) return;
+
+    function handleDraftUpdated() {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+      syncTimerRef.current = setTimeout(syncOnboardingDrafts, 250);
+    }
+
+    window.addEventListener(ONBOARDING_DRAFT_UPDATED_EVENT, handleDraftUpdated);
+    return () => {
+      window.removeEventListener(ONBOARDING_DRAFT_UPDATED_EVENT, handleDraftUpdated);
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, [auth?.logged_in, syncOnboardingDrafts]);
 
   const display = resolveAccountMenuDisplay(auth, labels);
   const displayName = display.displayName;

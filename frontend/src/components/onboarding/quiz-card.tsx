@@ -1,16 +1,12 @@
-"use client";
-
-import { useState } from "react";
-
 interface QuizCardProps {
   question: string;
   options: string[];
   onSelect: (answerIndex: number) => void;
+  selectedIndex?: number | null;
+  disabled?: boolean;
 }
 
-export function QuizCard({ question, options, onSelect }: QuizCardProps) {
-  const [selected, setSelected] = useState<number | null>(null);
-
+export function QuizCard({ question, options, onSelect, selectedIndex = null, disabled = false }: QuizCardProps) {
   return (
     <div className="flex flex-col">
       <h2 className="whitespace-pre-line text-xl font-medium leading-relaxed text-foreground mb-8">
@@ -21,13 +17,11 @@ export function QuizCard({ question, options, onSelect }: QuizCardProps) {
           <button
             key={i}
             type="button"
-            onClick={() => {
-              setSelected(i);
-              onSelect(i);
-            }}
+            disabled={disabled}
+            onClick={() => onSelect(i)}
             className={`w-full cursor-pointer rounded-lg px-4 py-4 text-left text-sm font-medium transition-colors ${
-              selected === i
-                ? "bg-primary/10 border border-primary text-primary"
+              selectedIndex === i
+                ? "border border-[#d97706] bg-[#d97706] text-white"
                 : "bg-muted text-foreground hover:bg-accent"
             }`}
           >

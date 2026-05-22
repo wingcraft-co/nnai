@@ -10,6 +10,10 @@ import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { SelectCard } from "@/components/onboarding/select-card";
 import { getOnboardingCopy } from "@/lib/onboarding-content";
 import {
+  readOnboardingFormDraft,
+  writeOnboardingFormDraft,
+} from "@/lib/onboarding-form-draft";
+import {
   trackFormAbandon,
   trackFormStepComplete,
   trackFormStepView,
@@ -92,6 +96,8 @@ export default function FormPage() {
   const stepEnteredAtRef = useRef(Date.now());
   const currentStepRef = useRef(1);
   const submittedRef = useRef(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [reviewStep, setReviewStep] = useState<number | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("persona_type") as PersonaType | null;
@@ -100,7 +106,19 @@ export default function FormPage() {
     if (vectorStr) {
       try { setPersonaVector(JSON.parse(vectorStr)); } catch {}
     }
+
+    const draft = readOnboardingFormDraft(localStorage);
+    if (draft) {
+      setForm({ ...INITIAL_FORM, ...draft.form });
+      setCurrentStep(Math.min(Math.max(Math.trunc(draft.currentStep), 1), TOTAL_STEPS));
+    }
+    setDraftHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!draftHydrated || submittedRef.current) return;
+    writeOnboardingFormDraft(localStorage, { currentStep, form });
+  }, [currentStep, draftHydrated, form]);
 
   useEffect(() => {
     const now = Date.now();
@@ -154,6 +172,7 @@ export default function FormPage() {
   }
 
   function toggleMulti(field: keyof FormData, value: string, max?: number) {
+    setReviewStep(null);
     setForm((prev) => {
       const arr = prev[field] as string[];
       if (arr.includes(value)) {
@@ -162,6 +181,11 @@ export default function FormPage() {
       if (max && arr.length >= max) return prev;
       return { ...prev, [field]: [...arr, value] };
     });
+  }
+
+  function updateForm(patch: Partial<FormData>) {
+    setReviewStep(null);
+    setForm((prev) => ({ ...prev, ...patch }));
   }
 
   async function handleSubmit() {
@@ -260,6 +284,7 @@ export default function FormPage() {
 
   useEffect(() => {
     if (currentStep >= 5) return;
+    if (reviewStep === currentStep) return;
     if (!shouldAutoAdvance()) return;
 
     const timer = setTimeout(() => {
@@ -279,22 +304,13 @@ export default function FormPage() {
     form.travel_type,
     form.has_spouse_income,
     form.spouse_income_krw,
+    reviewStep,
   ]);
 
   function handleBack() {
     if (currentStep <= 1) return;
     const prev = currentStep - 1;
-
-    // Reset fields belonging to the step we're going back to
-    const resetFields: Partial<FormData> = {};
-    switch (prev) {
-      case 1: resetFields.immigration_purpose = ""; break;
-      case 2: resetFields.timeline = ""; resetFields.stay_style = ""; break;
-      case 3: resetFields.income_range = ""; resetFields.total_budget = ""; resetFields.tax_sensitivity = ""; break;
-      case 4: resetFields.travel_type = ""; resetFields.has_spouse_income = ""; resetFields.spouse_income_krw = 0; resetFields.children_ages = []; break;
-    }
-
-    setForm((f) => ({ ...f, ...resetFields }));
+    setReviewStep(prev);
     setCurrentStep(prev);
   }
 
@@ -414,7 +430,7 @@ export default function FormPage() {
                 <SelectCard
                   options={copy.form.options.purpose}
                   selected={form.immigration_purpose}
-                  onSelect={(v) => setForm({ ...form, immigration_purpose: v })}
+                  onSelect={(v) => updateForm({ immigration_purpose: v })}
                   mode="single"
                 />
               </div>
@@ -428,7 +444,7 @@ export default function FormPage() {
                   <SelectCard
                     options={copy.form.options.timeline}
                     selected={form.timeline}
-                    onSelect={(v) => setForm({ ...form, timeline: v })}
+                    onSelect={(v) => updateForm({ timeline: v })}
                     mode="single"
                   />
                 </div>
@@ -438,7 +454,7 @@ export default function FormPage() {
                     <SelectCard
                       options={copy.form.options.stayStyle}
                       selected={form.stay_style}
-                      onSelect={(v) => setForm({ ...form, stay_style: v })}
+                      onSelect={(v) => updateForm({ stay_style: v })}
                       mode="single"
                     />
                   </div>
@@ -461,10 +477,10 @@ export default function FormPage() {
                           <button
                             key={option.value}
                             type="button"
-                            onClick={() => setForm({ ...form, total_budget: option.value, income_range: option.value === "0" ? "0" : "" })}
+                            onClick={() => updateForm({ total_budget: option.value, income_range: option.value === "0" ? "0" : "" })}
                             className={`w-full cursor-pointer border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
                               isActive
-                                ? "border-primary bg-primary text-primary-foreground"
+                                ? "border-[#d97706] bg-[#d97706] text-white"
                                 : "border-border bg-muted text-foreground hover:bg-accent"
                             }`}
                           >
@@ -487,10 +503,10 @@ export default function FormPage() {
                           <button
                             key={option.value}
                             type="button"
-                            onClick={() => setForm({ ...form, income_range: option.value })}
+                            onClick={() => updateForm({ income_range: option.value })}
                             className={`w-full cursor-pointer border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
                               isActive
-                                ? "border-primary bg-primary text-primary-foreground"
+                                ? "border-[#d97706] bg-[#d97706] text-white"
                                 : "border-border bg-muted text-foreground hover:bg-accent"
                             }`}
                           >
@@ -511,7 +527,7 @@ export default function FormPage() {
                     <SelectCard
                       options={copy.form.options.taxSensitivity}
                       selected={form.tax_sensitivity}
-                      onSelect={(v) => setForm({ ...form, tax_sensitivity: v })}
+                      onSelect={(v) => updateForm({ tax_sensitivity: v })}
                       mode="single"
                     />
                   </div>
@@ -526,7 +542,7 @@ export default function FormPage() {
                   <SelectCard
                     options={copy.form.options.travelType}
                     selected={form.travel_type}
-                    onSelect={(v) => setForm({ ...form, travel_type: v })}
+                    onSelect={(v) => updateForm({ travel_type: v })}
                     mode="single"
                   />
                 </div>
@@ -537,7 +553,7 @@ export default function FormPage() {
                     <SelectCard
                       options={copy.form.options.spouseIncome}
                       selected={form.has_spouse_income}
-                      onSelect={(v) => setForm({ ...form, has_spouse_income: v })}
+                      onSelect={(v) => updateForm({ has_spouse_income: v })}
                       mode="single"
                     />
                     {form.has_spouse_income === "있음" && (
@@ -550,10 +566,10 @@ export default function FormPage() {
                               <button
                                 key={option.value}
                                 type="button"
-                                onClick={() => setForm({ ...form, spouse_income_krw: Number(option.value) })}
+                                onClick={() => updateForm({ spouse_income_krw: Number(option.value) })}
                                 className={`w-full cursor-pointer border px-4 py-3.5 text-left text-sm font-medium transition-colors ${
                                   isActive
-                                    ? "border-primary bg-primary text-primary-foreground"
+                                    ? "border-[#d97706] bg-[#d97706] text-white"
                                     : "border-border bg-muted text-foreground hover:bg-accent"
                                 }`}
                               >

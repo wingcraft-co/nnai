@@ -14,11 +14,16 @@ import {
   trackResultRevealComplete,
 } from "@/lib/analytics/events";
 import { collectLibraryCities } from "@/lib/library-storage";
+import { clearServerOnboardingDrafts } from "@/lib/onboarding-draft-sync.mjs";
+import { clearOnboardingFormDraft } from "@/lib/onboarding-form-draft";
+import { clearOnboardingQuizDraft } from "@/lib/onboarding-quiz-draft";
+import { normalizeCompletedResultSession } from "@/lib/result-session";
 
 // ── Constants ──────────────────────────────────────────────────────
 
 const RECOMMEND_PAYLOAD_KEY = "recommend_payload";
-const RECOMMEND_SERVER_ERROR_MESSAGE = "잠시 연결이 불안정합니다.\n문제가 계속되면 고객센터로 문의주세요.";
+const RECOMMEND_SERVER_ERROR_MESSAGE = "서버가 불안정합니다.\n잠시 후 다시 시도해주세요.";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
 // ── Stage ──────────────────────────────────────────────────────────
 
@@ -144,6 +149,8 @@ export default function ResultPage() {
       });
 
       localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
+      clearOnboardingFormDraft(localStorage);
+      void clearServerOnboardingDrafts({ apiBase: API_BASE }).catch(() => undefined);
 
       setSessionId(data.session_id);
       setParsedData(data.parsed);
@@ -188,12 +195,13 @@ export default function ResultPage() {
     if (savedStr) {
       try {
         const saved = JSON.parse(savedStr) as SessionV2;
-        if (saved.stage !== "selecting" && saved.revealedCities?.length) {
-          setSessionId(saved.session_id);
-          setAllCities(saved.allCities ?? []);
-          setSelectedIndices(saved.selectedIndices ?? []);
-          setRevealedCities(saved.revealedCities);
-          setParsedData(saved.parsedData ?? null);
+        const restored = normalizeCompletedResultSession(saved);
+        if (restored) {
+          setSessionId(restored.session_id);
+          setAllCities(restored.allCities as CityData[]);
+          setSelectedIndices(restored.selectedIndices);
+          setRevealedCities(restored.revealedCities as CityData[]);
+          setParsedData(restored.parsedData);
           setFlippedIndices([0, 1, 2]);
           setStage("done");
           return;
@@ -306,6 +314,7 @@ export default function ResultPage() {
     localStorage.removeItem(TAROT_SESSION_KEY);
     localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
     localStorage.removeItem("persona_type");
+    clearOnboardingQuizDraft(localStorage);
     router.push("/onboarding/quiz");
   }
 
@@ -323,7 +332,7 @@ export default function ResultPage() {
             <>
               <p className="max-w-xs whitespace-pre-line text-center text-sm leading-6 text-red-500/80">{error}</p>
               <button type="button" onClick={() => startRecommend()} className="cursor-pointer px-6 py-2 text-sm font-medium bg-primary text-primary-foreground">
-                다시 시도
+                카드 펼치기
               </button>
               <button type="button" onClick={handleRetry} className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                 처음부터 다시하기

@@ -43,6 +43,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "dashboard_widget_settings",
     "detail_guide_cache",
     "nomad_journey_stops",
+    "onboarding_drafts",
     "rate_limit_hits",
     "user_city_plans",
     "users",
@@ -115,6 +116,7 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "github_issue_status",
         "created_at",
     },
+    "onboarding_drafts": {"user_id", "form_draft", "quiz_draft", "updated_at"},
 }
 
 
@@ -493,6 +495,14 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 widget_order     JSONB NOT NULL DEFAULT '[]'::jsonb,
                 widget_settings  JSONB NOT NULL DEFAULT '{}'::jsonb,
                 updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS onboarding_drafts (
+                user_id      TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                form_draft   JSONB,
+                quiz_draft   JSONB,
+                updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
         """)
         cur.execute("""
@@ -953,6 +963,61 @@ def update_dashboard_widget_settings(
         row = cur.fetchone()
     conn.commit()
     return _serialize_dashboard_widgets(row)
+
+
+def _serialize_onboarding_draft(row: tuple | None) -> dict:
+    if row is None:
+        return {
+            "form_draft": None,
+            "quiz_draft": None,
+            "updated_at": None,
+        }
+    return {
+        "form_draft": row[0],
+        "quiz_draft": row[1],
+        "updated_at": str(row[2]),
+    }
+
+
+def get_onboarding_draft(user_id: str) -> dict:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT form_draft, quiz_draft, updated_at
+            FROM onboarding_drafts
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+    return _serialize_onboarding_draft(row)
+
+
+def upsert_onboarding_draft(
+    *,
+    user_id: str,
+    form_draft: dict | None,
+    quiz_draft: dict | None,
+) -> dict:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO onboarding_drafts (
+                user_id, form_draft, quiz_draft, updated_at
+            ) VALUES (%s, %s, %s, NOW())
+            ON CONFLICT (user_id) DO UPDATE SET
+                form_draft = EXCLUDED.form_draft,
+                quiz_draft = EXCLUDED.quiz_draft,
+                updated_at = NOW()
+            RETURNING form_draft, quiz_draft, updated_at
+            """,
+            (user_id, Json(form_draft), Json(quiz_draft)),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return _serialize_onboarding_draft(row)
 
 
 def _selected_city_snapshot(parsed_data: dict, city_index: int) -> dict:

@@ -186,7 +186,7 @@ function CityLightbox({
             <X className="w-5 h-5" />
           </button>
 
-          {/* Card frame — 4:7 aspect, clamped by viewport on both axes */}
+          {/* Card frame — viewport-clamped so dense cards can scroll without clipping CTAs */}
           <motion.div
             key={index}
             initial={{ opacity: 0.4 }}
@@ -194,8 +194,9 @@ function CityLightbox({
             transition={{ duration: 0.18 }}
             className="flex flex-col overflow-hidden"
             style={{
-              width: "min(320px, calc(100vw - 80px), calc((100vh - 80px) * 4 / 7))",
-              aspectRatio: "4 / 7",
+              width: "min(360px, calc(100vw - 96px))",
+              height: "min(680px, calc(100dvh - 96px))",
+              maxHeight: "calc(100dvh - 96px)",
               background: "var(--card)",
               border: "1px solid var(--border)",
               borderRadius: 12,
@@ -343,7 +344,7 @@ function LightboxFrontContent({
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {/* Header — flag + city */}
-      <div className="flex flex-col items-center pt-5 pb-3 px-5">
+      <div className="flex shrink-0 flex-col items-center px-5 pb-3 pt-5">
         <span style={{ fontSize: 32 }}>{flag}</span>
         {showCityKr && (
           <h2 className="font-serif text-base font-bold mt-1.5" style={{ color: "var(--foreground)" }}>
@@ -365,7 +366,7 @@ function LightboxFrontContent({
 
       {/* Primary metrics — 3x3 grid */}
       <div
-        className="grid grid-cols-3 gap-y-0.5 font-mono text-center px-5 py-3"
+        className="grid shrink-0 grid-cols-3 gap-y-0.5 px-5 py-3 text-center font-mono"
         style={{
           borderTop: "1px solid var(--border)",
           borderBottom: "1px solid var(--border)",
@@ -386,8 +387,8 @@ function LightboxFrontContent({
         <span className="text-[13px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>{internet}</span>
       </div>
 
-      {/* Body — flex-col, no scroll. Spacer pushes CTA to bottom */}
-      <div className="flex-1 min-h-0 flex flex-col gap-3 px-5 pt-3 pb-8 text-xs">
+      {/* Body — scrolls independently so long copy never clips the bottom CTA */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-3 px-5 pt-3 pb-4 text-xs">
         {/* 1. City insight — 도시 한 줄 slogan (감성 intro, ko only) */}
         {showCityInsight && (
           <p className="text-xs italic leading-snug text-center" style={{ color: "var(--primary)" }}>
@@ -409,14 +410,14 @@ function LightboxFrontContent({
                 href={city.visa_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 leading-tight w-fit"
+                className="inline-flex min-w-0 max-w-full items-start gap-1 break-words leading-tight"
                 style={{
                   color: "var(--foreground)",
                   textDecoration: "underline",
                   textUnderlineOffset: "2px",
                 }}
               >
-                {normalizedVisaType}
+                <span className="min-w-0 break-words">{normalizedVisaType}</span>
                 <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
               </a>
             ) : (
@@ -518,12 +519,15 @@ function LightboxFrontContent({
           );
         })()}
 
-        {/* Spacer — pushes CTA down */}
-        <div className="flex-1" />
-
         {/* Primary login CTA (ko + logged-out only) — 정보 텍스트 + Google Dark Theme 버튼 */}
         {showLoginCta && (
-          <div className="flex flex-col gap-2">
+          <div
+            className="sticky bottom-0 mt-auto flex shrink-0 flex-col gap-2 pt-3"
+            style={{
+              background:
+                "linear-gradient(to bottom, color-mix(in srgb, var(--card) 0%, transparent), var(--card) 18%)",
+            }}
+          >
             <h3
               className="font-serif text-[13px] font-medium leading-tight text-center"
               style={{ color: "var(--foreground)" }}
@@ -552,7 +556,13 @@ function LightboxFrontContent({
         )}
 
         {showDetailCta && (
-          <div className="flex flex-col">
+          <div
+            className="sticky bottom-0 mt-auto flex shrink-0 flex-col pt-3"
+            style={{
+              background:
+                "linear-gradient(to bottom, color-mix(in srgb, var(--card) 0%, transparent), var(--card) 18%)",
+            }}
+          >
             <button
               type="button"
               onClick={handleDetailClick}

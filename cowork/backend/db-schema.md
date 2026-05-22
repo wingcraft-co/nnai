@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-05-02
+> 최종 업데이트: 2026-05-22
 
 운영 메모:
 - 스키마 보장 시점은 FastAPI startup (`server.py`) 입니다.
@@ -29,6 +29,7 @@
 | `visits` | 경로별 방문자 수 집계 |
 | `user_city_plans` | Pro 대시보드 활성 도시 플랜 |
 | `dashboard_widget_settings` | Pro 대시보드 위젯 설정 |
+| `onboarding_drafts` | 로그인 사용자별 온보딩 폼/퀴즈 임시 저장본 |
 | `verified_sources` | 검증 데이터 출처(소스) 목록 |
 | `verified_countries` | 검증된 국가별 비자 데이터 |
 | `verified_cities` | 검증된 도시별 노마드 지표 데이터 |
@@ -423,6 +424,32 @@ CREATE TABLE IF NOT EXISTS dashboard_widget_settings (
 
 ---
 
+## onboarding_drafts
+
+비로그인 사용자가 localStorage에 저장하던 온보딩 폼/퀴즈 진행 상태를 로그인 후 서버에도 보관하는 사용자별 draft 테이블입니다. 사용자는 1개의 draft row만 가지며, 각 draft 섹션은 클라이언트가 쓰는 localStorage payload와 같은 shape로 저장합니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS onboarding_drafts (
+    user_id      TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    form_draft   JSONB,
+    quiz_draft   JSONB,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `user_id` | TEXT PK/FK | `users.id` 참조 |
+| `form_draft` | JSONB | `onboarding_form_draft_v1` localStorage payload |
+| `quiz_draft` | JSONB | `onboarding_quiz_draft_v1` localStorage payload |
+| `updated_at` | TIMESTAMPTZ | 마지막 저장 시각 |
+
+운영 메모:
+- `PUT /api/onboarding/draft`가 섹션별로 갱신/삭제합니다.
+- 추천 결과 생성 성공 후에는 완료된 draft를 서버에서도 `null`로 정리합니다.
+
+---
+
 ## verified_sources
 
 검증 데이터의 출처(소스)를 관리합니다. `metric_scope`는 해당 소스가 커버하는 지표 목록입니다.
@@ -603,6 +630,7 @@ users (id)
   └── nomad_journey_stops (user_id) — 1:N
   └── user_city_plans (user_id) — 1:N (active는 사용자당 1개)
   └── dashboard_widget_settings (user_id) — 1:1
+  └── onboarding_drafts (user_id) — 1:1
 
 visits — 독립 테이블 (외래키 없음)
 

@@ -38,3 +38,15 @@ test("locked card Korean copy uses neutral lock wording", () => {
 test("done retry CTA shows a pointer cursor", () => {
   assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*처음부터 다시하기/);
 });
+
+test("lightbox card protects long city copy from clipping the CTA", () => {
+  assert.match(source, /maxHeight: "calc\(100dvh - 96px\)"/);
+  assert.match(source, /className="[^"]*overflow-y-auto[^"]*overscroll-contain[^"]*"/);
+  assert.match(source, /className="[^"]*sticky[^"]*bottom-0[^"]*"/);
+  assert.doesNotMatch(source, /<div className="flex-1" \/>/);
+});
+
+test("long visa names wrap inside the card instead of overflowing", () => {
+  assert.match(source, /className="[^"]*min-w-0[^"]*max-w-full[^"]*break-words[^"]*"/);
+  assert.doesNotMatch(source, /className="inline-flex items-center gap-1 leading-tight w-fit"/);
+});

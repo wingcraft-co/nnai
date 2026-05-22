@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-04-22
+> 최종 업데이트: 2026-05-22
 
 운영 메모:
 - FastAPI 앱은 startup lifecycle에서 `utils.db.ensure_database_ready()`를 호출합니다.
@@ -19,10 +19,13 @@
 2. [추천 API](#추천-api)
 3. [핀 API](#핀-api)
 4. [결제 API](#결제-api)
-5. [방문자 카운터 API](#방문자-카운터-api)
-6. [모바일 API](#모바일-api)
-7. [공통 에러](#공통-에러)
-8. [CORS & 쿠키 정책](#cors--쿠키-정책)
+5. [Onboarding Draft API](#onboarding-draft-api)
+6. [Pro 도시 대시보드 API](#pro-도시-대시보드-api)
+7. [Nomad Journey API](#nomad-journey-api)
+8. [방문자 카운터 API](#방문자-카운터-api)
+9. [모바일 API](#모바일-api)
+10. [공통 에러](#공통-에러)
+11. [CORS & 쿠키 정책](#cors--쿠키-정책)
 
 ---
 
@@ -487,6 +490,73 @@ POST /api/billing/restore
 운영 메모:
 - webhook 지연/유실 시 유료 고객 복구용 엔드포인트입니다.
 - provider 상태에 active subscription이 없다고 해서 이 경로에서 자동 강등하지는 않습니다.
+
+---
+
+## Onboarding Draft API
+
+비로그인 사용자는 프론트엔드 localStorage에 온보딩 진행 상태를 저장하고, 로그인 후 같은 payload를 서버에도 동기화합니다. 모든 엔드포인트는 `nnai_session` 로그인 쿠키가 필요합니다.
+
+### GET /api/onboarding/draft
+
+현재 로그인 사용자의 온보딩 폼/퀴즈 draft를 반환합니다.
+
+```http
+GET /api/onboarding/draft
+Cookie: nnai_session=...
+```
+
+응답:
+
+```json
+{
+  "form_draft": {
+    "currentStep": 5,
+    "form": {
+      "immigration_purpose": "원격 근무",
+      "preferred_countries": ["유럽"]
+    }
+  },
+  "quiz_draft": {
+    "currentIndex": 2,
+    "answers": ["wanderer", "local"],
+    "answerIndices": [0, 3]
+  },
+  "updated_at": "2026-05-22 14:00:00+00:00"
+}
+```
+
+draft가 없으면 `form_draft`, `quiz_draft`, `updated_at` 모두 `null`입니다.
+
+### PUT /api/onboarding/draft
+
+현재 로그인 사용자의 온보딩 draft를 저장합니다. 요청에 포함하지 않은 섹션은 기존 서버 값을 유지하고, 명시적으로 `null`을 보내면 해당 섹션을 비웁니다.
+
+```http
+PUT /api/onboarding/draft
+Content-Type: application/json
+Cookie: nnai_session=...
+```
+
+요청:
+
+```json
+{
+  "form_draft": {
+    "currentStep": 5,
+    "form": {
+      "travel_type": "혼자 (솔로)",
+      "lifestyle": ["한인 커뮤니티 활성화"]
+    }
+  },
+  "quiz_draft": null
+}
+```
+
+응답은 `GET /api/onboarding/draft`와 동일한 shape입니다.
+
+에러:
+- `401`: 로그인 필요
 
 ---
 
