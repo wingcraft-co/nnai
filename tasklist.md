@@ -26,3 +26,4 @@
 - 무료 사용자 맞춤보고서 이미지에 우클릭/드래그/iOS 롱프레스 저장 차단 추가 (`pointerEvents`, `WebkitTouchCallout` 등), `feature-flags.ts` 신규 추가.
 - 타로 결과 lightbox의 "Google로 계속하기" 버튼 OAuth 버그 수정: `return_to`를 현재 result 페이지 URL로 변경하고, `pending_login_city_id`를 sessionStorage에 저장 후 OAuth 복귀 시 lightbox 자동 복원.
 - `TarotDeck.tsx`에 OAuth 복귀 후 lightbox 재오픈 useEffect 추가 — 로그인 완료 후 선택했던 도시 카드로 자동으로 돌아옴.
+- 유료 Step 2 보고서 강화 제안서(`cowork/marketing/paid-report-enhancement.md`) 작성 — 설문 입력이 보고서 섹션에 1:1로 호명되도록 10개 카테고리(A~J) 제안, 무료/유료 분기 표·출력 스키마 확장안·구현 우선순위 포함.
