@@ -42,7 +42,7 @@ const FLAG_EMOJI: Record<string, string> = {
   SO: "🇸🇴", SR: "🇸🇷", SS: "🇸🇸", ST: "🇸🇹", SV: "🇸🇻",
   SY: "🇸🇾", SZ: "🇸🇿", TD: "🇹🇩", TG: "🇹🇬", TH: "🇹🇭",
   TJ: "🇹🇯", TL: "🇹🇱", TM: "🇹🇲", TN: "🇹🇳", TO: "🇹🇴",
-  TR: "🇹🇷", TT: "🇹🇹", TV: "🇹🇻", TZ: "🇹🇿", UA: "🇺🇦",
+  TR: "🇹🇷", TT: "🇹🇹", TV: "🇹🇻", TW: "🇹🇼", TZ: "🇹🇿", UA: "🇺🇦",
   UG: "🇺🇬", US: "🇺🇸", UY: "🇺🇾", UZ: "🇺🇿", VA: "🇻🇦",
   VC: "🇻🇨", VE: "🇻🇪", VN: "🇻🇳", VU: "🇻🇺", WS: "🇼🇸",
   YE: "🇾🇪", ZA: "🇿🇦", ZM: "🇿🇲", ZW: "🇿🇼",
@@ -177,7 +177,7 @@ function FrontFace({
   isHovered?: boolean;
 }) {
   const cfg = SIZE_CONFIG[size];
-  const flag = FLAG_EMOJI[cityData.country_id] ?? "🌍";
+  const flag = FLAG_EMOJI[cityData.country_id.toUpperCase()] ?? "🌍";
 
   return (
     <div

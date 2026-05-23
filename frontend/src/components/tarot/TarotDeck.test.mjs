@@ -84,6 +84,11 @@ test("city names with parentheses show the parenthetical on a clean second line"
   assert.doesNotMatch(cardSource, />\s*\{cityData\.city_kr\}\s*</);
 });
 
+test("tarot card flag map includes Taiwan for Taipei cards", () => {
+  assert.match(cardSource, /TW:\s*"🇹🇼"/);
+  assert.match(cardSource, /FLAG_EMOJI\[cityData\.country_id\.toUpperCase\(\)\]/);
+});
+
 test("google login restores the selected city lightbox after oauth return", () => {
   assert.match(source, /const PENDING_LOGIN_CITY_KEY = "pending_login_city_id"/);
   assert.match(source, /function rememberPendingLoginCity/);

@@ -5,7 +5,7 @@ import {
   buildGuideExportFilename,
   markdownToCanvasLines,
 } from './guide-export.mjs';
-import { briefingFromMarkdown, briefingToMarkdown } from './briefing-markdown.ts';
+import { briefingFromMarkdown, briefingFromMarkdownWithFallback, briefingToMarkdown } from './briefing-markdown.ts';
 
 test('normalizes markdown headings and bullets for canvas rendering', () => {
   const lines = markdownToCanvasLines('# 방콕 가이드\n\n## 비자\n- 여권\n일반 문장');
@@ -122,4 +122,36 @@ test('restores visible country briefing markdown into formatted briefing data', 
   assert.equal(restored?.sections[0].body, '방콕은 원격 근무자에게 적합합니다.[1]');
   assert.deepEqual(restored?.sections[1].subsections?.[0].table?.headers, ['Category', 'USD']);
   assert.equal(restored?.references[1].url, 'numbeo.com');
+});
+
+test('wraps older saved detail markdown in country briefing data', () => {
+  const restored = briefingFromMarkdownWithFallback(
+    [
+      '# 메데진 맞춤 가이드',
+      '## 비자',
+      '- 여권 사본',
+      '- 출국 항공권',
+      '## 비용',
+      '월 생활비는 개인 생활 방식에 따라 달라집니다.',
+      '### 숙소',
+      '엘 포블라도와 라우렐레스는 단기 체류자에게 접근성이 좋습니다.',
+    ].join('\n'),
+    {
+      cityName: 'Medellin',
+      cityKr: '메데진',
+      country: 'Colombia (Medellín)',
+      countryId: 'CO',
+      visaType: 'Digital Nomad Visa',
+      monthlyCostUsd: 1800,
+    }
+  );
+
+  assert.equal(restored.cityKr, '메데진');
+  assert.equal(restored.cityName, 'Medellin');
+  assert.equal(restored.countryOfficial, 'Colombia (Medellín)');
+  assert.equal(restored.quickFacts.visa, 'Digital Nomad Visa');
+  assert.equal(restored.quickFacts.monthly, 'USD 1,800');
+  assert.equal(restored.sections[0].title, '비자');
+  assert.deepEqual(restored.sections[0].items, ['여권 사본', '출국 항공권']);
+  assert.equal(restored.sections[1].subsections?.[0].title, '숙소');
 });

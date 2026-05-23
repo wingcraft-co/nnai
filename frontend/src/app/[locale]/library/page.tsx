@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import Link from "next/link";
 import { useLocale } from "next-intl";
-import { Download, Image as ImageIcon, Printer, X } from "lucide-react";
+import { Columns2, Download, House, Image as ImageIcon, LockKeyhole, X } from "lucide-react";
 
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
+import type { CityData } from "@/components/tarot/types";
+import cityScoresData from "@/data/city_scores.json";
 import type { BriefingData } from "@/lib/briefing-data";
-import { briefingFromMarkdown, briefingToMarkdown } from "@/lib/briefing-markdown";
+import { briefingFromMarkdownWithFallback, briefingToMarkdown } from "@/lib/briefing-markdown";
 import { buildGuideExportFilename } from "@/lib/guide-export.mjs";
 import {
+  buildLibraryDisplayCards,
   calculateTemporaryCardOpacity,
   libraryCardsFromServerGuides,
   mergeLibraryCards,
   NOMAD_LIBRARY_CHANGE_EVENT,
   readLibraryCards,
+  type DisplayLibraryCard,
   type LibraryCard,
   type LibraryGuideCacheEntry,
   writeLibraryCards,
@@ -22,6 +27,8 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 const EMPTY_LIBRARY_CARDS: LibraryCard[] = [];
 const BRIEFING_DOCUMENT_WIDTH = 1080;
+type LibraryCitySource = Partial<CityData> & Pick<CityData, "city" | "country" | "country_id">;
+const ALL_LIBRARY_CITIES = ((cityScoresData as unknown as { cities?: LibraryCitySource[] }).cities ?? []);
 
 type AuthUser = {
   logged_in: boolean;
@@ -48,13 +55,6 @@ function getServerLibraryCardsSnapshot() {
   return EMPTY_LIBRARY_CARDS;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
 function downloadUrl(url: string, filename: string) {
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -72,11 +72,52 @@ function guideMarkdown(card: LibraryCard): string | null {
 function guideBriefing(card: LibraryCard): BriefingData | null {
   if (card.guide_briefing) return card.guide_briefing;
   if (!card.guide_markdown) return null;
-  return briefingFromMarkdown(card.guide_markdown);
+  return briefingFromMarkdownWithFallback(card.guide_markdown, {
+    cityName: card.city,
+    cityKr: card.city_kr,
+    country: card.country,
+    countryId: card.country_id,
+    visaType: card.visa_type,
+    monthlyCostUsd: card.monthly_cost_usd,
+  });
 }
 
 function cityExportLabel(card: LibraryCard): string {
   return card.city || card.city_kr || "guide";
+}
+
+function countryFlagEmoji(countryId: string): string {
+  const code = countryId.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return "🌍";
+  return Array.from(code)
+    .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join("");
+}
+
+function normalizeLibraryCityId(value: string): string {
+  return value.toLowerCase().trim().replace(/\s+/g, "-");
+}
+
+function guidePathForLibraryCard(card: LibraryCard, locale: string): string {
+  return `/${locale}/guide/${encodeURIComponent(normalizeLibraryCityId(card.city))}`;
+}
+
+function LockedTextBar({
+  source,
+  maxWidth,
+}: {
+  source: string;
+  maxWidth: number;
+}) {
+  const width = Math.min(maxWidth, Math.max(42, source.length * 8));
+
+  return (
+    <span
+      aria-hidden="true"
+      className="block h-3.5 rounded-sm bg-muted/55 opacity-70 blur-[1px]"
+      style={{ width }}
+    />
+  );
 }
 
 function downloadMarkdown(card: LibraryCard) {
@@ -109,64 +150,6 @@ async function downloadBriefingPng(node: HTMLElement | null, card: LibraryCard) 
   if (!node) return;
   const url = await briefingNodeToPngUrl(node);
   downloadUrl(url, buildGuideExportFilename(cityExportLabel(card), "png"));
-}
-
-async function printBriefingDocument(node: HTMLElement | null, card: LibraryCard) {
-  if (node) {
-    const url = await briefingNodeToPngUrl(node);
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${escapeHtml(card.city_kr || card.city)} 맞춤 가이드</title>
-          <style>
-            @page { margin: 0; }
-            body { margin: 0; background: #FAF8F4; }
-            img { width: 100%; display: block; }
-          </style>
-        </head>
-        <body>
-          <img src="${url}" alt="NomadNavigator AI Country Briefing" />
-          <script>
-            window.onload = () => {
-              window.focus();
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    return;
-  }
-
-  const markdown = guideMarkdown(card);
-  if (!markdown) return;
-  const printWindow = window.open("", "_blank", "noopener,noreferrer");
-  if (!printWindow) {
-    window.print();
-    return;
-  }
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>${escapeHtml(card.city_kr || card.city)} 맞춤 가이드</title>
-        <style>
-          body { margin: 48px; background: #FAF8F4; color: #1A1A1A; font-family: Georgia, "Noto Serif KR", serif; line-height: 1.7; }
-          pre { white-space: pre-wrap; font-family: inherit; }
-        </style>
-      </head>
-      <body>
-        <pre>${escapeHtml(markdown)}</pre>
-        <script>window.print();</script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
 }
 
 function FormattedBriefingPreview({
@@ -240,6 +223,30 @@ function MarkdownFallback({ markdown }: { markdown: string }) {
   );
 }
 
+function ReportPreviewPane({ card }: { card: LibraryCard }) {
+  const documentRef = useRef<HTMLDivElement>(null);
+  const briefing = guideBriefing(card);
+  const markdown = guideMarkdown(card);
+
+  return (
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-background">
+      <header className="border-b border-border px-3 py-2">
+        <p className="text-[10px] font-semibold uppercase tracking-normal text-primary">REPORT</p>
+        <h3 className="truncate font-serif text-base font-bold text-foreground">
+          {card.city_kr || card.city}
+        </h3>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#FAF8F4]">
+        {briefing ? (
+          <FormattedBriefingPreview data={briefing} documentRef={documentRef} />
+        ) : markdown ? (
+          <MarkdownFallback markdown={markdown} />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export default function LibraryPage() {
   const locale = useLocale();
   const isKorean = locale === "ko";
@@ -251,6 +258,8 @@ export default function LibraryPage() {
   const [auth, setAuth] = useState<AuthUser | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedCard, setSelectedCard] = useState<LibraryCard | null>(null);
+  const [compareKeys, setCompareKeys] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   const briefingDocumentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -297,13 +306,19 @@ export default function LibraryPage() {
   }, [auth?.logged_in]);
 
   const isLoggedIn = Boolean(auth?.logged_in);
-  const guideCount = useMemo(() => cards.filter((card) => card.guide_unlocked).length, [cards]);
+  const displayCards = useMemo(() => buildLibraryDisplayCards(cards, ALL_LIBRARY_CITIES), [cards]);
+  const reportCards = useMemo(
+    () => displayCards.filter((card) => card.display_status === "report"),
+    [displayCards]
+  );
+  const cardCount = useMemo(() => displayCards.filter((card) => card.display_status === "card").length, [displayCards]);
+  const lockedCount = useMemo(() => displayCards.filter((card) => card.display_status === "locked").length, [displayCards]);
   const text = {
     eyebrow: isKorean ? "보관함" : "Library",
     title: isKorean ? "내 노마드 카드" : "My Nomad Cards",
-    loggedInCopy: isKorean
-      ? "구매한 보고서를 프로필 보관함에서 다시 확인할 수 있습니다."
-      : "Purchased reports can be reopened from your profile library.",
+    tipComparePrefix: isKorean ? "구매한 보고서들은" : "Purchased reports can be compared with",
+    tipCompareSuffix: isKorean ? "버튼을 사용해 비교가 가능합니다." : "button.",
+    compareIconLabel: isKorean ? "비교 아이콘 예시" : "Compare icon example",
     temporaryCopy: isKorean
       ? "비로그인 임시 카드는 로그인하면 영구 보관됩니다."
       : "Guest cards become permanent after login.",
@@ -312,40 +327,85 @@ export default function LibraryPage() {
       : "No saved city cards yet.",
     guideReady: isKorean ? "REPORT" : "REPORT",
     collected: isKorean ? "CARD" : "CARD",
+    locked: isKorean ? "LOCKED" : "LOCKED",
     keepLogin: isKorean ? "로그인하면 영구 보관" : "Log in to keep",
     openGuide: isKorean ? "맞춤 가이드 열기" : "Open guide",
-    lockedGuide: isKorean ? "가이드 없음" : "No guide",
+    buyGuide: isKorean ? "가이드 구매" : "Buy guide",
+    findCity: isKorean ? "나에게 맞는 도시 찾기" : "Find my city",
+    compare: isKorean ? "비교" : "Compare",
+    compareTitle: isKorean ? "맞춤 보고서 비교" : "Compare Reports",
     modalEyebrow: isKorean ? "저장된 맞춤 보고서" : "Saved Custom Report",
   };
   const modalMarkdown = selectedCard ? guideMarkdown(selectedCard) : null;
   const modalBriefing = selectedCard ? guideBriefing(selectedCard) : null;
+  const compareCards = compareKeys
+    .map((key) => displayCards.find((card) => card.key === key))
+    .filter((card): card is DisplayLibraryCard => Boolean(card));
+
+  function closeCompareModal() {
+    setCompareOpen(false);
+    setCompareKeys([]);
+  }
+
+  function toggleCompareCard(card: LibraryCard) {
+    setCompareKeys((current) => {
+      if (current.includes(card.key)) return current.filter((key) => key !== card.key);
+      const next = [...current.slice(-1), card.key];
+      if (next.length === 2) setCompareOpen(true);
+      return next;
+    });
+  }
 
   return (
     <main className="dark min-h-screen w-full min-w-0 flex-1 bg-background px-5 py-14 text-foreground">
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
+            <Link
+              href="/"
+              className="mb-4 inline-flex shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+              aria-label={isKorean ? "홈으로" : "Home"}
+            >
+              <House className="size-4" />
+            </Link>
             <p className="text-xs font-semibold uppercase tracking-normal text-primary">{text.eyebrow}</p>
             <h1 className="mt-2 font-serif text-3xl font-bold">{text.title}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {isLoggedIn ? text.loggedInCopy : text.temporaryCopy}
-            </p>
+            {isLoggedIn ? (
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                <span>{text.tipComparePrefix}</span>
+                <span
+                  className="inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-background/80 text-muted-foreground"
+                  aria-label={text.compareIconLabel}
+                  role="img"
+                >
+                  <Columns2 className="size-3.5" />
+                </span>
+                <span>{text.tipCompareSuffix}</span>
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {text.temporaryCopy}
+              </p>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {cards.length} cards · {guideCount} reports
+            {reportCards.length} reports, {cardCount} cards, {lockedCount} locked cards
           </p>
         </header>
 
-        {cards.length === 0 ? (
+        {displayCards.length === 0 ? (
           <section className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
             {text.empty}
           </section>
         ) : (
           <section className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-            {cards.map((card) => {
-              const opacity = calculateTemporaryCardOpacity(card.collected_at, now, isLoggedIn);
-              const isFaded = opacity <= 0.4 && !isLoggedIn;
-              const hasGuide = card.guide_unlocked && Boolean(card.guide_markdown || card.guide_briefing);
+            {displayCards.map((card) => {
+              const hasGuide = card.display_status === "report";
+              const isCollected = card.display_status === "card";
+              const isLocked = card.display_status === "locked";
+              const showCompareButton = hasGuide && reportCards.length > 1;
+              const opacity = isLocked ? 0.48 : calculateTemporaryCardOpacity(card.collected_at, now, isLoggedIn);
+              const isFaded = !isLocked && opacity <= 0.4 && !isLoggedIn;
 
               return (
                 <article
@@ -353,18 +413,56 @@ export default function LibraryPage() {
                   className="group relative flex aspect-[2/3] min-h-0 flex-col justify-between overflow-hidden rounded-md border border-border bg-card/80 p-3 text-left shadow-[0_18px_40px_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
                   style={{ opacity }}
                 >
+                  {showCompareButton && (
+                    <button
+                      type="button"
+                      onClick={() => toggleCompareCard(card)}
+                      className={`absolute right-2 top-2 z-10 inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-border/60 text-[10px] font-semibold transition-colors ${
+                        compareKeys.includes(card.key)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background/80 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                      aria-label={`${card.city_kr || card.city} ${text.compare}`}
+                      title={text.compare}
+                    >
+                      <Columns2 className="size-3.5" />
+                    </button>
+                  )}
                   {/* 화투 크기처럼 작게 보이도록 정보 밀도를 낮춘 수집 카드 */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-normal text-primary/80">
-                      {hasGuide ? text.guideReady : text.collected}
-                    </p>
-                    <h2 className="line-clamp-3 font-serif text-base font-bold leading-tight text-foreground">
-                      {card.city_kr || card.city}
-                    </h2>
-                    <p className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
-                      {card.city}, {card.country}
-                    </p>
+                  <div className={`space-y-1 ${showCompareButton ? "pr-7" : ""}`}>
+                    {isLocked ? (
+                      <p className="text-[10px] font-semibold uppercase tracking-normal text-primary/70">
+                        {text.locked}
+                      </p>
+                    ) : (
+                      <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-normal text-primary/80">
+                        {hasGuide ? text.guideReady : text.collected}
+                      </p>
+                    )}
+                    {isLocked ? (
+                      <div className="space-y-2 pt-2">
+                        <LockedTextBar source={card.city_kr || card.city} maxWidth={110} />
+                        <LockedTextBar source={`${card.city}, ${card.country}`} maxWidth={86} />
+                      </div>
+                    ) : (
+                      <>
+                        <h2 className="line-clamp-3 font-serif text-base font-bold leading-tight text-foreground">
+                          {card.city_kr || card.city}
+                          {"\u00A0"}
+                          <span className="align-baseline text-sm" aria-hidden="true">{countryFlagEmoji(card.country_id)}</span>
+                        </h2>
+                        <p className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
+                          {card.city}, {card.country}
+                        </p>
+                      </>
+                    )}
                   </div>
+
+                  {isLocked && (
+                    <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-background/70 p-4 text-muted-foreground shadow-[0_0_24px_rgba(0,0,0,0.28)]">
+                      <LockKeyhole className="size-9" />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     {isFaded && (
@@ -372,14 +470,30 @@ export default function LibraryPage() {
                         {text.keepLogin}
                       </p>
                     )}
-                    <button
-                      type="button"
-                      disabled={!hasGuide}
-                      onClick={() => setSelectedCard(card)}
-                      className="h-8 w-full cursor-pointer rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-                    >
-                      {hasGuide ? text.openGuide : text.lockedGuide}
-                    </button>
+                    {isLocked ? (
+                      <Link
+                        href={`/${locale}/onboarding/form`}
+                        className="flex h-8 w-full cursor-pointer items-center justify-center rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                      >
+                        {text.findCity}
+                      </Link>
+                    ) : isCollected ? (
+                      <Link
+                        href={guidePathForLibraryCard(card, locale)}
+                        className="flex h-8 w-full cursor-pointer items-center justify-center rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                      >
+                        {text.buyGuide}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={!hasGuide}
+                        onClick={() => setSelectedCard(card)}
+                        className="h-8 w-full cursor-pointer rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                      >
+                        {text.openGuide}
+                      </button>
+                    )}
                   </div>
                 </article>
               );
@@ -421,15 +535,6 @@ export default function LibraryPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void printBriefingDocument(briefingDocumentRef.current, selectedCard)}
-                  className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="프린트"
-                  title="프린트"
-                >
-                  <Printer className="size-4" />
-                </button>
-                <button
-                  type="button"
                   onClick={() => setSelectedCard(null)}
                   className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   aria-label={isKorean ? "닫기" : "Close"}
@@ -445,6 +550,32 @@ export default function LibraryPage() {
               ) : modalMarkdown ? (
                 <MarkdownFallback markdown={modalMarkdown} />
               ) : null}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {compareOpen && compareCards.length === 2 && (
+        <div className="fixed inset-0 z-50 bg-black/80 px-3 py-5 backdrop-blur-sm sm:px-6">
+          <section className="mx-auto flex max-h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-normal text-primary">COMPARE</p>
+                <h2 className="truncate font-serif text-lg font-bold">{text.compareTitle}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeCompareModal}
+                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label={isKorean ? "닫기" : "Close"}
+              >
+                <X className="size-4" />
+              </button>
+            </header>
+            <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto p-3 lg:grid-cols-2 lg:overflow-hidden">
+              {compareCards.map((card) => (
+                <ReportPreviewPane key={card.key} card={card} />
+              ))}
             </div>
           </section>
         </div>

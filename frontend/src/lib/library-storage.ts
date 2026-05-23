@@ -21,6 +21,12 @@ export type LibraryCard = {
   guide_city_id?: string | null;
 };
 
+export type LibraryDisplayStatus = "report" | "card" | "locked";
+
+export type DisplayLibraryCard = LibraryCard & {
+  display_status: LibraryDisplayStatus;
+};
+
 export type LibraryGuideCacheEntry = {
   id: string | number;
   markdown: string;
@@ -38,7 +44,6 @@ function normalizeKey(value: string): string {
 }
 
 export function libraryCardKey(city: Pick<CityData, "id" | "city" | "country_id">): string {
-  if (city.id) return normalizeKey(city.id);
   return `${normalizeKey(city.city)}-${normalizeKey(city.country_id)}`;
 }
 
@@ -69,14 +74,17 @@ export function mergeLibraryCards(existing: LibraryCard[], incoming: LibraryCard
   const byKey = new Map<string, LibraryCard>();
 
   for (const card of existing) {
-    byKey.set(card.key, card);
+    const key = libraryCardKey(card);
+    byKey.set(key, { ...card, key });
   }
 
   for (const card of incoming) {
-    const previous = byKey.get(card.key);
-    byKey.set(card.key, {
+    const key = libraryCardKey(card);
+    const previous = byKey.get(key);
+    byKey.set(key, {
       ...previous,
       ...card,
+      key,
       collected_at: previous?.collected_at ?? card.collected_at,
       guide_unlocked: previous?.guide_unlocked ?? card.guide_unlocked,
       guide_markdown: previous?.guide_markdown ?? card.guide_markdown ?? null,
@@ -86,7 +94,44 @@ export function mergeLibraryCards(existing: LibraryCard[], incoming: LibraryCard
     });
   }
 
-  return Array.from(byKey.values()).sort((a, b) => b.updated_at - a.updated_at);
+  return Array.from(byKey.values()).sort((a, b) => {
+    if (a.guide_unlocked !== b.guide_unlocked) {
+      return a.guide_unlocked ? -1 : 1;
+    }
+    return b.updated_at - a.updated_at;
+  });
+}
+
+export function buildLibraryDisplayCards(
+  storedCards: LibraryCard[],
+  allCities: Array<Partial<CityData> & Pick<CityData, "city" | "country" | "country_id">>
+): DisplayLibraryCard[] {
+  const normalizedStored = mergeLibraryCards([], storedCards);
+  const displayByKey = new Map<string, DisplayLibraryCard>();
+
+  for (const card of normalizedStored) {
+    const hasGuide = card.guide_unlocked && Boolean(card.guide_markdown || card.guide_briefing);
+    displayByKey.set(card.key, {
+      ...card,
+      display_status: hasGuide ? "report" : "card",
+    });
+  }
+
+  const lockedCards = allCities.flatMap((city, index) => {
+    const card = toLibraryCard(city, 0);
+    if (displayByKey.has(card.key)) return [];
+    return [{
+      ...card,
+      updated_at: -index,
+      display_status: "locked" as const,
+    }];
+  });
+
+  return [
+    ...Array.from(displayByKey.values()).filter((card) => card.display_status === "report"),
+    ...Array.from(displayByKey.values()).filter((card) => card.display_status === "card"),
+    ...lockedCards,
+  ];
 }
 
 function stringValue(source: Record<string, unknown>, key: string): string | null {

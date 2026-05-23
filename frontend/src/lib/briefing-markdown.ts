@@ -1,5 +1,14 @@
 import type { BriefingData, BriefingSection } from "./briefing-data";
 
+export type BriefingMarkdownFallback = {
+  cityName: string;
+  cityKr?: string | null;
+  country: string;
+  countryId: string;
+  visaType?: string | null;
+  monthlyCostUsd?: number | null;
+};
+
 function sectionLines(section: BriefingSection, depth = 0): string[] {
   const headingPrefix = depth === 0 ? "##" : "###";
   const lines = [`${headingPrefix} ${section.num}${depth === 0 ? "." : ""} ${section.title}`];
@@ -230,5 +239,111 @@ export function briefingFromMarkdown(markdown: string): BriefingData | null {
     quickFacts,
     sections,
     references,
+  };
+}
+
+function stripMarkdownHeading(line: string): string {
+  return line.replace(/^#{1,6}\s+/, "").replace(/^\d+(?:\.\d+)*\.?\s+/, "").trim();
+}
+
+function formatFallbackMonthly(value: number | null | undefined): string {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? `USD ${value.toLocaleString()}`
+    : "See guide";
+}
+
+function appendLegacyLine(section: BriefingSection, line: string) {
+  if (/^[-*]\s+/.test(line)) {
+    section.items = [...(section.items ?? []), line.replace(/^[-*]\s+/, "")];
+    return;
+  }
+
+  if (/^\d+\.\s+/.test(line)) {
+    section.items = [...(section.items ?? []), line.replace(/^\d+\.\s+/, "")];
+    return;
+  }
+
+  section.body = section.body ? `${section.body}\n${line}` : line;
+}
+
+function legacySectionsFromMarkdown(markdown: string): BriefingSection[] {
+  const lines = markdown.split("\n").map((line) => line.trim()).filter(Boolean);
+  const sections: BriefingSection[] = [];
+  let currentSection: BriefingSection | null = null;
+  let currentSubsection: BriefingSection | null = null;
+  let fallbackIndex = 1;
+
+  for (const line of lines) {
+    if (line.startsWith("# ") && !line.startsWith("## ")) continue;
+
+    if (line.startsWith("## ")) {
+      currentSection = {
+        num: String(sections.length + 1),
+        title: stripMarkdownHeading(line),
+      };
+      sections.push(currentSection);
+      currentSubsection = null;
+      fallbackIndex = 1;
+      continue;
+    }
+
+    if (line.startsWith("### ") && currentSection) {
+      currentSubsection = {
+        num: `${currentSection.num}.${fallbackIndex}`,
+        title: stripMarkdownHeading(line),
+      };
+      fallbackIndex += 1;
+      currentSection.subsections = [...(currentSection.subsections ?? []), currentSubsection];
+      continue;
+    }
+
+    if (!currentSection) {
+      currentSection = {
+        num: "1",
+        title: "Saved Guide",
+      };
+      sections.push(currentSection);
+    }
+
+    appendLegacyLine(currentSubsection ?? currentSection, line);
+  }
+
+  return sections.length
+    ? sections
+    : [{
+        num: "1",
+        title: "Saved Guide",
+        body: markdown.trim(),
+      }];
+}
+
+export function briefingFromMarkdownWithFallback(
+  markdown: string,
+  fallback: BriefingMarkdownFallback
+): BriefingData {
+  const parsed = briefingFromMarkdown(markdown);
+  if (parsed) return parsed;
+
+  const countryId = fallback.countryId.toUpperCase();
+  const issuedDate = new Date().toISOString().slice(0, 10);
+  const cityNameSlug = fallback.cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "guide";
+
+  return {
+    documentId: `NNAI-${countryId}-SAVED-${cityNameSlug}`,
+    issuedDate,
+    preparedFor: "Saved Library Report",
+    classification: "Personal Briefing",
+    cityName: fallback.cityName,
+    cityKr: fallback.cityKr ?? null,
+    countryOfficial: fallback.country || countryId,
+    countryId,
+    quickFacts: {
+      visa: fallback.visaType || "See guide",
+      stay: "See guide",
+      monthly: formatFallbackMonthly(fallback.monthlyCostUsd),
+      taxResidency: "See guide",
+    },
+    sections: legacySectionsFromMarkdown(markdown),
+    references: [],
   };
 }

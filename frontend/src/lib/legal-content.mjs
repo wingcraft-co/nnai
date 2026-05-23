@@ -168,6 +168,7 @@ export function shouldHideLegalFooter(pathname = "") {
 
 export function shouldUseDarkLegalChrome(pathname = "") {
   return /^\/(?:ko|en)\/result\/?$/.test(pathname)
+    || /^\/(?:ko|en)\/library\/?$/.test(pathname)
     || /^\/(?:ko|en)\/guide\/[^/]+\/?$/.test(pathname);
 }
 

@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildLibraryDisplayCards,
   calculateTemporaryCardOpacity,
   libraryCardsFromServerGuides,
+  libraryCardKey,
   mergeLibraryCards,
   toLibraryCard,
   unlockLibraryGuide,
@@ -39,6 +41,11 @@ const briefing = {
   references: [],
 };
 
+test("uses a stable city-country key so short dataset ids do not duplicate cards", () => {
+  assert.equal(libraryCardKey({ id: "KL", city: "Kuala Lumpur", country_id: "MY" }), "kuala-lumpur-my");
+  assert.equal(libraryCardKey({ id: "bangkok-th", city: "Bangkok", country_id: "TH" }), "bangkok-th");
+});
+
 test("converts a revealed city into a collectible library card", () => {
   const card = toLibraryCard(bangkok, 1000);
 
@@ -64,6 +71,80 @@ test("merges duplicate collected cards without losing unlocked guide data", () =
   assert.equal(merged[0].guide_unlocked, true);
   assert.equal(merged[0].guide_markdown, "# Bangkok guide");
   assert.deepEqual(merged[0].guide_briefing, briefing);
+});
+
+test("dedupes report and card entries for the same city when legacy keys differ", () => {
+  const report = {
+    ...toLibraryCard({ ...bangkok, id: "BKK" }, 1000),
+    key: "bkk",
+    guide_unlocked: true,
+    guide_markdown: "# Bangkok guide",
+    guide_city_id: "bkk",
+  };
+  const card = {
+    ...toLibraryCard(bangkok, 5000),
+    guide_unlocked: false,
+  };
+
+  const merged = mergeLibraryCards([report], [card]);
+
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].key, "bangkok-th");
+  assert.equal(merged[0].guide_unlocked, true);
+  assert.equal(merged[0].guide_markdown, "# Bangkok guide");
+});
+
+test("orders unlocked guide cards before collected-only cards", () => {
+  const unlockedOlder = {
+    ...toLibraryCard(bangkok, 1000),
+    guide_unlocked: true,
+    guide_markdown: "# Bangkok guide",
+    guide_city_id: "bangkok-th",
+  };
+  const collectedNewer = toLibraryCard({
+    id: "tokyo-jp",
+    city: "Tokyo",
+    city_kr: "도쿄",
+    country: "Japan",
+    country_id: "JP",
+  }, 5000);
+
+  const merged = mergeLibraryCards([unlockedOlder], [collectedNewer]);
+
+  assert.deepEqual(merged.map((card) => card.key), ["bangkok-th", "tokyo-jp"]);
+});
+
+test("builds library display cards as report, card, then locked full catalog entries", () => {
+  const tokyo = {
+    id: "TYO",
+    city: "Tokyo",
+    city_kr: "도쿄",
+    country: "Japan",
+    country_id: "JP",
+  };
+  const lisbon = {
+    id: "LIS",
+    city: "Lisbon",
+    city_kr: "리스본",
+    country: "Portugal",
+    country_id: "PT",
+  };
+  const report = {
+    ...toLibraryCard({ ...bangkok, id: "BKK" }, 1000),
+    key: "bkk",
+    guide_unlocked: true,
+    guide_markdown: "# Bangkok guide",
+    guide_city_id: "bkk",
+  };
+  const collected = toLibraryCard(tokyo, 2000);
+
+  const displayCards = buildLibraryDisplayCards([collected, report], [bangkok, tokyo, lisbon]);
+
+  assert.deepEqual(displayCards.map((card) => [card.key, card.display_status]), [
+    ["bangkok-th", "report"],
+    ["tokyo-jp", "card"],
+    ["lisbon-pt", "locked"],
+  ]);
 });
 
 test("stores the formatted briefing snapshot when unlocking a guide", () => {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useLocale } from "next-intl";
 import { useParams } from "next/navigation";
-import { CheckCircle2, ChevronLeft, Download, Image as ImageIcon, LockKeyhole, MapPinned, Printer } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Download, Image as ImageIcon, LockKeyhole, MapPinned } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
@@ -404,49 +404,6 @@ async function downloadBriefingPng(
   }
 }
 
-async function printBriefingDocument(
-  node: HTMLElement | null,
-  setPrinting: (value: boolean) => void
-) {
-  if (!node) return;
-  setPrinting(true);
-  try {
-    const url = await briefingNodeToPngUrl(node);
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>NomadNavigator AI Country Briefing</title>
-          <style>
-            @page { margin: 0; }
-            body { margin: 0; background: #FAF8F4; }
-            img { width: 100%; display: block; }
-          </style>
-        </head>
-        <body>
-          <img src="${url}" alt="NomadNavigator AI Country Briefing" />
-          <script>
-            window.onload = () => {
-              window.focus();
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[GuidePage] briefing print failed: ${msg}`);
-  } finally {
-    setPrinting(false);
-  }
-}
-
 export default function GuidePage() {
   const router = useRouter();
   const locale = useLocale();
@@ -466,7 +423,6 @@ export default function GuidePage() {
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
   const briefingDocumentRef = useRef<HTMLDivElement>(null);
   const [exportingBriefingPng, setExportingBriefingPng] = useState(false);
-  const [printingBriefing, setPrintingBriefing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -789,16 +745,6 @@ export default function GuidePage() {
                       title="MD로 저장"
                     >
                       <Download className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void printBriefingDocument(briefingDocumentRef.current, setPrintingBriefing)}
-                      disabled={printingBriefing}
-                      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                      aria-label="프린트"
-                      title="프린트"
-                    >
-                      <Printer className="size-4" />
                     </button>
                   </div>
                 )}
