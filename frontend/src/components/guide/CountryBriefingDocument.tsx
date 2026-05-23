@@ -60,6 +60,12 @@ const SUBSECTION_LH = "26px";
 
 // ─────────────────────────────────────────────────────────────────
 
+function normalizeReferenceUrl(url: string): string {
+  return url.startsWith("http") ? url : `https://${url}`;
+}
+
+// ─────────────────────────────────────────────────────────────────
+
 // 본문 내 [1] [2] 마커 → STAMP color superscript 변환 (References list와 시각 연결)
 function renderFootnotes(text: string): React.ReactNode {
   if (!text.includes("[")) return text;
@@ -678,7 +684,7 @@ export function CountryBriefingDocument({
                   <span style={{ fontStyle: "italic" }}>{r.title}</span>
                   {r.year ? `, ${r.year}` : ""}.{" "}
                   <a
-                    href={r.url}
+                    href={normalizeReferenceUrl(r.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: COLOR_MUTED, fontSize: "13px", textDecoration: "underline" }}

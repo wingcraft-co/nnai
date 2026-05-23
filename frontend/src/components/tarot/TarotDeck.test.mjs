@@ -83,3 +83,13 @@ test("city names with parentheses show the parenthetical on a clean second line"
   assert.match(cardSource, /<CityTitle title=\{cityData\.city_kr\} \/>/);
   assert.doesNotMatch(cardSource, />\s*\{cityData\.city_kr\}\s*</);
 });
+
+test("google login restores the selected city lightbox after oauth return", () => {
+  assert.match(source, /const PENDING_LOGIN_CITY_KEY = "pending_login_city_id"/);
+  assert.match(source, /function rememberPendingLoginCity/);
+  assert.match(source, /try \{\s*sessionStorage\.setItem\(PENDING_LOGIN_CITY_KEY, key\)/);
+  assert.match(source, /function cityRestoreKeys/);
+  assert.match(source, /sessionStorage\.getItem\(PENDING_LOGIN_CITY_KEY\)/);
+  assert.match(source, /cityRestoreKeys\(c\)\.includes\(pendingId\)/);
+  assert.match(source, /sessionStorage\.removeItem\(PENDING_LOGIN_CITY_KEY\)/);
+});

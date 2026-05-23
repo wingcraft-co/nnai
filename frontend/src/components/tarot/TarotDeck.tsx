@@ -25,6 +25,7 @@ import {
 import { readDevPreview, appendDevPreviewQuery } from "@/lib/dev-preview";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
+const PENDING_LOGIN_CITY_KEY = "pending_login_city_id";
 
 // ── Google logo (official brand SVG — HEX 하드코딩은 브랜드 에셋 예외) ─────
 
@@ -140,6 +141,27 @@ function guidePathForCity(city: CityData, locale: string): string {
   const raw = city.id || city.city || city.city_kr || "city";
   const cityId = String(raw).toLowerCase().trim().replace(/\s+/g, "-");
   return `/${locale}/guide/${encodeURIComponent(cityId)}`;
+}
+
+function normalizeRestoreKey(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function cityRestoreKeys(city: CityData): string[] {
+  return [city.id, city.city, city.city_kr]
+    .map(normalizeRestoreKey)
+    .filter((value, index, all) => value.length > 0 && all.indexOf(value) === index);
+}
+
+function rememberPendingLoginCity(city: CityData) {
+  if (typeof window === "undefined") return;
+  const key = cityRestoreKeys(city)[0];
+  if (!key) return;
+  try {
+    sessionStorage.setItem(PENDING_LOGIN_CITY_KEY, key);
+  } catch {
+    // Storage can be unavailable in private browsing; login should still proceed.
+  }
 }
 
 // ── City Lightbox ─────────────────────────────────────────────────
@@ -344,6 +366,7 @@ function LightboxFrontContent({
   }, []);
 
   function handleGoogleLogin() {
+    rememberPendingLoginCity(city);
     const returnTo = typeof window !== "undefined" ? window.location.href : "";
     markLoginPending();
     trackLoginClick("google");
@@ -782,6 +805,36 @@ export default function TarotDeck({
   // ── Lightbox state ──────────────────────────────────────────────
 
   const [lightboxStartIndex, setLightboxStartIndex] = useState<number | null>(null);
+
+  // OAuth 복귀 후 lightbox 자동 복원 — sessionStorage에 pending_login_city_id 저장된 경우
+  useEffect(() => {
+    if (!isPostReveal || !revealedCities) return;
+    let pendingId = "";
+    try {
+      pendingId = normalizeRestoreKey(sessionStorage.getItem(PENDING_LOGIN_CITY_KEY));
+    } catch {
+      return;
+    }
+    if (!pendingId) return;
+    const pos = revealedCities.findIndex(
+      (c) => c && cityRestoreKeys(c).includes(pendingId)
+    );
+    if (pos < 0 || selectedIndices[pos] === undefined) {
+      try {
+        sessionStorage.removeItem(PENDING_LOGIN_CITY_KEY);
+      } catch {
+        // ignore storage failures
+      }
+      return;
+    }
+    try {
+      sessionStorage.removeItem(PENDING_LOGIN_CITY_KEY);
+    } catch {
+      // ignore storage failures
+    }
+    setLightboxStartIndex(selectedIndices[pos]);
+  }, [isPostReveal, revealedCities, selectedIndices]);
+
   const locale = useLocale();
   const isEn = locale === "en";
 

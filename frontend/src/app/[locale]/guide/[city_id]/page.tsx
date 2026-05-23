@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { useParams } from "next/navigation";
 import { CheckCircle2, ChevronLeft, FileText, Image as ImageIcon, LockKeyhole, MapPinned } from "lucide-react";
@@ -87,6 +87,24 @@ function formatDetailQuotaLabel(quota: DetailQuota): string {
 
   const remaining = quota.remaining ?? 0;
   return `무료 상세 가이드 ${quota.used}/${quota.limit ?? 0}회 사용 (${remaining}회 남음)`;
+}
+
+function buildBriefingRequest(city: CityData, parsedData: Record<string, unknown>) {
+  return {
+    cityName: city.city,
+    cityKr: city.city_kr ?? null,
+    countryId: city.country_id,
+    userProfile: (parsedData._user_profile as Record<string, unknown> | undefined) ?? {
+      persona_type: "free_spirit",
+      travel_type: "혼자 (솔로)",
+    },
+    visaType: city.visa_type ?? null,
+    visaFreeDays: typeof city.visa_free_days === "number" ? city.visa_free_days : null,
+    stayMonths: typeof city.stay_months === "number" ? city.stay_months : null,
+    monthlyCostUsd: typeof city.monthly_cost_usd === "number" ? city.monthly_cost_usd : null,
+    midTermRentUsd: typeof city.mid_term_rent_usd === "number" ? city.mid_term_rent_usd : null,
+    coworkUsdMonth: typeof city.cowork_usd_month === "number" ? city.cowork_usd_month : null,
+  };
 }
 
 function ReportDisclaimer() {
@@ -274,6 +292,47 @@ function GuideImagePreview({
   );
 }
 
+const BRIEFING_DOCUMENT_WIDTH = 1080;
+
+function ProBriefingPreview({ data }: { data: BriefingData }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const documentRef = useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = useState({ scale: 1, height: 0 });
+
+  useEffect(() => {
+    function updateLayout() {
+      const containerWidth = containerRef.current?.offsetWidth ?? BRIEFING_DOCUMENT_WIDTH;
+      const naturalHeight = documentRef.current?.offsetHeight ?? 0;
+      const scale = Math.min(1, containerWidth / BRIEFING_DOCUMENT_WIDTH);
+      setLayout({ scale, height: naturalHeight * scale });
+    }
+
+    updateLayout();
+    const observer = new ResizeObserver(updateLayout);
+    if (containerRef.current) observer.observe(containerRef.current);
+    if (documentRef.current) observer.observe(documentRef.current);
+
+    return () => observer.disconnect();
+  }, [data]);
+
+  return (
+    <div ref={containerRef} className="w-full overflow-hidden bg-[#FAF8F4]">
+      <div style={{ height: layout.height || undefined }}>
+        <div
+          ref={documentRef}
+          style={{
+            width: `${BRIEFING_DOCUMENT_WIDTH}px`,
+            transform: `scale(${layout.scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          <CountryBriefingDocument data={data} watermark={false} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GuidePage() {
   const router = useRouter();
   const locale = useLocale();
@@ -287,6 +346,7 @@ export default function GuidePage() {
   const [detailQuota, setDetailQuota] = useState<DetailQuota | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [briefingLoading, setBriefingLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
@@ -296,6 +356,8 @@ export default function GuidePage() {
 
     async function loadGuide() {
       setLoading(true);
+      setBriefingLoading(false);
+      setBriefing(null);
       setError(null);
       try {
         const raw = localStorage.getItem(SESSION_V2_KEY);
@@ -325,22 +387,7 @@ export default function GuidePage() {
           setDetailQuota(mockDetailQuota(devPreview.plan));
           setMarkdown(mockDetailMarkdown(selected.city_kr ?? "", selected.city ?? ""));
           setQuotaExceeded(false);
-          const generated = await buildBriefing({
-            cityName: selected.city,
-            cityKr: selected.city_kr ?? null,
-            countryId: selected.country_id,
-            userProfile: (localizedParsedData._user_profile as Record<string, unknown> | undefined) ?? {
-              persona_type: "free_spirit",
-              travel_type: "혼자 (솔로)",
-            },
-            // Quick Facts + Cost Profile 실값 plug-in — revealedCities enrichment 결과 사용
-            visaType: selected.visa_type ?? null,
-            visaFreeDays: typeof selected.visa_free_days === "number" ? selected.visa_free_days : null,
-            stayMonths: typeof selected.stay_months === "number" ? selected.stay_months : null,
-            monthlyCostUsd: typeof selected.monthly_cost_usd === "number" ? selected.monthly_cost_usd : null,
-            midTermRentUsd: typeof selected.mid_term_rent_usd === "number" ? selected.mid_term_rent_usd : null,
-            coworkUsdMonth: typeof selected.cowork_usd_month === "number" ? selected.cowork_usd_month : null,
-          });
+          const generated = await buildBriefing(buildBriefingRequest(selected, localizedParsedData));
           if (!cancelled) setBriefing(generated);
           return;
         }
@@ -392,6 +439,18 @@ export default function GuidePage() {
               readingCityIndex: selectedCityIndex,
             })
           );
+          setBriefingLoading(true);
+          void buildBriefing(buildBriefingRequest(selected, localizedParsedData))
+            .then((generated) => {
+              if (!cancelled) setBriefing(generated);
+            })
+            .catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.warn(`[GuidePage] briefing format fallback failed: ${msg}`);
+            })
+            .finally(() => {
+              if (!cancelled) setBriefingLoading(false);
+            });
         }
       } catch {
         if (!cancelled) setError("상세 가이드를 불러오지 못했습니다. 결과 화면에서 다시 시도해주세요.");
@@ -554,9 +613,7 @@ export default function GuidePage() {
                   <div className="flex flex-col gap-2 border-b border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-muted-foreground">Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다.</p>
                   </div>
-                  <div className="flex justify-center overflow-x-auto">
-                    <CountryBriefingDocument data={briefing} watermark={false} />
-                  </div>
+                  <ProBriefingPreview data={briefing} />
                 </article>
               ) : (
                 <section className="space-y-3">
@@ -565,6 +622,10 @@ export default function GuidePage() {
                   </div>
                 </section>
               )
+            ) : briefingLoading ? (
+              <div className="flex min-h-80 items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+                <p className="animate-pulse">맞춤 보고서 서식을 준비하고 있어요...</p>
+              </div>
             ) : isPro(billingStatus) ? (
               <article className="rounded-lg border border-border bg-card p-5">
                 <div className="mb-4 flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">

@@ -101,14 +101,16 @@ test("guide ends with a small disclaimer card", () => {
 });
 
 test("pro guide outputs never include watermarks while free previews keep them", () => {
-  assert.match(guideSource, /<CountryBriefingDocument data=\{briefing\} watermark=\{false\} \/>/);
+  assert.match(guideSource, /<CountryBriefingDocument data=\{data\} watermark=\{false\} \/>/);
+  assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} \/>/);
   assert.match(guideSource, /<BriefingPngPreview data=\{briefing\} watermark=\{true\} \/>/);
   assert.match(guideSource, /renderGuidePngDataUrl\(markdown, `\$\{city\.city_kr \|\| city\.city\} 맞춤 가이드`, false\)/);
   assert.match(guideSource, /<GuideImagePreview[\s\S]*watermark=\{true\}/);
 });
 
 test("briefing reference urls render as external hyperlinks", () => {
-  assert.match(briefingDocumentSource, /<a\s+href=\{r\.url\}/);
+  assert.match(briefingDocumentSource, /function normalizeReferenceUrl/);
+  assert.match(briefingDocumentSource, /<a\s+href=\{normalizeReferenceUrl\(r\.url\)\}/);
   assert.match(briefingDocumentSource, /target="_blank"/);
   assert.match(briefingDocumentSource, /rel="noopener noreferrer"/);
   assert.match(briefingDocumentSource, /\(\{r\.url\}\)/);
@@ -125,4 +127,22 @@ test("markdown guide urls render as external hyperlinks", () => {
 test("free png guide previews block right click saving", () => {
   assert.match(guideSource, /onContextMenu=\{\(event\) => event\.preventDefault\(\)\}/);
   assert.match(briefingPngPreviewSource, /onContextMenu=\{\(event\) => event\.preventDefault\(\)\}/);
+});
+
+test("real guide loading prepares the formatted briefing without blocking detail loading", () => {
+  assert.equal((guideSource.match(/await buildBriefing/g) ?? []).length, 1);
+  assert.match(guideSource, /void buildBriefing/);
+  assert.match(guideSource, /setBriefingLoading\(true\)/);
+  assert.match(guideSource, /setBriefingLoading\(false\)/);
+  assert.match(guideSource, /맞춤 보고서 서식을 준비하고 있어요\.\.\./);
+});
+
+test("pro briefing preview scales the 1080px document like the free png preview", () => {
+  assert.match(guideSource, /const BRIEFING_DOCUMENT_WIDTH = 1080/);
+  assert.match(guideSource, /function ProBriefingPreview/);
+  assert.match(guideSource, /Math\.min\(1, containerWidth \/ BRIEFING_DOCUMENT_WIDTH\)/);
+  assert.match(guideSource, /new ResizeObserver\(updateLayout\)/);
+  assert.match(guideSource, /transform: `scale\(\$\{layout\.scale\}\)`/);
+  assert.match(guideSource, /height: layout\.height \|\| undefined/);
+  assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} \/>/);
 });

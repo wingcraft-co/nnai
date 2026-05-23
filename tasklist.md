@@ -24,3 +24,5 @@
 ## 2026-05-23
 - 가이드 페이지에 locale 기반 LLM 응답 언어 강제, 마크다운 URL 자동 링크화, 이미지 우클릭 방지, 로딩 UI 개선 등 다수 UX 개선 적용.
 - 무료 사용자 맞춤보고서 이미지에 우클릭/드래그/iOS 롱프레스 저장 차단 추가 (`pointerEvents`, `WebkitTouchCallout` 등), `feature-flags.ts` 신규 추가.
+- 타로 결과 lightbox의 "Google로 계속하기" 버튼 OAuth 버그 수정: `return_to`를 현재 result 페이지 URL로 변경하고, `pending_login_city_id`를 sessionStorage에 저장 후 OAuth 복귀 시 lightbox 자동 복원.
+- `TarotDeck.tsx`에 OAuth 복귀 후 lightbox 재오픈 useEffect 추가 — 로그인 완료 후 선택했던 도시 카드로 자동으로 돌아옴.
