@@ -597,18 +597,9 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* Step 5: 선호 지역 + 라이프스타일 */}
+            {/* Step 5: 라이프스타일 */}
             {currentStep === 5 && (
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">{copy.form.labels.preferredRegion}</label>
-                  <SelectCard
-                    options={copy.form.options.region}
-                    selected={form.preferred_countries}
-                    onSelect={(v) => toggleMulti("preferred_countries", v)}
-                    mode="multi"
-                  />
-                </div>
                 <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">{copy.form.labels.lifestyle}</label>
                   <SelectCard

@@ -23,6 +23,14 @@ import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
 import { readLibraryCards, unlockLibraryGuide, type LibraryCard } from "@/lib/library-storage";
 
 const SESSION_V2_KEY = "result_session_v2";
+const PAYWALL_BLOCKED_KEY = "nnai_guide_paywall_blocked_v1";
+const GUIDE_FETCH_TIMEOUT_MS = 15_000;
+
+function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeoutMs = GUIDE_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested";
 
@@ -424,6 +432,7 @@ export default function GuidePage() {
   const searchParams = useSearchParams();
   const cityId = normalizeCityId(params.city_id);
   const fromLibrary = searchParams?.get("from") === "library";
+  const checkoutReturned = searchParams?.get("checkout") === "return";
 
   const [city, setCity] = useState<CityData | null>(null);
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(null);
@@ -438,6 +447,17 @@ export default function GuidePage() {
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
   const briefingDocumentRef = useRef<HTMLDivElement>(null);
   const [exportingBriefingPng, setExportingBriefingPng] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setReloadTick((t) => t + 1);
+      }
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -496,6 +516,20 @@ export default function GuidePage() {
         setCity(selected);
         setParsedData(localizedParsedData);
 
+        const cachedQuota = session.detailQuota ?? null;
+        const cachedQuotaExhausted = Boolean(
+          cachedQuota && !cachedQuota.is_unlimited && (cachedQuota.remaining ?? 0) <= 0
+        );
+        const paywallBlockedForCity = localStorage.getItem(PAYWALL_BLOCKED_KEY) === cityId;
+        if (checkoutReturned || cachedQuotaExhausted || paywallBlockedForCity) {
+          setDetailQuota(cachedQuota);
+          setBillingStatus(session.billingStatus ?? null);
+          setMarkdown(null);
+          setBriefing(null);
+          setQuotaExceeded(true);
+          return;
+        }
+
         const restoredCityId = normalizeCityId(session.readingCityId ?? selected.id ?? selected.city);
         if (
           session.readingMarkdown &&
@@ -532,17 +566,21 @@ export default function GuidePage() {
         }
 
         let currentBillingStatus: BillingStatus | null = null;
-        const statusResponse = await fetch(`${API_BASE}/api/billing/status`, {
-          cache: "no-store",
-          credentials: "include",
-        });
-        if (!cancelled && statusResponse.ok) {
-          currentBillingStatus = (await statusResponse.json()) as BillingStatus;
-          setBillingStatus(currentBillingStatus);
+        try {
+          const statusResponse = await fetchWithTimeout(`${API_BASE}/api/billing/status`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+          if (!cancelled && statusResponse.ok) {
+            currentBillingStatus = (await statusResponse.json()) as BillingStatus;
+            setBillingStatus(currentBillingStatus);
+          }
+        } catch {
+          // billing status는 실패해도 detail로 진행
         }
 
         const selectedCityIndex = findCityIndex(localizedParsedData, selected);
-        const detailResponse = await fetch(`${API_BASE}/api/detail`, {
+        const detailResponse = await fetchWithTimeout(`${API_BASE}/api/detail`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -556,11 +594,25 @@ export default function GuidePage() {
           quota?: DetailQuota;
           cache_key?: string;
         };
-        if (detailResponse.status === 402 && detail.quota) {
+        if (detailResponse.status === 402) {
           if (!cancelled) {
-            setDetailQuota(detail.quota);
+            setDetailQuota(detail.quota ?? null);
             setQuotaExceeded(true);
             setMarkdown(null);
+            try {
+              localStorage.setItem(PAYWALL_BLOCKED_KEY, cityId);
+              localStorage.setItem(
+                SESSION_V2_KEY,
+                JSON.stringify({
+                  ...session,
+                  parsedData: localizedParsedData,
+                  detailQuota: detail.quota ?? null,
+                  billingStatus: currentBillingStatus,
+                })
+              );
+            } catch {
+              // ignore persist failures
+            }
           }
           return;
         }
@@ -571,6 +623,13 @@ export default function GuidePage() {
           setMarkdown(detail.markdown);
           setDetailQuota(detail.quota ?? null);
           setQuotaExceeded(false);
+          try {
+            if (localStorage.getItem(PAYWALL_BLOCKED_KEY) === cityId) {
+              localStorage.removeItem(PAYWALL_BLOCKED_KEY);
+            }
+          } catch {
+            // ignore
+          }
           localStorage.setItem(
             SESSION_V2_KEY,
             JSON.stringify({
@@ -627,7 +686,7 @@ export default function GuidePage() {
     return () => {
       cancelled = true;
     };
-  }, [cityId, locale, router, fromLibrary]);
+  }, [cityId, locale, router, fromLibrary, checkoutReturned, reloadTick]);
 
   async function confirmCity() {
     if (!city || confirming) return;
@@ -710,8 +769,22 @@ export default function GuidePage() {
       </button>
       <div className="mx-auto w-full max-w-3xl px-5 py-8">
         {loading && (
-          <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
             <p className="animate-pulse">맞춤 보고서를 생성하고 있어요...</p>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/${locale}/guide/${cityId}?retry=1`}
+                className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                다시 시도
+              </a>
+              <a
+                href={`/${locale}/guide/${cityId}?checkout=return`}
+                className="cursor-pointer rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary/20"
+              >
+                구매 페이지로
+              </a>
+            </div>
           </div>
         )}
 

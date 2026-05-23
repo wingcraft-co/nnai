@@ -52,8 +52,18 @@ export function PolarCheckoutButton({
     trackPricingSectionEngagement({ section: 'pro_plan', action: 'click' });
     trackCheckoutClick('polar');
 
+    function openCheckout(url: string) {
+      const win = window.open(url, '_blank');
+      if (win) {
+        win.opener = null;
+      } else {
+        // 팝업 차단 시 fallback: 현재 탭 이동
+        window.location.assign(url);
+      }
+    }
+
     if (directCheckoutUrl) {
-      window.location.assign(directCheckoutUrl);
+      openCheckout(directCheckoutUrl);
       return;
     }
 
@@ -90,7 +100,7 @@ export function PolarCheckoutButton({
         return;
       }
 
-      window.location.assign(redirectUrl);
+      openCheckout(redirectUrl);
     } catch {
       setError(
         locale === 'en'
