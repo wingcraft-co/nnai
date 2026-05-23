@@ -15,6 +15,7 @@ import {
   LOCKED_WIDGET_IDS,
   coerceDashboardWidgets,
 } from "@/lib/dashboard-content.mjs";
+import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
 import {
   readDevPreview,
   mockDashboardPlan,
@@ -50,6 +51,11 @@ export default function DashboardPage() {
   }, [widgets]);
 
   useEffect(() => {
+    if (!DASHBOARD_FEATURE_ENABLED) {
+      router.replace("/onboarding/form");
+      return;
+    }
+
     // Try to get persona from localStorage first
     const localPersona = localStorage.getItem("persona_type");
     if (localPersona) {
@@ -125,7 +131,7 @@ export default function DashboardPage() {
     }
 
     loadDashboard();
-  }, []);
+  }, [router]);
 
   async function saveWidgets(nextWidgets: DashboardWidgetSettings) {
     setSaving(true);
@@ -202,6 +208,16 @@ export default function DashboardPage() {
   }
 
   const personaGif = personaType ? `/${personaType}.gif` : null;
+
+  if (!DASHBOARD_FEATURE_ENABLED) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+          준비 중인 기능입니다.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
@@ -336,4 +352,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

@@ -303,7 +303,7 @@ export async function buildBriefing(input: {
     });
 
     if (!response.ok) {
-      console.error(
+      console.warn(
         `[buildBriefing] upstream ${response.status} (city=${cityName}, persona=${personaType})`,
       );
       return fallback;
@@ -315,12 +315,12 @@ export async function buildBriefing(input: {
     raw = json?.choices?.[0]?.message?.content ?? "";
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "AbortError") {
-      console.error(
+      console.warn(
         `[buildBriefing] timeout after ${TIMEOUT_MS}ms (city=${cityName}, persona=${personaType})`,
       );
     } else {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[buildBriefing] fetch error (city=${cityName}): ${msg}`);
+      console.warn(`[buildBriefing] fetch error (city=${cityName}): ${msg}`);
     }
     return fallback;
   } finally {
@@ -329,7 +329,7 @@ export async function buildBriefing(input: {
 
   const cleaned = stripFences(raw);
   if (!cleaned) {
-    console.error(`[buildBriefing] empty LLM response (city=${cityName}, persona=${personaType})`);
+    console.warn(`[buildBriefing] empty LLM response (city=${cityName}, persona=${personaType})`);
     return fallback;
   }
 
@@ -337,21 +337,21 @@ export async function buildBriefing(input: {
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    console.error(
+    console.warn(
       `[buildBriefing] JSON parse failed (city=${cityName}). Raw first 300: ${cleaned.slice(0, 300)}`,
     );
     return fallback;
   }
 
   if (!isBriefingSections(parsed.sections)) {
-    console.error(
+    console.warn(
       `[buildBriefing] sections shape invalid (city=${cityName}). Falling back to mock.`,
     );
     return fallback;
   }
 
   if (!isBriefingReferences(parsed.references)) {
-    console.error(
+    console.warn(
       `[buildBriefing] references shape invalid (city=${cityName}). Falling back to mock.`,
     );
     return fallback;

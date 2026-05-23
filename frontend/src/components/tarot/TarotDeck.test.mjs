@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(__dirname, "TarotDeck.tsx"), "utf8");
+const cardSource = readFileSync(join(__dirname, "TarotCard.tsx"), "utf8");
 
 test("card open CTA shows a pointer cursor when actionable", () => {
   assert.match(source, /className="[^"]*cursor-pointer[^"]*"/);
@@ -19,6 +20,20 @@ test("detail CTA does not repeat the city-specific guide label above the button"
 test("detail CTA shows a pointer cursor when actionable", () => {
   assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*맞춤 보고서 받기/);
   assert.doesNotMatch(source, />\s*상세 페이지 받기\s*</);
+});
+
+test("detail CTA area shows a loading state while auth status is pending", () => {
+  assert.match(source, /const showDetailLoadingCta = locale === "ko" && isLoggedIn === null/);
+  assert.match(source, /맞춤 보고서 준비 중/);
+  assert.match(source, /disabled/);
+  assert.match(source, /animate-pulse/);
+  assert.doesNotMatch(source, /Loader2/);
+  assert.doesNotMatch(source, /animate-spin/);
+});
+
+test("city loading CTA dims the loading copy instead of changing the whole button", () => {
+  assert.match(source, /도시를 불러오고 있어요\.\.\./);
+  assert.match(source, /<span className="animate-pulse">\s*\{isEn\s*\?\s*"Loading cities\.\.\."\s*:\s*"도시를 불러오고 있어요\.\.\."\}\s*<\/span>/);
 });
 
 test("lightbox previous, next, and close controls show a pointer cursor", () => {
@@ -40,7 +55,8 @@ test("done retry CTA shows a pointer cursor", () => {
 });
 
 test("lightbox card protects long city copy from clipping the CTA", () => {
-  assert.match(source, /maxHeight: "calc\(100dvh - 96px\)"/);
+  assert.match(source, /height: "min\(620px, calc\(100dvh - 128px\)\)"/);
+  assert.match(source, /maxHeight: "calc\(100dvh - 128px\)"/);
   assert.match(source, /className="[^"]*overflow-y-auto[^"]*overscroll-contain[^"]*"/);
   assert.match(source, /className="[^"]*sticky[^"]*bottom-0[^"]*"/);
   assert.doesNotMatch(source, /<div className="flex-1" \/>/);
@@ -49,4 +65,21 @@ test("lightbox card protects long city copy from clipping the CTA", () => {
 test("long visa names wrap inside the card instead of overflowing", () => {
   assert.match(source, /className="[^"]*min-w-0[^"]*max-w-full[^"]*break-words[^"]*"/);
   assert.doesNotMatch(source, /className="inline-flex items-center gap-1 leading-tight w-fit"/);
+});
+
+test("visa titles with parentheses start the parenthetical on a new line", () => {
+  assert.match(source, /function VisaTitle/);
+  assert.match(source, /const parenIndex = title\.indexOf\("\("\)/);
+  assert.match(source, /<br aria-hidden="true" \/>/);
+  assert.match(source, /<VisaTitle title=\{normalizedVisaType\} \/>/);
+});
+
+test("city names with parentheses show the parenthetical on a clean second line", () => {
+  assert.match(source, /function CityTitle/);
+  assert.match(source, /const detail = title\.slice\(parenIndex\)\.trimStart\(\)/);
+  assert.match(source, /<CityTitle title=\{city\.city_kr\} \/>/);
+  assert.match(cardSource, /function CityTitle/);
+  assert.match(cardSource, /const detail = title\.slice\(parenIndex\)\.trimStart\(\)/);
+  assert.match(cardSource, /<CityTitle title=\{cityData\.city_kr\} \/>/);
+  assert.doesNotMatch(cardSource, />\s*\{cityData\.city_kr\}\s*</);
 });

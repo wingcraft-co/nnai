@@ -7,6 +7,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { NomadJourneyModal } from "@/components/journey/NomadJourneyModal";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 import { DEV_PREVIEW_PAYLOAD, type DevPreviewPlan } from "@/lib/dev-preview";
+import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
 import { isDebugMode } from "@/lib/runtime-locale.mjs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -54,6 +55,11 @@ export default function Home() {
       };
 
   useEffect(() => {
+    if (!DASHBOARD_FEATURE_ENABLED) {
+      setChecking(false);
+      return;
+    }
+
     async function checkPlan() {
       try {
         const response = await fetch(`${API_BASE}/api/dashboard`, {

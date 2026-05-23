@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 import { useParams } from "next/navigation";
-import { CheckCircle2, ChevronLeft, FileText, Image as ImageIcon, Loader2, LockKeyhole, MapPinned } from "lucide-react";
+import { CheckCircle2, ChevronLeft, FileText, Image as ImageIcon, LockKeyhole, MapPinned } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
@@ -18,6 +18,7 @@ import {
 import { buildBriefing } from "@/lib/briefing-generator";
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
 import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
+import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
 import { unlockLibraryGuide } from "@/lib/library-storage";
 
 const SESSION_V2_KEY = "result_session_v2";
@@ -63,6 +64,65 @@ function findCityIndex(parsedData: Record<string, unknown> | null, city: CityDat
   return index >= 0 ? index : 0;
 }
 
+function withRoutePreferredLanguage(parsedData: Record<string, unknown>, locale: string): Record<string, unknown> {
+  const language = locale === "ko" ? "한국어" : "English";
+  const profile =
+    parsedData._user_profile && typeof parsedData._user_profile === "object" && !Array.isArray(parsedData._user_profile)
+      ? (parsedData._user_profile as Record<string, unknown>)
+      : {};
+
+  return {
+    ...parsedData,
+    _user_profile: {
+      ...profile,
+      language,
+    },
+  };
+}
+
+function formatDetailQuotaLabel(quota: DetailQuota): string {
+  if (quota.is_unlimited) {
+    return "Pro 플랜: 상세 가이드 횟수 제한 없이 사용할 수 있습니다.";
+  }
+
+  const remaining = quota.remaining ?? 0;
+  return `무료 상세 가이드 ${quota.used}/${quota.limit ?? 0}회 사용 (${remaining}회 남음)`;
+}
+
+function ReportDisclaimer() {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 text-[11px] leading-5 text-muted-foreground">
+      맞춤형 보고서는 한눈에 나에게 맞는 정보를 모아서 보여주는 참고 자료입니다. 비자 정보와 세무 규정은
+      국가와 시점에 따라 달라질 수 있습니다. 실제 신청, 체류, 세무 판단 전에는 반드시 공식 기관 또는
+      전문가를 통해 추가 확인을 진행하세요.
+    </div>
+  );
+}
+
+function renderLinkedText(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, index) => {
+    if (!part.startsWith("http://") && !part.startsWith("https://")) return part;
+
+    const match = part.match(/^(https?:\/\/[^\s]+?)([.,;:!?)]*)$/);
+    const href = match?.[1] ?? part;
+    const trailing = match?.[2] ?? "";
+    return (
+      <span key={index}>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline underline-offset-2"
+        >
+          {href}
+        </a>
+        {trailing}
+      </span>
+    );
+  });
+}
+
 function MarkdownBlock({ markdown }: { markdown: string }) {
   const nodes = markdown.split("\n").filter((line) => line.trim().length > 0);
   return (
@@ -70,18 +130,18 @@ function MarkdownBlock({ markdown }: { markdown: string }) {
       {nodes.map((line, index) => {
         const text = line.replace(/^[-*]\s+/, "").trim();
         if (line.startsWith("### ")) {
-          return <h3 key={index} className="pt-3 font-serif text-lg font-bold text-primary">{line.slice(4)}</h3>;
+          return <h3 key={index} className="pt-3 font-serif text-lg font-bold text-primary">{renderLinkedText(line.slice(4))}</h3>;
         }
         if (line.startsWith("## ")) {
-          return <h2 key={index} className="pt-5 font-serif text-xl font-bold text-foreground">{line.slice(3)}</h2>;
+          return <h2 key={index} className="pt-5 font-serif text-xl font-bold text-foreground">{renderLinkedText(line.slice(3))}</h2>;
         }
         if (line.startsWith("# ")) {
-          return <h1 key={index} className="font-serif text-2xl font-bold text-foreground">{line.slice(2)}</h1>;
+          return <h1 key={index} className="font-serif text-2xl font-bold text-foreground">{renderLinkedText(line.slice(2))}</h1>;
         }
         if (/^[-*]\s+/.test(line)) {
-          return <p key={index} className="pl-3 text-sm leading-7 text-foreground/90">• {text}</p>;
+          return <p key={index} className="pl-3 text-sm leading-7 text-foreground/90">• {renderLinkedText(text)}</p>;
         }
-        return <p key={index} className="text-sm leading-7 text-foreground/90">{text}</p>;
+        return <p key={index} className="text-sm leading-7 text-foreground/90">{renderLinkedText(text)}</p>;
       })}
     </div>
   );
@@ -193,14 +253,22 @@ function GuideImagePreview({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div
+      onContextMenu={(event) => event.preventDefault()}
+      className="rounded-lg border border-border bg-card p-3"
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={dataUrl}
         alt={title}
         draggable={false}
         className="w-full select-none rounded-md"
-        style={{ userSelect: "none" }}
+        style={{
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          pointerEvents: "none",
+          WebkitTouchCallout: "none",
+        }}
       />
     </div>
   );
@@ -244,10 +312,11 @@ export default function GuidePage() {
           router.replace("/result");
           return;
         }
+        const localizedParsedData = withRoutePreferredLanguage(session.parsedData, locale);
 
         if (cancelled) return;
         setCity(selected);
-        setParsedData(session.parsedData);
+        setParsedData(localizedParsedData);
 
         // Dev preview 단축 — 백엔드 호출 우회, Country Briefing mock 데이터 주입
         const devPreview = readDevPreview();
@@ -260,7 +329,7 @@ export default function GuidePage() {
             cityName: selected.city,
             cityKr: selected.city_kr ?? null,
             countryId: selected.country_id,
-            userProfile: (session.parsedData?._user_profile as Record<string, unknown> | undefined) ?? {
+            userProfile: (localizedParsedData._user_profile as Record<string, unknown> | undefined) ?? {
               persona_type: "free_spirit",
               travel_type: "혼자 (솔로)",
             },
@@ -284,13 +353,13 @@ export default function GuidePage() {
           setBillingStatus((await statusResponse.json()) as BillingStatus);
         }
 
-        const selectedCityIndex = findCityIndex(session.parsedData, selected);
+        const selectedCityIndex = findCityIndex(localizedParsedData, selected);
         const detailResponse = await fetch(`${API_BASE}/api/detail`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            parsed_data: session.parsedData,
+            parsed_data: localizedParsedData,
             city_index: selectedCityIndex,
           }),
         });
@@ -316,7 +385,12 @@ export default function GuidePage() {
           unlockLibraryGuide(selected, detail.markdown);
           localStorage.setItem(
             SESSION_V2_KEY,
-            JSON.stringify({ ...session, readingMarkdown: detail.markdown, readingCityIndex: selectedCityIndex })
+            JSON.stringify({
+              ...session,
+              parsedData: localizedParsedData,
+              readingMarkdown: detail.markdown,
+              readingCityIndex: selectedCityIndex,
+            })
           );
         }
       } catch {
@@ -330,7 +404,7 @@ export default function GuidePage() {
     return () => {
       cancelled = true;
     };
-  }, [cityId, router]);
+  }, [cityId, locale, router]);
 
   async function confirmCity() {
     if (!city || confirming) return;
@@ -412,9 +486,8 @@ export default function GuidePage() {
       </button>
       <div className="mx-auto w-full max-w-3xl px-5 py-8">
         {loading && (
-          <div className="flex min-h-[50vh] items-center justify-center gap-3 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            상세 가이드를 생성하고 있어요...
+          <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
+            <p className="animate-pulse">맞춤 보고서를 생성하고 있어요...</p>
           </div>
         )}
 
@@ -469,6 +542,12 @@ export default function GuidePage() {
               </header>
             )}
 
+            {detailQuota && (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                {formatDetailQuotaLabel(detailQuota)}
+              </div>
+            )}
+
             {briefing ? (
               isPro(billingStatus) ? (
                 <article className="overflow-hidden rounded-lg border border-border bg-[#FAF8F4]">
@@ -481,9 +560,6 @@ export default function GuidePage() {
                 </article>
               ) : (
                 <section className="space-y-3">
-                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-muted-foreground">
-                    무료 플랜에서는 Country Briefing이 Wingcraft 워터마크가 포함된 PNG 이미지로 표시됩니다. Pro 플랜에서는 워터마크 없이 보고, 텍스트·PNG로 내보낼 수 있습니다.
-                  </div>
                   <div className="overflow-hidden rounded-lg border border-border bg-[#FAF8F4]">
                     <BriefingPngPreview data={briefing} watermark={true} />
                   </div>
@@ -516,70 +592,63 @@ export default function GuidePage() {
               </article>
             ) : (
               <section className="space-y-3">
-                <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-muted-foreground">
-                  무료 플랜에서는 상세 가이드가 Wingcraft 워터마크가 포함된 PNG 이미지로 표시됩니다. Pro 플랜에서는 워터마크 없는 텍스트, PNG 저장, MD 저장을 사용할 수 있습니다.
-                </div>
                 <GuideImagePreview
                   markdown={markdown}
                   title={`${city.city_kr || city.city} 맞춤 가이드`}
-                  watermark
+                  watermark={true}
                 />
               </section>
             )}
 
-            {detailQuota && (
-              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-                {detailQuota.is_unlimited
-                  ? "Pro 플랜: 상세 가이드 횟수 제한 없이 사용할 수 있습니다."
-                  : `무료 플랜 상세 가이드: ${detailQuota.used}/${detailQuota.limit}회 사용, ${detailQuota.remaining}회 남음`}
-              </div>
-            )}
-
-            <section className="rounded-lg border border-primary/40 bg-primary/10 p-5">
-              {isPro(billingStatus) ? (
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 font-serif text-lg font-bold">
-                      <CheckCircle2 className="size-5 text-primary" />
-                      이 도시로 내 디지털노마드 플랜을 시작하세요
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      확정하면 날씨, 환율, 체류 일자, 비자, 세금, 공유오피스, 재난 현황이 한 페이지 대시보드로 저장됩니다.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={confirmCity}
-                    disabled={confirming}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                  >
-                    <MapPinned className="size-4" />
-                    {confirming ? "확정 중..." : "이 도시로 확정"}
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <LockKeyhole className="mt-0.5 size-5 text-primary" />
+            {DASHBOARD_FEATURE_ENABLED && (
+              <section className="rounded-lg border border-primary/40 bg-primary/10 p-5">
+                {isPro(billingStatus) ? (
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="font-serif text-lg font-bold">
-                        해당 국가로 확정하고 내 디지털노마드 플랜을 설계하세요.
-                      </h2>
+                      <div className="flex items-center gap-2 font-serif text-lg font-bold">
+                        <CheckCircle2 className="size-5 text-primary" />
+                        이 도시로 내 디지털노마드 플랜을 시작하세요
+                      </div>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        Pro 플랜에서 도시 확정, 개인 대시보드, 위젯 저장, 세금/비자 관리가 열립니다.
+                        확정하면 날씨, 환율, 체류 일자, 비자, 세금, 공유오피스, 재난 현황이 한 페이지 대시보드로 저장됩니다.
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={confirmCity}
+                      disabled={confirming}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      <MapPinned className="size-4" />
+                      {confirming ? "확정 중..." : "이 도시로 확정"}
+                    </button>
                   </div>
-                  <PolarCheckoutButton
-                    locale={locale}
-                    returnPath={`/${locale}/guide/${cityId}?checkout=return`}
-                    idleLabel="확정하러가기"
-                    loadingLabel="결제 페이지 여는 중..."
-                    className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                  />
-                </div>
-              )}
-            </section>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <LockKeyhole className="mt-0.5 size-5 text-primary" />
+                      <div>
+                        <h2 className="font-serif text-lg font-bold">
+                          해당 국가로 확정하고 내 디지털노마드 플랜을 설계하세요.
+                        </h2>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Pro 플랜에서 도시 확정, 개인 대시보드, 위젯 저장, 세금/비자 관리가 열립니다.
+                        </p>
+                      </div>
+                    </div>
+                    <PolarCheckoutButton
+                      locale={locale}
+                      returnPath={`/${locale}/guide/${cityId}?checkout=return`}
+                      idleLabel="확정하러가기"
+                      loadingLabel="결제 페이지 여는 중..."
+                      className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    />
+                  </div>
+                )}
+              </section>
+            )}
+
+            <ReportDisclaimer />
           </div>
         )}
       </div>

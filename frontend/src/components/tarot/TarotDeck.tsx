@@ -39,6 +39,44 @@ function GoogleLogo({ size = 20 }: { size?: number }) {
   );
 }
 
+function VisaTitle({ title }: { title: string }) {
+  const parenIndex = title.indexOf("(");
+  if (parenIndex <= 0) {
+    return <>{title}</>;
+  }
+
+  const main = title.slice(0, parenIndex).trimEnd();
+  const parenthetical = title.slice(parenIndex).trimStart();
+  return (
+    <>
+      {main}
+      <br aria-hidden="true" />
+      {parenthetical}
+    </>
+  );
+}
+
+function CityTitle({ title }: { title: string }) {
+  const parenIndex = title.indexOf("(");
+  if (parenIndex <= 0) {
+    return <>{title}</>;
+  }
+
+  const main = title.slice(0, parenIndex).trimEnd();
+  const detail = title.slice(parenIndex).trimStart();
+  if (!main || !detail) {
+    return <>{title}</>;
+  }
+
+  return (
+    <>
+      {main}
+      <br aria-hidden="true" />
+      {detail}
+    </>
+  );
+}
+
 // ── Stage type ────────────────────────────────────────────────────
 
 export type DeckStage = "selecting" | "revealing" | "done";
@@ -194,9 +232,9 @@ function CityLightbox({
             transition={{ duration: 0.18 }}
             className="flex flex-col overflow-hidden"
             style={{
-              width: "min(360px, calc(100vw - 96px))",
-              height: "min(680px, calc(100dvh - 96px))",
-              maxHeight: "calc(100dvh - 96px)",
+              width: "min(340px, calc(100vw - 96px))",
+              height: "min(620px, calc(100dvh - 128px))",
+              maxHeight: "calc(100dvh - 128px)",
               background: "var(--card)",
               border: "1px solid var(--border)",
               borderRadius: 12,
@@ -329,6 +367,7 @@ function LightboxFrontContent({
 
   const showLoginCta = locale === "ko" && isLoggedIn === false;
   const showDetailCta = locale === "ko" && isLoggedIn === true;
+  const showDetailLoadingCta = locale === "ko" && isLoggedIn === null;
   const normalizedVisaType = normalizeVisaType(city.visa_type, city.country);
   const climateLabel = formatClimate(city.climate, locale);
   const isEn = locale === "en";
@@ -347,8 +386,8 @@ function LightboxFrontContent({
       <div className="flex shrink-0 flex-col items-center px-5 pb-3 pt-5">
         <span style={{ fontSize: 32 }}>{flag}</span>
         {showCityKr && (
-          <h2 className="font-serif text-base font-bold mt-1.5" style={{ color: "var(--foreground)" }}>
-            {city.city_kr}
+          <h2 className="font-serif text-base font-bold text-center leading-tight mt-1.5" style={{ color: "var(--foreground)" }}>
+            <CityTitle title={city.city_kr} />
           </h2>
         )}
         <p
@@ -417,12 +456,14 @@ function LightboxFrontContent({
                   textUnderlineOffset: "2px",
                 }}
               >
-                <span className="min-w-0 break-words">{normalizedVisaType}</span>
+                <span className="min-w-0 break-words">
+                  <VisaTitle title={normalizedVisaType} />
+                </span>
                 <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
               </a>
             ) : (
               <p className="leading-tight" style={{ color: "var(--foreground)" }}>
-                {normalizedVisaType}
+                <VisaTitle title={normalizedVisaType} />
               </p>
             )}
             {(city.stay_months != null || city.renewable != null) && (
@@ -518,6 +559,33 @@ function LightboxFrontContent({
             </p>
           );
         })()}
+
+        {showDetailLoadingCta && (
+          <div
+            className="sticky bottom-0 mt-auto flex shrink-0 flex-col pt-3"
+            style={{
+              background:
+                "linear-gradient(to bottom, color-mix(in srgb, var(--card) 0%, transparent), var(--card) 18%)",
+            }}
+          >
+            <button
+              type="button"
+              disabled
+              className="w-full cursor-wait py-2.5 text-center font-mono text-xs font-medium"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 72%, var(--muted-foreground))",
+                color: "var(--primary-foreground)",
+                borderRadius: 4,
+                letterSpacing: "0.03em",
+                opacity: 0.9,
+              }}
+            >
+              <span className="inline-flex animate-pulse items-center justify-center">
+                맞춤 보고서 준비 중
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Primary login CTA (ko + logged-out only) — 정보 텍스트 + Google Dark Theme 버튼 */}
         {showLoginCta && (
@@ -831,13 +899,15 @@ export default function TarotDeck({
                 transition: "opacity 0.3s ease",
               }}
             >
-              {isLoading
-                ? isEn
-                  ? "Loading cities..."
-                  : "도시를 불러오고 있어요..."
-                : isEn
-                  ? "Open cards"
-                  : "카드 열기"}
+              {isLoading ? (
+                <span className="animate-pulse">
+                  {isEn ? "Loading cities..." : "도시를 불러오고 있어요..."}
+                </span>
+              ) : isEn ? (
+                "Open cards"
+              ) : (
+                "카드 열기"
+              )}
             </motion.button>
           )}
         </AnimatePresence>

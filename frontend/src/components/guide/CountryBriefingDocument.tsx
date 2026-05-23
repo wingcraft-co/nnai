@@ -677,9 +677,14 @@ export function CountryBriefingDocument({
                   {r.issuer}.{" "}
                   <span style={{ fontStyle: "italic" }}>{r.title}</span>
                   {r.year ? `, ${r.year}` : ""}.{" "}
-                  <span style={{ color: COLOR_MUTED, fontSize: "13px" }}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: COLOR_MUTED, fontSize: "13px", textDecoration: "underline" }}
+                  >
                     ({r.url})
-                  </span>
+                  </a>
                 </span>
               </li>
             ))}

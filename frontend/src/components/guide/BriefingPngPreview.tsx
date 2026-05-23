@@ -88,19 +88,22 @@ export function BriefingPngPreview({
 
       {/* Display */}
       {pngUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={pngUrl}
-          alt={`${data.cityName} Country Briefing`}
-          draggable={false}
-          style={{
-            width: "100%",
-            display: "block",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            pointerEvents: "none",
-          }}
-        />
+        <div onContextMenu={(event) => event.preventDefault()}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pngUrl}
+            alt={`${data.cityName} Country Briefing`}
+            draggable={false}
+            style={{
+              width: "100%",
+              display: "block",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              pointerEvents: "none",
+              WebkitTouchCallout: "none",
+            }}
+          />
+        </div>
       ) : error ? (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
           {error}

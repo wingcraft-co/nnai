@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
     const data = await upstream.json();
 
     if (!upstream.ok) {
-      console.error("[briefing/generate] upstream error", upstream.status, data);
+      console.warn("[briefing/generate] upstream error", upstream.status, data);
       return NextResponse.json(data, { status: upstream.status });
     }
 
     return NextResponse.json(data);
   } catch (e) {
-    console.error("[briefing/generate] fetch error", e);
+    console.warn("[briefing/generate] fetch error", e);
     return NextResponse.json({ error: "upstream failed" }, { status: 502 });
   } finally {
     clearTimeout(timeout);

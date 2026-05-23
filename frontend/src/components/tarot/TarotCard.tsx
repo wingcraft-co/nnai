@@ -90,6 +90,27 @@ function CompassRose({ diameter, active }: { diameter: number; active: boolean }
   );
 }
 
+function CityTitle({ title }: { title: string }) {
+  const parenIndex = title.indexOf("(");
+  if (parenIndex <= 0) {
+    return <>{title}</>;
+  }
+
+  const main = title.slice(0, parenIndex).trimEnd();
+  const detail = title.slice(parenIndex).trimStart();
+  if (!main || !detail) {
+    return <>{title}</>;
+  }
+
+  return (
+    <>
+      {main}
+      <br aria-hidden="true" />
+      {detail}
+    </>
+  );
+}
+
 // ── Back Face ─────────────────────────────────────────────────────
 
 function BackFace({ isSelected, size }: { isSelected: boolean; size: CardSize }) {
@@ -184,7 +205,7 @@ function FrontFace({
           className="font-serif font-bold text-center leading-tight mt-1.5"
           style={{ fontSize: cfg.cityKr, color: "var(--foreground)" }}
         >
-          {cityData.city_kr}
+          <CityTitle title={cityData.city_kr} />
         </p>
         <p
           className="font-mono text-center leading-tight mt-0.5"
