@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { NomadJourneyModal } from "@/components/journey/NomadJourneyModal";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 import { DEV_PREVIEW_PAYLOAD, type DevPreviewPlan } from "@/lib/dev-preview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
+import { readLibraryCards } from "@/lib/library-storage";
 import { isDebugMode } from "@/lib/runtime-locale.mjs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -21,6 +23,8 @@ const fadeUp = (delay: number) => ({
 export default function Home() {
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forceHome = searchParams?.get("nav") === "home";
   const [checking, setChecking] = useState(true);
   const [journeyOpen, setJourneyOpen] = useState(false);
   const isEn = locale === "en";
@@ -55,32 +59,50 @@ export default function Home() {
       };
 
   useEffect(() => {
-    if (!DASHBOARD_FEATURE_ENABLED) {
-      setChecking(false);
-      return;
-    }
+    let cancelled = false;
 
-    async function checkPlan() {
+    async function run() {
       try {
-        const response = await fetch(`${API_BASE}/api/dashboard`, {
-          cache: "no-store",
-          credentials: "include",
-        });
-        if (response.ok) {
-          const payload = await response.json();
-          if (payload.plan) {
-            router.replace("/dashboard");
-            return;
+        if (DASHBOARD_FEATURE_ENABLED && !forceHome) {
+          const dashboardResponse = await fetch(`${API_BASE}/api/dashboard`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+          if (!cancelled && dashboardResponse.ok) {
+            const payload = await dashboardResponse.json();
+            if (payload.plan) {
+              router.replace("/dashboard");
+              return;
+            }
+          }
+        }
+
+        if (!forceHome) {
+          const authResponse = await fetch(`${API_BASE}/auth/me`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+          if (cancelled) return;
+          if (authResponse.ok) {
+            const payload = await authResponse.json().catch(() => null);
+            if (payload?.logged_in && readLibraryCards().length > 0) {
+              router.replace("/library");
+              return;
+            }
           }
         }
       } catch {
         // ignore errors, show landing
       } finally {
-        setChecking(false);
+        if (!cancelled) setChecking(false);
       }
     }
-    checkPlan();
-  }, [router]);
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, forceHome]);
 
   if (checking) {
     return (

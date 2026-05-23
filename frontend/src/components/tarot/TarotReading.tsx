@@ -3,29 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CityData } from "./types";
-
-const FLAG_EMOJI: Record<string, string> = {
-  AD: "\u{1F1E6}\u{1F1E9}", AE: "\u{1F1E6}\u{1F1EA}", AR: "\u{1F1E6}\u{1F1F7}",
-  AT: "\u{1F1E6}\u{1F1F9}", AU: "\u{1F1E6}\u{1F1FA}", BE: "\u{1F1E7}\u{1F1EA}",
-  BG: "\u{1F1E7}\u{1F1EC}", BR: "\u{1F1E7}\u{1F1F7}", CA: "\u{1F1E8}\u{1F1E6}",
-  CH: "\u{1F1E8}\u{1F1ED}", CL: "\u{1F1E8}\u{1F1F1}", CN: "\u{1F1E8}\u{1F1F3}",
-  CO: "\u{1F1E8}\u{1F1F4}", CR: "\u{1F1E8}\u{1F1F7}", CY: "\u{1F1E8}\u{1F1FE}",
-  CZ: "\u{1F1E8}\u{1F1FF}", DE: "\u{1F1E9}\u{1F1EA}", DK: "\u{1F1E9}\u{1F1F0}",
-  EC: "\u{1F1EA}\u{1F1E8}", EE: "\u{1F1EA}\u{1F1EA}", EG: "\u{1F1EA}\u{1F1EC}",
-  ES: "\u{1F1EA}\u{1F1F8}", FI: "\u{1F1EB}\u{1F1EE}", FR: "\u{1F1EB}\u{1F1F7}",
-  GB: "\u{1F1EC}\u{1F1E7}", GE: "\u{1F1EC}\u{1F1EA}", GR: "\u{1F1EC}\u{1F1F7}",
-  HR: "\u{1F1ED}\u{1F1F7}", HU: "\u{1F1ED}\u{1F1FA}", ID: "\u{1F1EE}\u{1F1E9}",
-  IE: "\u{1F1EE}\u{1F1EA}", IL: "\u{1F1EE}\u{1F1F1}", IN: "\u{1F1EE}\u{1F1F3}",
-  IS: "\u{1F1EE}\u{1F1F8}", IT: "\u{1F1EE}\u{1F1F9}", JP: "\u{1F1EF}\u{1F1F5}",
-  KH: "\u{1F1F0}\u{1F1ED}", KR: "\u{1F1F0}\u{1F1F7}", MX: "\u{1F1F2}\u{1F1FD}",
-  MY: "\u{1F1F2}\u{1F1FE}", NL: "\u{1F1F3}\u{1F1F1}", NO: "\u{1F1F3}\u{1F1F4}",
-  NZ: "\u{1F1F3}\u{1F1FF}", PA: "\u{1F1F5}\u{1F1E6}", PE: "\u{1F1F5}\u{1F1EA}",
-  PH: "\u{1F1F5}\u{1F1ED}", PL: "\u{1F1F5}\u{1F1F1}", PT: "\u{1F1F5}\u{1F1F9}",
-  RO: "\u{1F1F7}\u{1F1F4}", RS: "\u{1F1F7}\u{1F1F8}", SE: "\u{1F1F8}\u{1F1EA}",
-  SG: "\u{1F1F8}\u{1F1EC}", TH: "\u{1F1F9}\u{1F1ED}", TR: "\u{1F1F9}\u{1F1F7}",
-  TW: "\u{1F1F9}\u{1F1FC}", UA: "\u{1F1FA}\u{1F1E6}", US: "\u{1F1FA}\u{1F1F8}",
-  UY: "\u{1F1FA}\u{1F1FE}", VN: "\u{1F1FB}\u{1F1F3}", ZA: "\u{1F1FF}\u{1F1E6}",
-};
+import { countryFlagEmoji } from "@/lib/country-flag";
 
 const USD_TO_KRW = 1400;
 function toKRW(usd: number): string {
@@ -76,7 +54,7 @@ function CityReading({
   onNext: () => void;
   isLast: boolean;
 }) {
-  const flag = FLAG_EMOJI[city.country_id] ?? "\u{1F30D}";
+  const flag = countryFlagEmoji(city.country_id);
   const readingText = city.reading_text ?? "";
   const { displayed, done } = useTypingEffect(readingText, 50);
 

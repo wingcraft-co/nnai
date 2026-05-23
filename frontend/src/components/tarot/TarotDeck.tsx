@@ -23,6 +23,7 @@ import {
   trackResultCardInteraction,
 } from "@/lib/analytics/events";
 import { readDevPreview, appendDevPreviewQuery } from "@/lib/dev-preview";
+import { countryFlagEmoji } from "@/lib/country-flag";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 const PENDING_LOGIN_CITY_KEY = "pending_login_city_id";
@@ -81,22 +82,6 @@ function CityTitle({ title }: { title: string }) {
 // ── Stage type ────────────────────────────────────────────────────
 
 export type DeckStage = "selecting" | "revealing" | "done";
-
-// ── Helpers ───────────────────────────────────────────────────────
-
-const FLAG_EMOJI: Record<string, string> = {
-  AD:"🇦🇩",AE:"🇦🇪",AL:"🇦🇱",AR:"🇦🇷",AT:"🇦🇹",AU:"🇦🇺",
-  BE:"🇧🇪",BG:"🇧🇬",BR:"🇧🇷",CA:"🇨🇦",CH:"🇨🇭",CL:"🇨🇱",
-  CN:"🇨🇳",CO:"🇨🇴",CR:"🇨🇷",CY:"🇨🇾",CZ:"🇨🇿",DE:"🇩🇪",
-  DK:"🇩🇰",EE:"🇪🇪",EG:"🇪🇬",ES:"🇪🇸",FI:"🇫🇮",FR:"🇫🇷",
-  GB:"🇬🇧",GE:"🇬🇪",GR:"🇬🇷",HR:"🇭🇷",HU:"🇭🇺",ID:"🇮🇩",
-  IE:"🇮🇪",IL:"🇮🇱",IN:"🇮🇳",IS:"🇮🇸",IT:"🇮🇹",JP:"🇯🇵",
-  KH:"🇰🇭",KR:"🇰🇷",MA:"🇲🇦",MK:"🇲🇰",MT:"🇲🇹",MX:"🇲🇽",
-  MY:"🇲🇾",NL:"🇳🇱",NO:"🇳🇴",NZ:"🇳🇿",PA:"🇵🇦",PE:"🇵🇪",
-  PH:"🇵🇭",PL:"🇵🇱",PT:"🇵🇹",RO:"🇷🇴",RS:"🇷🇸",SE:"🇸🇪",
-  SG:"🇸🇬",SI:"🇸🇮",TH:"🇹🇭",TR:"🇹🇷",TW:"🇹🇼",UA:"🇺🇦",
-  US:"🇺🇸",UY:"🇺🇾",VN:"🇻🇳",ZA:"🇿🇦",
-};
 
 // ── Personalized insight (ko only) ────────────────────────────────
 
@@ -308,7 +293,7 @@ function LightboxFrontContent({
   locale: string;
   krwRate: number;
 }) {
-  const flag = FLAG_EMOJI[city.country_id] ?? "🌍";
+  const flag = countryFlagEmoji(city.country_id);
   const monthly = formatMonthly(city.monthly_cost_usd, locale, krwRate);
   const visa = formatVisa(city.visa_free_days, locale);
   const internet = formatInternet(city.internet_mbps);
@@ -779,6 +764,7 @@ interface TarotDeckProps {
   onToggleSelect: (index: number) => void;
   onConfirm: () => void;
   onRetry: () => void;
+  retryLabel?: string;
   isLoading: boolean;
 }
 
@@ -793,6 +779,7 @@ export default function TarotDeck({
   onToggleSelect,
   onConfirm,
   onRetry,
+  retryLabel = "처음부터 다시하기",
   isLoading,
 }: TarotDeckProps) {
   const count = cities.length;
@@ -985,7 +972,7 @@ export default function TarotDeck({
               className="cursor-pointer text-xs transition-colors"
               style={{ color: "var(--muted-foreground)" }}
             >
-              처음부터 다시하기
+              {retryLabel}
             </button>
           </div>
         </motion.div>

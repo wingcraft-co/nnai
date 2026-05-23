@@ -27,3 +27,9 @@
 - 타로 결과 lightbox의 "Google로 계속하기" 버튼 OAuth 버그 수정: `return_to`를 현재 result 페이지 URL로 변경하고, `pending_login_city_id`를 sessionStorage에 저장 후 OAuth 복귀 시 lightbox 자동 복원.
 - `TarotDeck.tsx`에 OAuth 복귀 후 lightbox 재오픈 useEffect 추가 — 로그인 완료 후 선택했던 도시 카드로 자동으로 돌아옴.
 - 유료 Step 2 보고서 강화 제안서(`cowork/marketing/paid-report-enhancement.md`) 작성 — 설문 입력이 보고서 섹션에 1:1로 호명되도록 10개 카테고리(A~J) 제안, 무료/유료 분기 표·출력 스키마 확장안·구현 우선순위 포함.
+
+## 2026-05-24
+- 보관함 카드 REPORT/CARD/LOCKED 카테고리화 + 헤더에 카운트 표시, 한글 도시명 음절 중간 줄바꿈 방지(`break-keep`).
+- 가이드 구매 후 보관함의 CARD가 REPORT로 승격되도록 `mergeLibraryCards` 수정, 회귀 테스트 추가.
+- 보관함→guide 진입 시 `?from=library` 분기 처리(뒤로가기 라벨/목적지). 라이브러리에서 진입할 때 세션 revealedCities[0]로 잘못 fallback되던 버그 수정.
+- 국기 이모지 lookup 테이블 3종(`TarotDeck`, `TarotReading`, `TarotCard`) 통합 → ISO-2 Regional Indicator 기반 `@/lib/country-flag` 유틸로 일원화 (PY 등 누락 국가가 🌍로 표시되던 문제 해결).

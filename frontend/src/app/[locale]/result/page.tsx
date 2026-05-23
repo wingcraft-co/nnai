@@ -70,6 +70,30 @@ export default function ResultPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
+  const [travelOnlyRetry, setTravelOnlyRetry] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function detect() {
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (cancelled || !response.ok) return;
+        const payload = await response.json().catch(() => null);
+        const loggedIn = Boolean(payload?.logged_in);
+        const hasPersona = Boolean(localStorage.getItem("persona_type"));
+        if (!cancelled) setTravelOnlyRetry(loggedIn && hasPersona);
+      } catch {
+        // ignore
+      }
+    }
+    detect();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ── Save session ────────────────────────────────────────────────
 
@@ -326,10 +350,18 @@ export default function ResultPage() {
     localStorage.removeItem(SESSION_V2_KEY);
     localStorage.removeItem(TAROT_SESSION_KEY);
     localStorage.removeItem(RECOMMEND_PAYLOAD_KEY);
+
+    if (travelOnlyRetry) {
+      router.push("/onboarding/form");
+      return;
+    }
+
     localStorage.removeItem("persona_type");
     clearOnboardingQuizDraft(localStorage);
     router.push("/onboarding/quiz");
   }
+
+  const retryLabel = travelOnlyRetry ? "여행 유형 다시 고르기" : "처음부터 다시하기";
 
   // ── Render ──────────────────────────────────────────────────────
 
@@ -348,7 +380,7 @@ export default function ResultPage() {
                 카드 펼치기
               </button>
               <button type="button" onClick={handleRetry} className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
-                처음부터 다시하기
+                {retryLabel}
               </button>
             </>
           ) : (
@@ -394,6 +426,7 @@ export default function ResultPage() {
             onToggleSelect={toggleSelect}
             onConfirm={handleConfirm}
             onRetry={handleRetry}
+            retryLabel={retryLabel}
             isLoading={isLoading}
           />
         </div>

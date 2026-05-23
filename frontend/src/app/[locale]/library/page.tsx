@@ -10,6 +10,7 @@ import type { CityData } from "@/components/tarot/types";
 import cityScoresData from "@/data/city_scores.json";
 import type { BriefingData } from "@/lib/briefing-data";
 import { briefingFromMarkdownWithFallback, briefingToMarkdown } from "@/lib/briefing-markdown";
+import { countryFlagEmoji } from "@/lib/country-flag";
 import { buildGuideExportFilename } from "@/lib/guide-export.mjs";
 import {
   buildLibraryDisplayCards,
@@ -84,14 +85,6 @@ function guideBriefing(card: LibraryCard): BriefingData | null {
 
 function cityExportLabel(card: LibraryCard): string {
   return card.city || card.city_kr || "guide";
-}
-
-function countryFlagEmoji(countryId: string): string {
-  const code = countryId.trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return "🌍";
-  return Array.from(code)
-    .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
-    .join("");
 }
 
 function normalizeLibraryCityId(value: string): string {
@@ -325,16 +318,12 @@ export default function LibraryPage() {
     tipComparePrefix: isKorean ? "구매한 보고서들은" : "Purchased reports can be compared with",
     tipCompareSuffix: isKorean ? "버튼을 사용해 비교가 가능합니다." : "button.",
     compareIconLabel: isKorean ? "비교 아이콘 예시" : "Compare icon example",
-    temporaryCopy: isKorean
-      ? "비로그인 임시 카드는 로그인하면 영구 보관됩니다."
-      : "Guest cards become permanent after login.",
     empty: isKorean
       ? "아직 보관된 도시 카드가 없습니다."
       : "No saved city cards yet.",
     guideReady: isKorean ? "REPORT" : "REPORT",
     collected: isKorean ? "CARD" : "CARD",
     locked: isKorean ? "LOCKED" : "LOCKED",
-    keepLogin: isKorean ? "로그인하면 영구 보관" : "Log in to keep",
     openGuide: isKorean ? "맞춤 가이드 열기" : "Open guide",
     buyGuide: isKorean ? "가이드 구매" : "Buy guide",
     findCity: isKorean ? "나에게 맞는 도시 찾기" : "Find my city",
@@ -371,15 +360,15 @@ export default function LibraryPage() {
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Link
-              href="/"
+              href={`/${locale}/onboarding/form`}
               className="mb-4 inline-flex shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={isKorean ? "홈으로" : "Home"}
+              aria-label={isKorean ? "도시 추천 받기" : "Get city recommendations"}
             >
               <House className="size-4" />
             </Link>
             <p className="text-xs font-semibold uppercase tracking-normal text-primary">{text.eyebrow}</p>
             <h1 className="mt-2 font-serif text-3xl font-bold">{text.title}</h1>
-            {isLoggedIn ? (
+            {isLoggedIn && (
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
                 <span>{text.tipComparePrefix}</span>
                 <span
@@ -390,10 +379,6 @@ export default function LibraryPage() {
                   <Columns2 className="size-3.5" />
                 </span>
                 <span>{text.tipCompareSuffix}</span>
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                {text.temporaryCopy}
               </p>
             )}
           </div>
@@ -411,7 +396,6 @@ export default function LibraryPage() {
               const isLocked = card.display_status === "locked";
               const showCompareButton = hasGuide && reportCards.length > 1;
               const opacity = isLocked ? 0.48 : calculateTemporaryCardOpacity(card.collected_at, now, isLoggedIn);
-              const isFaded = !isLocked && opacity <= 0.4 && !isLoggedIn;
 
               return (
                 <article
@@ -454,8 +438,8 @@ export default function LibraryPage() {
                       <>
                         <h2 className="line-clamp-3 whitespace-pre-line break-keep font-serif text-base font-bold leading-tight text-foreground">
                           {((card.city_kr || card.city) ?? "").replace(/\s*\(/, "\n(")}
-                          {" "}
-                          <span className="align-baseline text-sm" aria-hidden="true">{countryFlagEmoji(card.country_id)}</span>
+                          {" "}
+                          <span aria-hidden="true">{countryFlagEmoji(card.country_id)}</span>
                         </h2>
                         <p className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
                           {card.city}, {card.country}
@@ -471,11 +455,6 @@ export default function LibraryPage() {
                   )}
 
                   <div className="space-y-2">
-                    {isFaded && (
-                      <p className="rounded border border-border/70 bg-muted/40 px-2 py-1 text-[10px] text-muted-foreground">
-                        {text.keepLogin}
-                      </p>
-                    )}
                     {isLocked ? (
                       <Link
                         href={`/${locale}/onboarding/form`}
