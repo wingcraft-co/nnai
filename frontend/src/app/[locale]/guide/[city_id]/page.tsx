@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useLocale } from "next-intl";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronLeft, Download, Image as ImageIcon, LockKeyhole, MapPinned } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
@@ -20,7 +20,7 @@ import { buildBriefing } from "@/lib/briefing-generator";
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
 import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
-import { unlockLibraryGuide } from "@/lib/library-storage";
+import { readLibraryCards, unlockLibraryGuide, type LibraryCard } from "@/lib/library-storage";
 
 const SESSION_V2_KEY = "result_session_v2";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -93,6 +93,19 @@ function formatDetailQuotaLabel(quota: DetailQuota): string {
 
   const remaining = quota.remaining ?? 0;
   return `무료 상세 가이드 ${quota.used}/${quota.limit ?? 0}회 사용 (${remaining}회 남음)`;
+}
+
+function libraryCardToCity(card: LibraryCard): CityData {
+  return {
+    id: card.guide_city_id ?? card.key,
+    city: card.city,
+    city_kr: card.city_kr ?? null,
+    country: card.country,
+    country_id: card.country_id,
+    visa_type: card.visa_type ?? null,
+    monthly_cost_usd: card.monthly_cost_usd ?? null,
+    score: card.score ?? null,
+  } as CityData;
 }
 
 function buildBriefingRequest(city: CityData, parsedData: Record<string, unknown>) {
@@ -408,7 +421,9 @@ export default function GuidePage() {
   const router = useRouter();
   const locale = useLocale();
   const params = useParams();
+  const searchParams = useSearchParams();
   const cityId = normalizeCityId(params.city_id);
+  const fromLibrary = searchParams?.get("from") === "library";
 
   const [city, setCity] = useState<CityData | null>(null);
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(null);
@@ -434,20 +449,48 @@ export default function GuidePage() {
       setError(null);
       try {
         const raw = localStorage.getItem(SESSION_V2_KEY);
-        if (!raw) {
-          router.replace("/result");
+        const session = raw ? (JSON.parse(raw) as SessionV2) : ({} as SessionV2);
+
+        let selected: CityData | null = null;
+        let baseParsedData: Record<string, unknown> | null = session.parsedData ?? null;
+
+        if (fromLibrary) {
+          const libraryCard = readLibraryCards().find(
+            (card) => normalizeCityId(card.city) === cityId
+          );
+          if (libraryCard) {
+            selected = libraryCardToCity(libraryCard);
+            const profileFromSession =
+              session.parsedData &&
+              typeof session.parsedData === "object" &&
+              session.parsedData._user_profile &&
+              typeof session.parsedData._user_profile === "object"
+                ? session.parsedData._user_profile
+                : { persona_type: "free_spirit", travel_type: "혼자 (솔로)" };
+            baseParsedData = {
+              top_cities: [selected],
+              _user_profile: profileFromSession,
+            };
+          } else {
+            router.replace("/library");
+            return;
+          }
+        } else {
+          if (!raw) {
+            router.replace("/result");
+            return;
+          }
+          selected =
+            session.revealedCities?.find((candidate) => {
+              return normalizeCityId(candidate.id ?? candidate.city) === cityId;
+            }) ?? session.revealedCities?.[0] ?? null;
+        }
+
+        if (!selected || !baseParsedData) {
+          router.replace(fromLibrary ? "/library" : "/result");
           return;
         }
-        const session = JSON.parse(raw) as SessionV2;
-        const selected =
-          session.revealedCities?.find((candidate) => {
-            return normalizeCityId(candidate.id ?? candidate.city) === cityId;
-          }) ?? session.revealedCities?.[0] ?? null;
-        if (!selected || !session.parsedData) {
-          router.replace("/result");
-          return;
-        }
-        const localizedParsedData = withRoutePreferredLanguage(session.parsedData, locale);
+        const localizedParsedData = withRoutePreferredLanguage(baseParsedData, locale);
 
         if (cancelled) return;
         setCity(selected);
@@ -584,7 +627,7 @@ export default function GuidePage() {
     return () => {
       cancelled = true;
     };
-  }, [cityId, locale, router]);
+  }, [cityId, locale, router, fromLibrary]);
 
   async function confirmCity() {
     if (!city || confirming) return;
@@ -641,13 +684,18 @@ export default function GuidePage() {
   }
 
   function backToResult() {
+    if (fromLibrary) {
+      router.push("/library");
+      return;
+    }
+
     try {
       localStorage.setItem(GUIDE_RESULT_RESTORE_KEY, "1");
     } catch {
       // Storage can be unavailable; still navigate back to the result route.
     }
 
-    router.push(`/${locale}/result`);
+    router.push("/result");
   }
 
   return (
@@ -658,7 +706,7 @@ export default function GuidePage() {
         className="fixed left-5 top-6 z-20 inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:left-8"
       >
         <ChevronLeft className="size-4" />
-        결과로 돌아가기
+        {fromLibrary ? "보관함으로 돌아가기" : "결과로 돌아가기"}
       </button>
       <div className="mx-auto w-full max-w-3xl px-5 py-8">
         {loading && (

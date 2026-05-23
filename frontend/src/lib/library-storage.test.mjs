@@ -73,6 +73,29 @@ test("merges duplicate collected cards without losing unlocked guide data", () =
   assert.deepEqual(merged[0].guide_briefing, briefing);
 });
 
+test("promotes an existing collected card to unlocked when a guide is purchased", () => {
+  const existing = {
+    ...toLibraryCard(bangkok, 1000),
+    guide_unlocked: false,
+    guide_markdown: null,
+    guide_briefing: null,
+  };
+  const unlocked = {
+    ...toLibraryCard(bangkok, 5000),
+    guide_unlocked: true,
+    guide_markdown: "# Bangkok guide",
+    guide_briefing: briefing,
+    guide_city_id: "bangkok-th",
+  };
+
+  const merged = mergeLibraryCards([existing], [unlocked]);
+
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].guide_unlocked, true);
+  assert.equal(merged[0].guide_markdown, "# Bangkok guide");
+  assert.deepEqual(merged[0].guide_briefing, briefing);
+});
+
 test("dedupes report and card entries for the same city when legacy keys differ", () => {
   const report = {
     ...toLibraryCard({ ...bangkok, id: "BKK" }, 1000),

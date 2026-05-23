@@ -81,15 +81,22 @@ export function mergeLibraryCards(existing: LibraryCard[], incoming: LibraryCard
   for (const card of incoming) {
     const key = libraryCardKey(card);
     const previous = byKey.get(key);
+    const incomingHasGuide = Boolean(card.guide_unlocked && (card.guide_markdown || card.guide_briefing));
     byKey.set(key, {
       ...previous,
       ...card,
       key,
       collected_at: previous?.collected_at ?? card.collected_at,
-      guide_unlocked: previous?.guide_unlocked ?? card.guide_unlocked,
-      guide_markdown: previous?.guide_markdown ?? card.guide_markdown ?? null,
-      guide_briefing: previous?.guide_briefing ?? card.guide_briefing ?? null,
-      guide_city_id: previous?.guide_city_id ?? card.guide_city_id ?? null,
+      guide_unlocked: Boolean(previous?.guide_unlocked) || Boolean(card.guide_unlocked),
+      guide_markdown: incomingHasGuide
+        ? card.guide_markdown ?? previous?.guide_markdown ?? null
+        : previous?.guide_markdown ?? card.guide_markdown ?? null,
+      guide_briefing: incomingHasGuide
+        ? card.guide_briefing ?? previous?.guide_briefing ?? null
+        : previous?.guide_briefing ?? card.guide_briefing ?? null,
+      guide_city_id: incomingHasGuide
+        ? card.guide_city_id ?? previous?.guide_city_id ?? null
+        : previous?.guide_city_id ?? card.guide_city_id ?? null,
       updated_at: Math.max(previous?.updated_at ?? 0, card.updated_at),
     });
   }

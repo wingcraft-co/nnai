@@ -311,8 +311,14 @@ export default function LibraryPage() {
     () => displayCards.filter((card) => card.display_status === "report"),
     [displayCards]
   );
-  const cardCount = useMemo(() => displayCards.filter((card) => card.display_status === "card").length, [displayCards]);
-  const lockedCount = useMemo(() => displayCards.filter((card) => card.display_status === "locked").length, [displayCards]);
+  const collectedCards = useMemo(
+    () => displayCards.filter((card) => card.display_status === "card"),
+    [displayCards]
+  );
+  const lockedCards = useMemo(
+    () => displayCards.filter((card) => card.display_status === "locked"),
+    [displayCards]
+  );
   const text = {
     eyebrow: isKorean ? "보관함" : "Library",
     title: isKorean ? "내 노마드 카드" : "My Nomad Cards",
@@ -335,6 +341,9 @@ export default function LibraryPage() {
     compare: isKorean ? "비교" : "Compare",
     compareTitle: isKorean ? "맞춤 보고서 비교" : "Compare Reports",
     modalEyebrow: isKorean ? "저장된 맞춤 보고서" : "Saved Custom Report",
+    sectionReports: "REPORTS",
+    sectionCards: "CARDS",
+    sectionLocked: "LOCKED CARDS",
   };
   const modalMarkdown = selectedCard ? guideMarkdown(selectedCard) : null;
   const modalBriefing = selectedCard ? guideBriefing(selectedCard) : null;
@@ -388,9 +397,6 @@ export default function LibraryPage() {
               </p>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            {reportCards.length} reports, {cardCount} cards, {lockedCount} locked cards
-          </p>
         </header>
 
         {displayCards.length === 0 ? (
@@ -398,8 +404,8 @@ export default function LibraryPage() {
             {text.empty}
           </section>
         ) : (
-          <section className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-            {displayCards.map((card) => {
+          (() => {
+            const renderCard = (card: DisplayLibraryCard) => {
               const hasGuide = card.display_status === "report";
               const isCollected = card.display_status === "card";
               const isLocked = card.display_status === "locked";
@@ -446,9 +452,9 @@ export default function LibraryPage() {
                       </div>
                     ) : (
                       <>
-                        <h2 className="line-clamp-3 font-serif text-base font-bold leading-tight text-foreground">
-                          {card.city_kr || card.city}
-                          {"\u00A0"}
+                        <h2 className="line-clamp-3 whitespace-pre-line break-keep font-serif text-base font-bold leading-tight text-foreground">
+                          {((card.city_kr || card.city) ?? "").replace(/\s*\(/, "\n(")}
+                          {" "}
                           <span className="align-baseline text-sm" aria-hidden="true">{countryFlagEmoji(card.country_id)}</span>
                         </h2>
                         <p className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
@@ -479,7 +485,7 @@ export default function LibraryPage() {
                       </Link>
                     ) : isCollected ? (
                       <Link
-                        href={guidePathForLibraryCard(card, locale)}
+                        href={`${guidePathForLibraryCard(card, locale)}?from=library`}
                         className="flex h-8 w-full cursor-pointer items-center justify-center rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                       >
                         {text.buyGuide}
@@ -497,8 +503,33 @@ export default function LibraryPage() {
                   </div>
                 </article>
               );
-            })}
-          </section>
+            };
+
+            const groups: Array<{ key: string; label: string; count: number; cards: DisplayLibraryCard[] }> = [
+              { key: "report", label: text.sectionReports, count: reportCards.length, cards: reportCards },
+              { key: "card", label: text.sectionCards, count: collectedCards.length, cards: collectedCards },
+              { key: "locked", label: text.sectionLocked, count: lockedCards.length, cards: lockedCards },
+            ];
+
+            return (
+              <div className="space-y-8">
+                {groups.map((group) => (
+                  group.cards.length > 0 ? (
+                    <section key={group.key} className="space-y-3">
+                      <header className="border-b border-border/60 pb-2">
+                        <h2 className="text-xs font-semibold uppercase tracking-normal text-primary">
+                          {group.count} {group.label}
+                        </h2>
+                      </header>
+                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+                        {group.cards.map(renderCard)}
+                      </div>
+                    </section>
+                  ) : null
+                ))}
+              </div>
+            );
+          })()
         )}
       </div>
 
