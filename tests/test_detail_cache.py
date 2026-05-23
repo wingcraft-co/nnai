@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from api.detail_cache import build_detail_cache_key, build_detail_quota
 
 
@@ -49,3 +51,14 @@ def test_pro_detail_quota_is_unlimited():
     assert quota["is_unlimited"] is True
     assert quota["limit"] is None
     assert quota["remaining"] is None
+
+
+def test_library_guides_endpoint_reads_saved_detail_cache():
+    server_source = Path("server.py").read_text()
+
+    assert '@app.get("/api/library/guides")' in server_source
+    assert '@app.post("/api/library/guides")' in server_source
+    assert "class LibraryGuideSaveRequest(BaseModel):" in server_source
+    assert '"cache_key": cache_key' in server_source
+    assert 'raise HTTPException(status_code=401, detail="Login required.")' in server_source
+    assert 'return {"guides": list_detail_guide_cache_entries(user_id)}' in server_source

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useLocale } from "next-intl";
 import { useParams } from "next/navigation";
-import { CheckCircle2, ChevronLeft, FileText, Image as ImageIcon, LockKeyhole, MapPinned } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Image as ImageIcon, LockKeyhole, MapPinned, Printer, Save } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
 import { buildGuideExportFilename, markdownToCanvasLines } from "@/lib/guide-export.mjs";
+import { briefingToMarkdown } from "@/lib/briefing-markdown";
 import {
   readDevPreview,
   mockBillingStatus,
@@ -23,6 +24,7 @@ import { unlockLibraryGuide } from "@/lib/library-storage";
 
 const SESSION_V2_KEY = "result_session_v2";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
+const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested";
 
 type BillingStatus = {
   entitlement?: {
@@ -42,6 +44,10 @@ type SessionV2 = {
   revealedCities?: CityData[];
   parsedData?: Record<string, unknown> | null;
   readingMarkdown?: string | null;
+  readingBriefing?: BriefingData | null;
+  readingCityId?: string | null;
+  detailQuota?: DetailQuota | null;
+  billingStatus?: BillingStatus | null;
 };
 
 function isPro(status: BillingStatus | null): boolean {
@@ -82,7 +88,7 @@ function withRoutePreferredLanguage(parsedData: Record<string, unknown>, locale:
 
 function formatDetailQuotaLabel(quota: DetailQuota): string {
   if (quota.is_unlimited) {
-    return "Pro 플랜: 상세 가이드 횟수 제한 없이 사용할 수 있습니다.";
+    return "구매하신 보고서는 프로필의 보관함에서 다시 확인하실 수 있습니다.";
   }
 
   const remaining = quota.remaining ?? 0;
@@ -105,6 +111,31 @@ function buildBriefingRequest(city: CityData, parsedData: Record<string, unknown
     midTermRentUsd: typeof city.mid_term_rent_usd === "number" ? city.mid_term_rent_usd : null,
     coworkUsdMonth: typeof city.cowork_usd_month === "number" ? city.cowork_usd_month : null,
   };
+}
+
+function saveVisibleGuideToServer({
+  cacheKey,
+  markdown,
+  parsedData,
+  cityIndex,
+}: {
+  cacheKey: string | null | undefined;
+  markdown: string;
+  parsedData: Record<string, unknown>;
+  cityIndex: number;
+}) {
+  if (!cacheKey) return;
+  void fetch(`${API_BASE}/api/library/guides`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      cache_key: cacheKey,
+      markdown,
+      parsed_data: parsedData,
+      city_index: cityIndex,
+    }),
+  }).catch(() => undefined);
 }
 
 function ReportDisclaimer() {
@@ -294,9 +325,14 @@ function GuideImagePreview({
 
 const BRIEFING_DOCUMENT_WIDTH = 1080;
 
-function ProBriefingPreview({ data }: { data: BriefingData }) {
+function ProBriefingPreview({
+  data,
+  documentRef,
+}: {
+  data: BriefingData;
+  documentRef: RefObject<HTMLDivElement | null>;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const documentRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState({ scale: 1, height: 0 });
 
   useEffect(() => {
@@ -333,6 +369,84 @@ function ProBriefingPreview({ data }: { data: BriefingData }) {
   );
 }
 
+async function briefingNodeToPngUrl(node: HTMLElement): Promise<string> {
+  if (typeof document !== "undefined" && document.fonts) {
+    await document.fonts.ready;
+  }
+  const { toPng } = await import("html-to-image");
+  return toPng(node, {
+    width: BRIEFING_DOCUMENT_WIDTH,
+    pixelRatio: 2,
+    backgroundColor: "#FAF8F4",
+    cacheBust: true,
+    style: {
+      transform: "none",
+      transformOrigin: "top left",
+    },
+  });
+}
+
+async function downloadBriefingPng(
+  node: HTMLElement | null,
+  cityLabel: string,
+  setExporting: (value: boolean) => void
+) {
+  if (!node) return;
+  setExporting(true);
+  try {
+    const url = await briefingNodeToPngUrl(node);
+    downloadUrl(url, buildGuideExportFilename(cityLabel, "png"));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[GuidePage] briefing png export failed: ${msg}`);
+  } finally {
+    setExporting(false);
+  }
+}
+
+async function printBriefingDocument(
+  node: HTMLElement | null,
+  setPrinting: (value: boolean) => void
+) {
+  if (!node) return;
+  setPrinting(true);
+  try {
+    const url = await briefingNodeToPngUrl(node);
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>NomadNavigator AI Country Briefing</title>
+          <style>
+            @page { margin: 0; }
+            body { margin: 0; background: #FAF8F4; }
+            img { width: 100%; display: block; }
+          </style>
+        </head>
+        <body>
+          <img src="${url}" alt="NomadNavigator AI Country Briefing" />
+          <script>
+            window.onload = () => {
+              window.focus();
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[GuidePage] briefing print failed: ${msg}`);
+  } finally {
+    setPrinting(false);
+  }
+}
+
 export default function GuidePage() {
   const router = useRouter();
   const locale = useLocale();
@@ -350,6 +464,9 @@ export default function GuidePage() {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
+  const briefingDocumentRef = useRef<HTMLDivElement>(null);
+  const [exportingBriefingPng, setExportingBriefingPng] = useState(false);
+  const [printingBriefing, setPrintingBriefing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -380,6 +497,26 @@ export default function GuidePage() {
         setCity(selected);
         setParsedData(localizedParsedData);
 
+        const restoredCityId = normalizeCityId(session.readingCityId ?? selected.id ?? selected.city);
+        if (
+          session.readingMarkdown &&
+          session.readingBriefing &&
+          restoredCityId === cityId
+        ) {
+          const restoredQuota = session.detailQuota ?? null;
+          setMarkdown(session.readingMarkdown);
+          setBriefing(session.readingBriefing);
+          setDetailQuota(restoredQuota);
+          setQuotaExceeded(false);
+          setBillingStatus(
+            session.billingStatus ??
+              (restoredQuota?.is_unlimited
+                ? { entitlement: { plan_tier: "pro", status: "active" } }
+                : null)
+          );
+          return;
+        }
+
         // Dev preview 단축 — 백엔드 호출 우회, Country Briefing mock 데이터 주입
         const devPreview = readDevPreview();
         if (devPreview.enabled) {
@@ -388,16 +525,21 @@ export default function GuidePage() {
           setMarkdown(mockDetailMarkdown(selected.city_kr ?? "", selected.city ?? ""));
           setQuotaExceeded(false);
           const generated = await buildBriefing(buildBriefingRequest(selected, localizedParsedData));
-          if (!cancelled) setBriefing(generated);
+          if (!cancelled) {
+            setBriefing(generated);
+            unlockLibraryGuide(selected, briefingToMarkdown(generated));
+          }
           return;
         }
 
+        let currentBillingStatus: BillingStatus | null = null;
         const statusResponse = await fetch(`${API_BASE}/api/billing/status`, {
           cache: "no-store",
           credentials: "include",
         });
         if (!cancelled && statusResponse.ok) {
-          setBillingStatus((await statusResponse.json()) as BillingStatus);
+          currentBillingStatus = (await statusResponse.json()) as BillingStatus;
+          setBillingStatus(currentBillingStatus);
         }
 
         const selectedCityIndex = findCityIndex(localizedParsedData, selected);
@@ -413,6 +555,7 @@ export default function GuidePage() {
         const detail = (await detailResponse.json().catch(() => ({}))) as {
           markdown?: string;
           quota?: DetailQuota;
+          cache_key?: string;
         };
         if (detailResponse.status === 402 && detail.quota) {
           if (!cancelled) {
@@ -429,7 +572,6 @@ export default function GuidePage() {
           setMarkdown(detail.markdown);
           setDetailQuota(detail.quota ?? null);
           setQuotaExceeded(false);
-          unlockLibraryGuide(selected, detail.markdown);
           localStorage.setItem(
             SESSION_V2_KEY,
             JSON.stringify({
@@ -442,7 +584,30 @@ export default function GuidePage() {
           setBriefingLoading(true);
           void buildBriefing(buildBriefingRequest(selected, localizedParsedData))
             .then((generated) => {
-              if (!cancelled) setBriefing(generated);
+              if (!cancelled) {
+                setBriefing(generated);
+                const visibleMarkdown = briefingToMarkdown(generated);
+                unlockLibraryGuide(selected, visibleMarkdown);
+                localStorage.setItem(
+                  SESSION_V2_KEY,
+                  JSON.stringify({
+                    ...session,
+                    parsedData: localizedParsedData,
+                    readingMarkdown: visibleMarkdown,
+                    readingBriefing: generated,
+                    readingCityId: selected.id ?? selected.city,
+                    readingCityIndex: selectedCityIndex,
+                    detailQuota: detail.quota ?? null,
+                    billingStatus: currentBillingStatus,
+                  })
+                );
+                saveVisibleGuideToServer({
+                  cacheKey: detail.cache_key,
+                  markdown: visibleMarkdown,
+                  parsedData: localizedParsedData,
+                  cityIndex: selectedCityIndex,
+                });
+              }
             })
             .catch((err: unknown) => {
               const msg = err instanceof Error ? err.message : String(err);
@@ -511,23 +676,19 @@ export default function GuidePage() {
   }
 
   function downloadMarkdown() {
-    if (!markdown) return;
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const source = briefing ? briefingToMarkdown(briefing) : markdown;
+    if (!source) return;
+    const blob = new Blob([source], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     downloadUrl(url, buildGuideExportFilename(cityExportLabel(), "md"));
     URL.revokeObjectURL(url);
   }
 
-  function downloadPng() {
-    if (!markdown || !city) return;
-    const url = renderGuidePngDataUrl(markdown, `${city.city_kr || city.city} 맞춤 가이드`, false);
-    downloadUrl(url, buildGuideExportFilename(cityExportLabel(), "png"));
-  }
-
   function backToResult() {
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
+    try {
+      localStorage.setItem(GUIDE_RESULT_RESTORE_KEY, "1");
+    } catch {
+      // Storage can be unavailable; still navigate back to the result route.
     }
 
     router.push(`/${locale}/result`);
@@ -602,18 +763,52 @@ export default function GuidePage() {
             )}
 
             {detailQuota && (
-              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-                {formatDetailQuotaLabel(detailQuota)}
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                <span>{formatDetailQuotaLabel(detailQuota)}</span>
+                {isPro(billingStatus) && briefing && (
+                  <div className="-mr-1 flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => void downloadBriefingPng(
+                        briefingDocumentRef.current,
+                        cityExportLabel(),
+                        setExportingBriefingPng
+                      )}
+                      disabled={exportingBriefingPng}
+                      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label="PNG로 저장"
+                      title="PNG로 저장"
+                    >
+                      <ImageIcon className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadMarkdown}
+                      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label="MD로 저장"
+                      title="MD로 저장"
+                    >
+                      <Save className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void printBriefingDocument(briefingDocumentRef.current, setPrintingBriefing)}
+                      disabled={printingBriefing}
+                      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label="프린트"
+                      title="프린트"
+                    >
+                      <Printer className="size-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
             {briefing ? (
               isPro(billingStatus) ? (
-                <article className="overflow-hidden rounded-lg border border-border bg-[#FAF8F4]">
-                  <div className="flex flex-col gap-2 border-b border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-muted-foreground">Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다.</p>
-                  </div>
-                  <ProBriefingPreview data={briefing} />
+                <article className="overflow-hidden rounded-lg bg-[#FAF8F4]">
+                  <ProBriefingPreview data={briefing} documentRef={briefingDocumentRef} />
                 </article>
               ) : (
                 <section className="space-y-3">
@@ -628,27 +823,6 @@ export default function GuidePage() {
               </div>
             ) : isPro(billingStatus) ? (
               <article className="rounded-lg border border-border bg-card p-5">
-                <div className="mb-4 flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={downloadPng}
-                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs hover:bg-muted"
-                    >
-                      <ImageIcon className="size-4" />
-                      PNG로 저장
-                    </button>
-                    <button
-                      type="button"
-                      onClick={downloadMarkdown}
-                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs hover:bg-muted"
-                    >
-                      <FileText className="size-4" />
-                      MD로 저장
-                    </button>
-                  </div>
-                </div>
                 <MarkdownBlock markdown={markdown} />
               </article>
             ) : (

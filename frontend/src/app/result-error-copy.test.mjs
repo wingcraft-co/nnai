@@ -10,6 +10,7 @@ const source = readFileSync(join(__dirname, "[locale]", "result", "page.tsx"), "
 const guideSource = readFileSync(join(__dirname, "[locale]", "guide", "[city_id]", "page.tsx"), "utf8");
 const homeSource = readFileSync(join(__dirname, "[locale]", "page.tsx"), "utf8");
 const dashboardSource = readFileSync(join(__dirname, "[locale]", "dashboard", "page.tsx"), "utf8");
+const libraryPageSource = readFileSync(join(__dirname, "[locale]", "library", "page.tsx"), "utf8");
 const featureFlagSource = readFileSync(join(__dirname, "..", "lib", "feature-flags.ts"), "utf8");
 const briefingSource = readFileSync(join(__dirname, "..", "lib", "briefing-generator.ts"), "utf8");
 const briefingRouteSource = readFileSync(join(__dirname, "api", "briefing", "generate", "route.ts"), "utf8");
@@ -51,6 +52,27 @@ test("completed result restore infers selected cards before rendering done state
   assert.deepEqual(restored?.selectedIndices, [1, 3, 4]);
 });
 
+test("guide result return restores completed cards instead of starting recommendation again", () => {
+  assert.match(guideSource, /const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested"/);
+  assert.match(guideSource, /localStorage\.setItem\(GUIDE_RESULT_RESTORE_KEY, "1"\)/);
+  assert.match(guideSource, /router\.push\(`\/\$\{locale\}\/result`\)/);
+  assert.doesNotMatch(guideSource, /window\.history\.back\(\)/);
+
+  assert.match(source, /const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested"/);
+  assert.match(source, /const shouldRestoreFromGuide = localStorage\.getItem\(GUIDE_RESULT_RESTORE_KEY\) === "1"/);
+  assert.match(source, /if \(shouldRestoreFromGuide\) \{[\s\S]*?if \(restoreCompletedSession\(\)\) return;/);
+  assert.match(source, /const hasNewPayload = !!localStorage\.getItem\(RECOMMEND_PAYLOAD_KEY\)/);
+});
+
+test("guide restores cached briefing when returning from the library", () => {
+  assert.match(guideSource, /readingBriefing\?: BriefingData \| null/);
+  assert.match(guideSource, /session\.readingMarkdown &&\s*session\.readingBriefing/);
+  assert.match(guideSource, /setBriefing\(session\.readingBriefing\)/);
+  assert.match(guideSource, /readingMarkdown: visibleMarkdown/);
+  assert.match(guideSource, /readingBriefing: generated/);
+  assert.match(guideSource, /billingStatus: currentBillingStatus/);
+});
+
 test("guide loading copy says custom report and breathes while generating", () => {
   assert.match(guideSource, /맞춤 보고서를 생성하고 있어요\.\.\./);
   assert.match(guideSource, /animate-pulse/);
@@ -88,8 +110,16 @@ test("free guide notice uses the quota card copy and neutral border style", () =
   assert.doesNotMatch(guideSource, /무료 플랜에서는 Country Briefing이 Wingcraft 워터마크가 포함된 PNG 이미지로 표시됩니다/);
   assert.doesNotMatch(guideSource, /무료 플랜에서는 상세 가이드가 Wingcraft 워터마크가 포함된 PNG 이미지로 표시됩니다/);
   assert.match(guideSource, /function formatDetailQuotaLabel/);
+  assert.match(guideSource, /구매하신 보고서는 프로필의 보관함에서 다시 확인하실 수 있습니다\./);
+  assert.doesNotMatch(guideSource, /Pro 플랜: 상세 가이드 횟수 제한 없이 사용할 수 있습니다\./);
   assert.match(guideSource, /무료 상세 가이드/);
-  assert.match(guideSource, /className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"/);
+  assert.match(guideSource, /className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"/);
+});
+
+test("library loads saved markdown reports from the server for logged in users", () => {
+  assert.match(libraryPageSource, /fetch\(`\$\{API_BASE\}\/api\/library\/guides`, \{ credentials: "include" \}\)/);
+  assert.match(libraryPageSource, /libraryCardsFromServerGuides\(payload\.guides\)/);
+  assert.match(libraryPageSource, /writeLibraryCards\(mergeLibraryCards\(readLibraryCards\(\), serverCards\)\)/);
 });
 
 test("guide ends with a small disclaimer card", () => {
@@ -102,10 +132,28 @@ test("guide ends with a small disclaimer card", () => {
 
 test("pro guide outputs never include watermarks while free previews keep them", () => {
   assert.match(guideSource, /<CountryBriefingDocument data=\{data\} watermark=\{false\} \/>/);
-  assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} \/>/);
+  assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} documentRef=\{briefingDocumentRef\} \/>/);
   assert.match(guideSource, /<BriefingPngPreview data=\{briefing\} watermark=\{true\} \/>/);
-  assert.match(guideSource, /renderGuidePngDataUrl\(markdown, `\$\{city\.city_kr \|\| city\.city\} 맞춤 가이드`, false\)/);
   assert.match(guideSource, /<GuideImagePreview[\s\S]*watermark=\{true\}/);
+});
+
+test("pro guide export controls use icon buttons without explanatory copy", () => {
+  assert.doesNotMatch(guideSource, /Pro 플랜: 워터마크 없이 텍스트와 내보내기를 사용할 수 있습니다\./);
+  assert.match(guideSource, /aria-label="PNG로 저장"/);
+  assert.match(guideSource, /aria-label="MD로 저장"/);
+  assert.match(guideSource, /aria-label="프린트"/);
+  assert.match(guideSource, /<ImageIcon className="size-4" \/>/);
+  assert.match(guideSource, /<Save className="size-4" \/>/);
+  assert.match(guideSource, /<Printer className="size-4" \/>/);
+  assert.doesNotMatch(guideSource, /FileText/);
+  assert.match(guideSource, /async function downloadBriefingPng/);
+  assert.match(guideSource, /async function printBriefingDocument/);
+  assert.match(guideSource, /const \{ toPng \} = await import\("html-to-image"\)/);
+  assert.match(guideSource, /briefingToMarkdown\(briefing\)/);
+  assert.match(guideSource, /unlockLibraryGuide\(selected, briefingToMarkdown\(generated\)\)/);
+  assert.match(guideSource, /function saveVisibleGuideToServer/);
+  assert.match(guideSource, /fetch\(`\$\{API_BASE\}\/api\/library\/guides`/);
+  assert.match(guideSource, /cache_key: cacheKey/);
 });
 
 test("briefing reference urls render as external hyperlinks", () => {
@@ -144,5 +192,5 @@ test("pro briefing preview scales the 1080px document like the free png preview"
   assert.match(guideSource, /new ResizeObserver\(updateLayout\)/);
   assert.match(guideSource, /transform: `scale\(\$\{layout\.scale\}\)`/);
   assert.match(guideSource, /height: layout\.height \|\| undefined/);
-  assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} \/>/);
+  assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} documentRef=\{briefingDocumentRef\} \/>/);
 });

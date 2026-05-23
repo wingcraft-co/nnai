@@ -352,6 +352,7 @@ Content-Type: application/json
 ```json
 {
   "markdown": "## 🏙 리스본 상세 이민 가이드\n### 출국 전 준비사항\n...",
+  "cache_key": "sha256:...",
   "cached": false,
   "quota": {
     "is_unlimited": false,
@@ -388,6 +389,87 @@ pay-as-you-go 월 한도 도달 시에도 `402`를 반환합니다.
 ```json
 {
   "detail": "Too many requests. Please retry later."
+}
+```
+
+---
+
+### GET /api/library/guides
+
+로그인 사용자가 생성했거나 구매한 맞춤 상세 가이드 markdown 목록을 반환합니다. `/api/detail`에서 저장한 `detail_guide_cache` 데이터를 보관함 화면에서 다시 열기 위해 사용합니다.
+
+```http
+GET /api/library/guides
+Cookie: session_id=...
+```
+
+**응답 (200 OK):**
+```json
+{
+  "guides": [
+    {
+      "id": 12,
+      "markdown": "## 쿠알라룸푸르 상세 가이드\n...",
+      "parsed_snapshot": { "...Step 1 parsed_data..." },
+      "city_snapshot": {
+        "city": "Kuala Lumpur",
+        "city_kr": "쿠알라룸푸르",
+        "country": "Malaysia",
+        "country_id": "MY"
+      },
+      "created_at": "2026-05-23 12:00:00+00:00",
+      "updated_at": "2026-05-23 12:00:00+00:00"
+    }
+  ]
+}
+```
+
+**에러 (401):**
+```json
+{
+  "detail": "Login required."
+}
+```
+
+### POST /api/library/guides
+
+로그인 사용자가 실제 화면에서 받은 Country Briefing markdown을 보관함 저장본으로 갱신합니다. 프론트엔드는 `/api/detail` 응답의 `cache_key`를 사용해 같은 `detail_guide_cache` row를 화면용 markdown으로 덮어씁니다.
+
+```http
+POST /api/library/guides
+Cookie: session_id=...
+Content-Type: application/json
+```
+
+**요청 바디:**
+
+```json
+{
+  "cache_key": "sha256:...",
+  "markdown": "# Country Briefing\n...",
+  "parsed_data": { "...Step 1 parsed_data..." },
+  "city_index": 0
+}
+```
+
+**응답 (200 OK):**
+```json
+{
+  "guide": {
+    "id": 12,
+    "markdown": "# Country Briefing\n...",
+    "parsed_snapshot": { "...Step 1 parsed_data..." },
+    "city_snapshot": { "city": "Kuala Lumpur", "country_id": "MY" },
+    "created_at": "2026-05-23 12:00:00+00:00",
+    "updated_at": "2026-05-23 12:05:00+00:00"
+  }
+}
+```
+
+**에러 (401):**
+```json
+{
+  "detail": "Login required."
 }
 ```
 

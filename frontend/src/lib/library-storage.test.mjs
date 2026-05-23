@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   calculateTemporaryCardOpacity,
+  libraryCardsFromServerGuides,
   mergeLibraryCards,
   toLibraryCard,
 } from "./library-storage.ts";
@@ -49,4 +50,22 @@ test("temporary cards fade every 10 seconds and stop at 30 percent opacity", () 
   assert.equal(calculateTemporaryCardOpacity(0, 70_000, false), 0.3);
   assert.equal(calculateTemporaryCardOpacity(0, 120_000, false), 0.3);
   assert.equal(calculateTemporaryCardOpacity(0, 120_000, true), 1);
+});
+
+test("converts server saved markdown guides into unlocked library cards", () => {
+  const [card] = libraryCardsFromServerGuides([
+    {
+      id: 7,
+      markdown: "# Bangkok guide",
+      city_snapshot: bangkok,
+      parsed_snapshot: {},
+      created_at: "2026-05-01T00:00:00+00:00",
+      updated_at: "2026-05-02T00:00:00+00:00",
+    },
+  ], 1000);
+
+  assert.equal(card.key, "bangkok-th");
+  assert.equal(card.guide_unlocked, true);
+  assert.equal(card.guide_markdown, "# Bangkok guide");
+  assert.equal(card.updated_at, Date.parse("2026-05-02T00:00:00+00:00"));
 });

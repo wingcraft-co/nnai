@@ -24,6 +24,7 @@ from utils.db import (
     ensure_database_ready,
     get_billing_entitlement,
     count_detail_guide_cache_entries,
+    list_detail_guide_cache_entries,
     release_thread_connection_transaction,
     release_usage_reservation,
     reserve_payg_usage,
@@ -270,6 +271,13 @@ class DetailRequest(BaseModel):
     city_index: int = 0
 
 
+class LibraryGuideSaveRequest(BaseModel):
+    cache_key: str = Field(max_length=128)
+    markdown: str = Field(min_length=1, max_length=200_000)
+    parsed_data: dict
+    city_index: int = 0
+
+
 @app.post("/api/recommend")
 async def api_recommend(req: RecommendRequest, request: Request):
     user_id, entitlement, access_mode = enforce_endpoint_rate_limit(request, "recommend")
@@ -359,7 +367,7 @@ async def api_detail(req: DetailRequest, request: Request):
         used_count = count_detail_guide_cache_entries(user_id)
         quota = build_detail_quota(effective_plan_tier, used_count)
         if cached:
-            return {"markdown": cached["markdown"], "cached": True, "quota": quota}
+            return {"markdown": cached["markdown"], "cached": True, "quota": quota, "cache_key": cache_key}
         if not quota["is_unlimited"] and quota["remaining"] <= 0:
             return JSONResponse(
                 status_code=402,
@@ -396,12 +404,36 @@ async def api_detail(req: DetailRequest, request: Request):
                 "markdown": markdown,
                 "cached": False,
                 "quota": build_detail_quota(effective_plan_tier, used_count),
+                "cache_key": cache_key,
             }
         return {"markdown": markdown}
     except Exception:
         if reservation_key:
             release_usage_reservation(reservation_key)
         raise
+
+
+@app.get("/api/library/guides")
+async def api_library_guides(request: Request):
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Login required.")
+    return {"guides": list_detail_guide_cache_entries(user_id)}
+
+
+@app.post("/api/library/guides")
+async def api_save_library_guide(req: LibraryGuideSaveRequest, request: Request):
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Login required.")
+    guide = save_detail_guide_cache(
+        user_id=user_id,
+        cache_key=req.cache_key,
+        markdown=req.markdown,
+        parsed_data=req.parsed_data,
+        city_index=req.city_index,
+    )
+    return {"guide": guide}
 
 
 # 직접 실행 시 uvicorn

@@ -24,6 +24,7 @@ import { normalizeCompletedResultSession } from "@/lib/result-session";
 const RECOMMEND_PAYLOAD_KEY = "recommend_payload";
 const RECOMMEND_SERVER_ERROR_MESSAGE = "서버가 불안정합니다.\n잠시 후 다시 시도해주세요.";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
+const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested";
 
 // ── Stage ──────────────────────────────────────────────────────────
 
@@ -181,18 +182,10 @@ export default function ResultPage() {
   // ── Mount: restore or start ──────────────────────────────────────
 
   useEffect(() => {
-    const hasNewPayload = !!localStorage.getItem(RECOMMEND_PAYLOAD_KEY);
+    function restoreCompletedSession(): boolean {
+      const savedStr = localStorage.getItem(SESSION_V2_KEY);
+      if (!savedStr) return false;
 
-    if (hasNewPayload) {
-      localStorage.removeItem(SESSION_V2_KEY);
-      localStorage.removeItem(TAROT_SESSION_KEY);
-      startRecommend();
-      return;
-    }
-
-    // Restore previous session
-    const savedStr = localStorage.getItem(SESSION_V2_KEY);
-    if (savedStr) {
       try {
         const saved = JSON.parse(savedStr) as SessionV2;
         const restored = normalizeCompletedResultSession(saved);
@@ -204,13 +197,33 @@ export default function ResultPage() {
           setParsedData(restored.parsedData);
           setFlippedIndices([0, 1, 2]);
           setStage("done");
-          return;
+          return true;
         }
       } catch {
         // corrupted
       }
+
       localStorage.removeItem(SESSION_V2_KEY);
+      return false;
     }
+
+    const shouldRestoreFromGuide = localStorage.getItem(GUIDE_RESULT_RESTORE_KEY) === "1";
+    if (shouldRestoreFromGuide) {
+      localStorage.removeItem(GUIDE_RESULT_RESTORE_KEY);
+      if (restoreCompletedSession()) return;
+    }
+
+    const hasNewPayload = !!localStorage.getItem(RECOMMEND_PAYLOAD_KEY);
+
+    if (hasNewPayload) {
+      localStorage.removeItem(SESSION_V2_KEY);
+      localStorage.removeItem(TAROT_SESSION_KEY);
+      startRecommend();
+      return;
+    }
+
+    // Restore previous session
+    if (restoreCompletedSession()) return;
 
     // Legacy fallback
     const legacyStr = localStorage.getItem(TAROT_SESSION_KEY);

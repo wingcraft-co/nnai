@@ -19,6 +19,15 @@ export type LibraryCard = {
   guide_city_id?: string | null;
 };
 
+export type LibraryGuideCacheEntry = {
+  id: string | number;
+  markdown: string;
+  parsed_snapshot?: Record<string, unknown> | null;
+  city_snapshot?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 let cachedRawLibraryCards: string | null = null;
 let cachedLibraryCards: LibraryCard[] = [];
 
@@ -74,6 +83,70 @@ export function mergeLibraryCards(existing: LibraryCard[], incoming: LibraryCard
   }
 
   return Array.from(byKey.values()).sort((a, b) => b.updated_at - a.updated_at);
+}
+
+function stringValue(source: Record<string, unknown>, key: string): string | null {
+  const value = source[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function numberValue(source: Record<string, unknown>, key: string): number | null {
+  const value = source[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function firstParsedCity(parsed: Record<string, unknown> | null | undefined): Record<string, unknown> {
+  const cities = Array.isArray(parsed?.top_cities) ? parsed.top_cities : [];
+  const first = cities[0];
+  return first && typeof first === "object" && !Array.isArray(first)
+    ? first as Record<string, unknown>
+    : {};
+}
+
+function timestampFromServer(value: string | null | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function libraryCardsFromServerGuides(
+  guides: LibraryGuideCacheEntry[],
+  fallbackNow = Date.now()
+): LibraryCard[] {
+  return guides.flatMap((guide) => {
+    const citySnapshot = guide.city_snapshot && typeof guide.city_snapshot === "object"
+      ? guide.city_snapshot
+      : {};
+    const parsedCity = firstParsedCity(guide.parsed_snapshot);
+    const cityData = { ...parsedCity, ...citySnapshot };
+    const city = stringValue(cityData, "city");
+    const countryId = stringValue(cityData, "country_id");
+    if (!city || !countryId || !guide.markdown) return [];
+
+    const updatedAt = timestampFromServer(guide.updated_at, fallbackNow);
+    const collectedAt = timestampFromServer(guide.created_at, updatedAt);
+    const key = libraryCardKey({
+      id: stringValue(cityData, "id") ?? undefined,
+      city,
+      country_id: countryId,
+    });
+
+    return [{
+      key,
+      city,
+      city_kr: stringValue(cityData, "city_kr"),
+      country: stringValue(cityData, "country") ?? countryId,
+      country_id: countryId,
+      visa_type: stringValue(cityData, "visa_type"),
+      monthly_cost_usd: numberValue(cityData, "monthly_cost_usd"),
+      score: numberValue(cityData, "score"),
+      collected_at: collectedAt,
+      updated_at: updatedAt,
+      guide_unlocked: true,
+      guide_markdown: guide.markdown,
+      guide_city_id: key,
+    }];
+  });
 }
 
 export function calculateTemporaryCardOpacity(collectedAt: number, now: number, isLoggedIn: boolean): number {

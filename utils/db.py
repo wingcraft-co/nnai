@@ -1069,6 +1069,34 @@ def count_detail_guide_cache_entries(user_id: str) -> int:
     return int(row[0] or 0)
 
 
+def list_detail_guide_cache_entries(user_id: str, limit: int = 50) -> list[dict]:
+    conn = get_conn()
+    safe_limit = max(1, min(limit, 100))
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, markdown, parsed_snapshot, city_snapshot, created_at, updated_at
+            FROM detail_guide_cache
+            WHERE user_id = %s
+            ORDER BY updated_at DESC
+            LIMIT %s
+            """,
+            (user_id, safe_limit),
+        )
+        rows = cur.fetchall()
+    return [
+        {
+            "id": row[0],
+            "markdown": row[1],
+            "parsed_snapshot": row[2] or {},
+            "city_snapshot": row[3] or {},
+            "created_at": str(row[4]),
+            "updated_at": str(row[5]),
+        }
+        for row in rows
+    ]
+
+
 def save_detail_guide_cache(
     *,
     user_id: str,

@@ -6,9 +6,13 @@ import { Download, Printer, X } from "lucide-react";
 
 import {
   calculateTemporaryCardOpacity,
+  libraryCardsFromServerGuides,
+  mergeLibraryCards,
   NOMAD_LIBRARY_CHANGE_EVENT,
   readLibraryCards,
   type LibraryCard,
+  type LibraryGuideCacheEntry,
+  writeLibraryCards,
 } from "@/lib/library-storage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
@@ -16,6 +20,10 @@ const EMPTY_LIBRARY_CARDS: LibraryCard[] = [];
 
 type AuthUser = {
   logged_in: boolean;
+};
+
+type LibraryGuidesResponse = {
+  guides?: LibraryGuideCacheEntry[];
 };
 
 function downloadMarkdown(card: LibraryCard) {
@@ -119,6 +127,25 @@ export default function LibraryPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!auth?.logged_in) return;
+    let cancelled = false;
+
+    fetch(`${API_BASE}/api/library/guides`, { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: LibraryGuidesResponse | null) => {
+        if (cancelled || !Array.isArray(payload?.guides)) return;
+        const serverCards = libraryCardsFromServerGuides(payload.guides);
+        if (!serverCards.length) return;
+        writeLibraryCards(mergeLibraryCards(readLibraryCards(), serverCards));
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth?.logged_in]);
 
   const isLoggedIn = Boolean(auth?.logged_in);
   const guideCount = useMemo(() => cards.filter((card) => card.guide_unlocked).length, [cards]);
