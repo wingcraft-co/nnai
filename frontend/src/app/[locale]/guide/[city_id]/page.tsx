@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useLocale } from "next-intl";
 import { useParams } from "next/navigation";
-import { CheckCircle2, ChevronLeft, Image as ImageIcon, LockKeyhole, MapPinned, Printer, Save } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Download, Image as ImageIcon, LockKeyhole, MapPinned, Printer } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { PolarCheckoutButton } from "@/components/pay/PolarCheckoutButton";
 import type { CityData } from "@/components/tarot/types";
@@ -527,7 +527,7 @@ export default function GuidePage() {
           const generated = await buildBriefing(buildBriefingRequest(selected, localizedParsedData));
           if (!cancelled) {
             setBriefing(generated);
-            unlockLibraryGuide(selected, briefingToMarkdown(generated));
+            unlockLibraryGuide(selected, briefingToMarkdown(generated), Date.now(), generated);
           }
           return;
         }
@@ -587,7 +587,7 @@ export default function GuidePage() {
               if (!cancelled) {
                 setBriefing(generated);
                 const visibleMarkdown = briefingToMarkdown(generated);
-                unlockLibraryGuide(selected, visibleMarkdown);
+                unlockLibraryGuide(selected, visibleMarkdown, Date.now(), generated);
                 localStorage.setItem(
                   SESSION_V2_KEY,
                   JSON.stringify({
@@ -788,7 +788,7 @@ export default function GuidePage() {
                       aria-label="MD로 저장"
                       title="MD로 저장"
                     >
-                      <Save className="size-4" />
+                      <Download className="size-4" />
                     </button>
                     <button
                       type="button"

@@ -6,6 +6,7 @@ import {
   libraryCardsFromServerGuides,
   mergeLibraryCards,
   toLibraryCard,
+  unlockLibraryGuide,
 } from "./library-storage.ts";
 
 const bangkok = {
@@ -17,6 +18,25 @@ const bangkok = {
   visa_type: "Destination Thailand Visa",
   monthly_cost_usd: 1300,
   score: 9,
+};
+
+const briefing = {
+  documentId: "NNAI-TH-20260523-test",
+  issuedDate: "2026-05-23",
+  preparedFor: "Free Spirit",
+  classification: "Personal Briefing",
+  cityName: "Bangkok",
+  cityKr: "방콕",
+  countryOfficial: "Kingdom of Thailand",
+  countryId: "TH",
+  quickFacts: {
+    visa: "DTV",
+    stay: "180 days",
+    monthly: "$1,300",
+    taxResidency: "180 days",
+  },
+  sections: [],
+  references: [],
 };
 
 test("converts a revealed city into a collectible library card", () => {
@@ -35,6 +55,7 @@ test("merges duplicate collected cards without losing unlocked guide data", () =
     guide_unlocked: true,
     guide_markdown: "# Bangkok guide",
     guide_city_id: "bangkok-th",
+    guide_briefing: briefing,
   };
   const merged = mergeLibraryCards([existing], [toLibraryCard(bangkok, 5000)]);
 
@@ -42,6 +63,39 @@ test("merges duplicate collected cards without losing unlocked guide data", () =
   assert.equal(merged[0].collected_at, 1000);
   assert.equal(merged[0].guide_unlocked, true);
   assert.equal(merged[0].guide_markdown, "# Bangkok guide");
+  assert.deepEqual(merged[0].guide_briefing, briefing);
+});
+
+test("stores the formatted briefing snapshot when unlocking a guide", () => {
+  const originalWindow = globalThis.window;
+  const store = new Map();
+  const listeners = [];
+  globalThis.window = {
+    localStorage: {
+      getItem(key) {
+        return store.get(key) ?? null;
+      },
+      setItem(key, value) {
+        store.set(key, value);
+      },
+    },
+    dispatchEvent(event) {
+      listeners.push(event.type);
+    },
+  };
+  globalThis.localStorage = globalThis.window.localStorage;
+
+  try {
+    const [card] = unlockLibraryGuide(bangkok, "# Bangkok guide", 1000, briefing);
+
+    assert.equal(card.guide_unlocked, true);
+    assert.equal(card.guide_markdown, "# Bangkok guide");
+    assert.deepEqual(card.guide_briefing, briefing);
+    assert.equal(listeners.at(-1), "nomad-library-change");
+  } finally {
+    globalThis.window = originalWindow;
+    delete globalThis.localStorage;
+  }
 });
 
 test("temporary cards fade every 10 seconds and stop at 30 percent opacity", () => {

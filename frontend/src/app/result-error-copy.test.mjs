@@ -143,17 +143,36 @@ test("pro guide export controls use icon buttons without explanatory copy", () =
   assert.match(guideSource, /aria-label="MD로 저장"/);
   assert.match(guideSource, /aria-label="프린트"/);
   assert.match(guideSource, /<ImageIcon className="size-4" \/>/);
-  assert.match(guideSource, /<Save className="size-4" \/>/);
+  assert.match(guideSource, /<Download className="size-4" \/>/);
+  assert.doesNotMatch(guideSource, /<Save className="size-4" \/>/);
   assert.match(guideSource, /<Printer className="size-4" \/>/);
   assert.doesNotMatch(guideSource, /FileText/);
   assert.match(guideSource, /async function downloadBriefingPng/);
   assert.match(guideSource, /async function printBriefingDocument/);
   assert.match(guideSource, /const \{ toPng \} = await import\("html-to-image"\)/);
   assert.match(guideSource, /briefingToMarkdown\(briefing\)/);
-  assert.match(guideSource, /unlockLibraryGuide\(selected, briefingToMarkdown\(generated\)\)/);
+  assert.match(guideSource, /unlockLibraryGuide\(selected, briefingToMarkdown\(generated\), Date\.now\(\), generated\)/);
   assert.match(guideSource, /function saveVisibleGuideToServer/);
   assert.match(guideSource, /fetch\(`\$\{API_BASE\}\/api\/library\/guides`/);
   assert.match(guideSource, /cache_key: cacheKey/);
+});
+
+test("library page matches the dark card system and reopens the formatted briefing", () => {
+  assert.match(libraryPageSource, /className="dark min-h-screen[^"]*w-full[^"]*flex-1[^"]*bg-background/);
+  assert.match(libraryPageSource, /aspect-\[2\/3\]/);
+  assert.match(libraryPageSource, /화투/);
+  assert.doesNotMatch(libraryPageSource, /bg-\[#F5F5F7\]/);
+  assert.doesNotMatch(libraryPageSource, /text\.score/);
+  assert.doesNotMatch(libraryPageSource, /text\.monthly/);
+  assert.doesNotMatch(libraryPageSource, /text\.visa/);
+  assert.match(libraryPageSource, /CountryBriefingDocument/);
+  assert.match(libraryPageSource, /function guideBriefing\(card: LibraryCard\)/);
+  assert.match(libraryPageSource, /briefingToMarkdown\([^)]*\.guide_briefing\)/);
+  assert.match(libraryPageSource, /briefingFromMarkdown\(card\.guide_markdown\)/);
+  assert.match(libraryPageSource, /aria-label="PNG로 저장"/);
+  assert.match(libraryPageSource, /aria-label="MD로 저장"/);
+  assert.match(libraryPageSource, /aria-label="프린트"/);
+  assert.match(libraryPageSource, /<Download className="size-4" \/>/);
 });
 
 test("briefing reference urls render as external hyperlinks", () => {

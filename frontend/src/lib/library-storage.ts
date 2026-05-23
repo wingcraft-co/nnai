@@ -1,4 +1,5 @@
 import type { CityData } from "@/components/tarot/types";
+import type { BriefingData } from "@/lib/briefing-data";
 
 export const NOMAD_LIBRARY_KEY = "nomad_library_v1";
 export const NOMAD_LIBRARY_CHANGE_EVENT = "nomad-library-change";
@@ -16,6 +17,7 @@ export type LibraryCard = {
   updated_at: number;
   guide_unlocked: boolean;
   guide_markdown?: string | null;
+  guide_briefing?: BriefingData | null;
   guide_city_id?: string | null;
 };
 
@@ -58,6 +60,7 @@ export function toLibraryCard(city: Partial<CityData> & Pick<CityData, "city" | 
     updated_at: now,
     guide_unlocked: false,
     guide_markdown: null,
+    guide_briefing: null,
     guide_city_id: null,
   };
 }
@@ -77,6 +80,7 @@ export function mergeLibraryCards(existing: LibraryCard[], incoming: LibraryCard
       collected_at: previous?.collected_at ?? card.collected_at,
       guide_unlocked: previous?.guide_unlocked ?? card.guide_unlocked,
       guide_markdown: previous?.guide_markdown ?? card.guide_markdown ?? null,
+      guide_briefing: previous?.guide_briefing ?? card.guide_briefing ?? null,
       guide_city_id: previous?.guide_city_id ?? card.guide_city_id ?? null,
       updated_at: Math.max(previous?.updated_at ?? 0, card.updated_at),
     });
@@ -144,6 +148,7 @@ export function libraryCardsFromServerGuides(
       updated_at: updatedAt,
       guide_unlocked: true,
       guide_markdown: guide.markdown,
+      guide_briefing: null,
       guide_city_id: key,
     }];
   });
@@ -198,11 +203,17 @@ export function collectLibraryCities(cities: CityData[], now = Date.now()): Libr
   return merged;
 }
 
-export function unlockLibraryGuide(city: CityData, markdown: string, now = Date.now()): LibraryCard[] {
+export function unlockLibraryGuide(
+  city: CityData,
+  markdown: string,
+  now = Date.now(),
+  briefing: BriefingData | null = null
+): LibraryCard[] {
   const card = {
     ...toLibraryCard(city, now),
     guide_unlocked: true,
     guide_markdown: markdown,
+    guide_briefing: briefing,
     guide_city_id: libraryCardKey(city),
   };
   const merged = mergeLibraryCards(readLibraryCards(), [card]);
