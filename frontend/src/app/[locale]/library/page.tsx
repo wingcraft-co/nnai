@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Columns2, Download, House, Image as ImageIcon, LockKeyhole, X } from "lucide-react";
 
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
@@ -257,6 +258,22 @@ function ReportPreviewPane({ card }: { card: LibraryCard }) {
 
 export default function LibraryPage() {
   const locale = useLocale();
+  const router = useRouter();
+
+  function handleHomeClick() {
+    let hasPersona = false;
+    try {
+      hasPersona = Boolean(localStorage.getItem("persona_type"));
+    } catch {
+      hasPersona = false;
+    }
+    if (hasPersona) {
+      router.push("/onboarding/form");
+    } else {
+      router.push("/?nav=home");
+    }
+  }
+
   const isKorean = locale === "ko";
   const cards = useSyncExternalStore(
     subscribeLibraryCards,
@@ -383,13 +400,14 @@ export default function LibraryPage() {
       <div className="mx-auto max-w-5xl">
         <header className="mb-8">
           <div>
-            <Link
-              href={`/${locale}?nav=home`}
+            <button
+              type="button"
+              onClick={handleHomeClick}
               className="mb-4 inline-flex shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
               aria-label={isKorean ? "홈으로" : "Go home"}
             >
               <House className="size-4" />
-            </Link>
+            </button>
             <p className="text-xs font-semibold uppercase tracking-normal text-primary">{text.eyebrow}</p>
             <div className="mt-2 flex items-center justify-between gap-4">
               <h1 className="min-w-0 font-serif text-3xl font-bold leading-none">{text.title}</h1>

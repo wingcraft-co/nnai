@@ -104,25 +104,27 @@ export default function Home() {
         if (authResponse.ok) {
           const payload = await authResponse.json().catch(() => null);
           applyLibraryAuthScope(payload);
-          if (payload?.logged_in && readLibraryCards().length > 0) {
-            router.replace("/library");
-            return;
-          }
-          if (payload?.logged_in) {
-            const guidesResponse = await fetchWithTimeout(`${API_BASE}/api/library/guides`, {
-              cache: "no-store",
-              credentials: "include",
-            });
-            if (cancelled) return;
-            if (guidesResponse.ok) {
-              const guidesPayload = await guidesResponse.json().catch(() => null) as LibraryGuidesResponse | null;
-              const serverCards = Array.isArray(guidesPayload?.guides)
-                ? libraryCardsFromServerGuides(guidesPayload.guides)
-                : [];
-              if (serverCards.length > 0) {
-                writeLibraryCards(mergeLibraryCards(readLibraryCards(), serverCards));
-                router.replace("/library");
-                return;
+          if (!forceHome) {
+            if (payload?.logged_in && readLibraryCards().length > 0) {
+              router.replace("/library");
+              return;
+            }
+            if (payload?.logged_in) {
+              const guidesResponse = await fetchWithTimeout(`${API_BASE}/api/library/guides`, {
+                cache: "no-store",
+                credentials: "include",
+              });
+              if (cancelled) return;
+              if (guidesResponse.ok) {
+                const guidesPayload = await guidesResponse.json().catch(() => null) as LibraryGuidesResponse | null;
+                const serverCards = Array.isArray(guidesPayload?.guides)
+                  ? libraryCardsFromServerGuides(guidesPayload.guides)
+                  : [];
+                if (serverCards.length > 0) {
+                  writeLibraryCards(mergeLibraryCards(readLibraryCards(), serverCards));
+                  router.replace("/library");
+                  return;
+                }
               }
             }
           }
