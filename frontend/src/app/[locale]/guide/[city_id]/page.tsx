@@ -676,7 +676,22 @@ export default function GuidePage() {
             });
         }
       } catch {
-        if (!cancelled) setError("상세 가이드를 불러오지 못했습니다. 결과 화면에서 다시 시도해주세요.");
+        if (cancelled) return;
+        // 실패 시 라이브러리 캐시 fallback — 이전에 LLM으로 받은 보고서가 있으면 그걸 보여줌
+        const cachedCard = readLibraryCards().find(
+          (card) =>
+            normalizeCityId(card.guide_city_id ?? card.city) === cityId &&
+            card.guide_unlocked &&
+            (card.guide_markdown || card.guide_briefing)
+        );
+        if (cachedCard?.guide_markdown) {
+          setMarkdown(cachedCard.guide_markdown);
+          if (cachedCard.guide_briefing) setBriefing(cachedCard.guide_briefing);
+          setQuotaExceeded(false);
+          setError(null);
+        } else {
+          setError("상세 가이드를 불러오지 못했습니다.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -771,26 +786,21 @@ export default function GuidePage() {
         {loading && (
           <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
             <p className="animate-pulse">맞춤 보고서를 생성하고 있어요...</p>
-            <div className="flex items-center gap-2">
-              <a
-                href={`/${locale}/guide/${cityId}?retry=1`}
-                className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                다시 시도
-              </a>
-              <a
-                href={`/${locale}/guide/${cityId}?checkout=return`}
-                className="cursor-pointer rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary/20"
-              >
-                구매 페이지로
-              </a>
-            </div>
           </div>
         )}
 
         {!loading && error && (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-            {error}
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
+            <p className="max-w-xs whitespace-pre-line text-center text-sm leading-6 text-red-500/80">
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => setReloadTick((t) => t + 1)}
+              className="cursor-pointer px-6 py-2 text-sm font-medium bg-primary text-primary-foreground"
+            >
+              맞춤 보고서 다시 받기
+            </button>
           </div>
         )}
 

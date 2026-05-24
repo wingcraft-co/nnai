@@ -76,7 +76,18 @@ function legacyGuestLibraryFallback(): string | null {
 export function setLibraryStorageOwner(ownerId: string | null | undefined): void {
   if (typeof window === "undefined") return;
   const nextScope = normalizeLibraryScope(ownerId);
-  if (currentLibraryScope() === nextScope) return;
+  const prevScope = currentLibraryScope();
+  if (prevScope === nextScope) return;
+  // 로그아웃(→ guest)로 전환할 때 게스트/레거시 스코프를 비워서
+  // 직전 로그인 사용자의 보고서 캐시가 게스트 상태에서 노출되지 않도록 한다.
+  if (nextScope === GUEST_LIBRARY_SCOPE && prevScope !== GUEST_LIBRARY_SCOPE) {
+    try {
+      window.localStorage.removeItem(`${NOMAD_LIBRARY_KEY}:${GUEST_LIBRARY_SCOPE}`);
+      window.localStorage.removeItem(NOMAD_LIBRARY_KEY);
+    } catch {
+      // ignore storage failures
+    }
+  }
   window.localStorage.setItem(NOMAD_LIBRARY_SCOPE_KEY, nextScope);
   resetLibraryCardsCache();
   window.dispatchEvent(new Event(NOMAD_LIBRARY_CHANGE_EVENT));
@@ -266,6 +277,10 @@ export function readLibraryCards(): LibraryCard[] {
     const storageKey = currentLibraryStorageKey();
     const raw = localStorage.getItem(storageKey) ?? legacyGuestLibraryFallback();
     if (!raw) {
+      // 이미 같은 빈 스냅샷이면 동일 reference 유지 — useSyncExternalStore 무한 루프 방지
+      if (storageKey === cachedStorageKey && cachedRawLibraryCards === null) {
+        return cachedLibraryCards;
+      }
       cachedStorageKey = storageKey;
       cachedRawLibraryCards = null;
       cachedLibraryCards = [];

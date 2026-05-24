@@ -674,7 +674,7 @@ function LightboxLockedTeaser({
   const label = isEn
     ? `PREMIUM PICK #${orderNumber}`
     : `잠겨진 카드 #${orderNumber}`;
-  const ctaText = isEn ? "Unlock ($1)" : "잠금 해제 ($1)";
+  const ctaText = isEn ? "Unlock" : "잠금 해제";
 
   return (
     <div className="flex-1 min-h-0 flex flex-col items-center justify-between px-6 py-8">
