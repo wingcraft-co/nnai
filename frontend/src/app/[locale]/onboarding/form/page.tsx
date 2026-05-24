@@ -329,7 +329,7 @@ export default function FormPage() {
         {currentStep === 1 ? (
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/?nav=home")}
             className="shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
           >
             <House className="size-4" />

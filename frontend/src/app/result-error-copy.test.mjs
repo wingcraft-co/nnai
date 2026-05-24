@@ -11,6 +11,8 @@ const guideSource = readFileSync(join(__dirname, "[locale]", "guide", "[city_id]
 const homeSource = readFileSync(join(__dirname, "[locale]", "page.tsx"), "utf8");
 const dashboardSource = readFileSync(join(__dirname, "[locale]", "dashboard", "page.tsx"), "utf8");
 const libraryPageSource = readFileSync(join(__dirname, "[locale]", "library", "page.tsx"), "utf8");
+const onboardingFormSource = readFileSync(join(__dirname, "[locale]", "onboarding", "form", "page.tsx"), "utf8");
+const onboardingQuizSource = readFileSync(join(__dirname, "[locale]", "onboarding", "quiz", "page.tsx"), "utf8");
 const featureFlagSource = readFileSync(join(__dirname, "..", "lib", "feature-flags.ts"), "utf8");
 const briefingSource = readFileSync(join(__dirname, "..", "lib", "briefing-generator.ts"), "utf8");
 const briefingRouteSource = readFileSync(join(__dirname, "api", "briefing", "generate", "route.ts"), "utf8");
@@ -177,6 +179,8 @@ test("library page matches the dark card system and reopens the formatted briefi
   assert.match(libraryPageSource, /href="\/"/);
   assert.match(libraryPageSource, /import \{ Columns2, Download, House, Image as ImageIcon, LockKeyhole, X \} from "lucide-react"/);
   assert.match(libraryPageSource, /<House className="size-4" \/>/);
+  assert.match(libraryPageSource, /href=\{`\/\$\{locale\}\?nav=home`\}/);
+  assert.match(libraryPageSource, /aria-label=\{isKorean \? "홈으로" : "Go home"\}/);
   assert.doesNotMatch(libraryPageSource, /<Home className="size-6"/);
   assert.match(libraryPageSource, /\{reportCards\.length\} reports, \{cardCount\} cards, \{lockedCount\} locked cards/);
   assert.doesNotMatch(libraryPageSource, /\{displayCards\.length\} cards · \{guideCount\} reports/);
@@ -216,6 +220,19 @@ test("library page matches the dark card system and reopens the formatted briefi
   assert.match(libraryPageSource, /findCity: isKorean \? "나에게 맞는 도시 찾기" : "Find my city"/);
   assert.doesNotMatch(libraryPageSource, /비교 아이콘 버튼을 사용해 비교가 가능합니다\./);
   assert.doesNotMatch(libraryPageSource, /lockedCard: isKorean \? "잠겨 있음" : "Locked"/);
+});
+
+test("explicit home buttons bypass auto-redirect and force the landing page", () => {
+  assert.match(onboardingFormSource, /onClick=\{\(\) => router\.push\("\/\?nav=home"\)\}/);
+  assert.match(onboardingQuizSource, /onClick=\{\(\) => router\.push\("\/\?nav=home"\)\}/);
+  assert.match(homeSource, /const forceHome = searchParams\?\.get\("nav"\) === "home"/);
+  assert.match(homeSource, /const HOME_PREFLIGHT_TIMEOUT_MS = 1500/);
+  assert.match(homeSource, /controller\.abort\(\)/);
+  assert.match(homeSource, /await fetchWithTimeout\(`\$\{API_BASE\}\/auth\/me`/);
+  assert.match(homeSource, /if \(forceHome\) return;/);
+  assert.doesNotMatch(homeSource, /animate-pulse rounded-full bg-primary\/20/);
+  assert.doesNotMatch(homeSource, /initial: \{ opacity: 0, y: 16 \}/);
+  assert.doesNotMatch(homeSource, /motion\.div/);
 });
 
 test("library page can compare two unlocked reports side by side", () => {
@@ -267,4 +284,10 @@ test("pro briefing preview scales the 1080px document like the free png preview"
   assert.match(guideSource, /transform: `scale\(\$\{layout\.scale\}\)`/);
   assert.match(guideSource, /height: layout\.height \|\| undefined/);
   assert.match(guideSource, /<ProBriefingPreview data=\{briefing\} documentRef=\{briefingDocumentRef\} \/>/);
+});
+
+test("quota exceeded guide screen uses a purchase CTA instead of a free guide CTA", () => {
+  assert.match(guideSource, /무료 상세 가이드 횟수를 모두 사용했습니다\./);
+  assert.match(guideSource, /idleLabel="맞춤 가이드 구매"/);
+  assert.doesNotMatch(guideSource, /idleLabel="맞춤 가이드 받기"/);
 });

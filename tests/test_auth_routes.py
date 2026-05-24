@@ -86,6 +86,12 @@ def test_normalize_return_to_accepts_dev_login_origin():
     assert result == "https://dev.nnai.app/ko/login?source=footer"
 
 
+def test_normalize_return_to_accepts_local_loopback_origin():
+    result = normalize_return_to("http://127.0.0.1:3000/en/library?source=account")
+
+    assert result == "http://127.0.0.1:3000/en/library?source=account"
+
+
 def test_normalize_return_to_rejects_unapproved_origin():
     result = normalize_return_to("https://evil.example/login")
 

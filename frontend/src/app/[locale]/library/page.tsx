@@ -13,6 +13,7 @@ import { briefingFromMarkdownWithFallback, briefingToMarkdown } from "@/lib/brie
 import { countryFlagEmoji } from "@/lib/country-flag";
 import { buildGuideExportFilename } from "@/lib/guide-export.mjs";
 import {
+  applyLibraryAuthScope,
   buildLibraryDisplayCards,
   calculateTemporaryCardOpacity,
   libraryCardsFromServerGuides,
@@ -268,9 +269,11 @@ export default function LibraryPage() {
     fetch(`${API_BASE}/auth/me`, { credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
+        applyLibraryAuthScope(payload);
         if (!cancelled) setAuth({ logged_in: Boolean(payload?.logged_in) });
       })
       .catch(() => {
+        applyLibraryAuthScope(null);
         if (!cancelled) setAuth({ logged_in: false });
       });
 
@@ -360,9 +363,9 @@ export default function LibraryPage() {
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Link
-              href={`/${locale}/onboarding/form`}
+              href={`/${locale}?nav=home`}
               className="mb-4 inline-flex shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={isKorean ? "도시 추천 받기" : "Get city recommendations"}
+              aria-label={isKorean ? "홈으로" : "Go home"}
             >
               <House className="size-4" />
             </Link>

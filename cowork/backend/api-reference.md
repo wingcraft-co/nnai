@@ -49,7 +49,7 @@ GET /auth/google
 
 - `return_to` — 로그인 완료 후 되돌아갈 프론트엔드 URL.
   허용 origin만 받아들이며, 허용되지 않은 값은 서버 기본 `FRONTEND_URL`로 폴백됩니다.
-  예: `https://dev.nnai.app/ko/login`
+  예: `https://dev.nnai.app/ko/login`, `http://localhost:3000/en/library`, `http://127.0.0.1:3000/en/library`
 
 보안 메모:
 - 서버가 OAuth CSRF 방어용 `oauth_state` 쿠키를 발급합니다.
@@ -87,6 +87,7 @@ GET /auth/google/callback?code={code}
 
 프론트엔드 구현 메모:
 - `dev.nnai.app/[locale]/login` 같은 preview/dev 도메인에서도 같은 origin으로 복귀 가능
+- 로컬 개발에서는 `http://localhost:3000`과 `http://127.0.0.1:3000` 모두 post-login return origin으로 허용됩니다.
 - callback 처리 후 `oauth_state`, `oauth_return_to` 쿠키는 삭제됩니다.
 - `nnai_session`에는 프로필 데이터가 아닌 opaque session만 저장됩니다.
 

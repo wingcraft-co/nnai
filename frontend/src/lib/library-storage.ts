@@ -2,6 +2,7 @@ import type { CityData } from "@/components/tarot/types";
 import type { BriefingData } from "@/lib/briefing-data";
 
 export const NOMAD_LIBRARY_KEY = "nomad_library_v1";
+export const NOMAD_LIBRARY_SCOPE_KEY = "nomad_library_scope_v1";
 export const NOMAD_LIBRARY_CHANGE_EVENT = "nomad-library-change";
 
 export type LibraryCard = {
@@ -37,7 +38,53 @@ export type LibraryGuideCacheEntry = {
 };
 
 let cachedRawLibraryCards: string | null = null;
+let cachedStorageKey: string | null = null;
 let cachedLibraryCards: LibraryCard[] = [];
+const GUEST_LIBRARY_SCOPE = "guest";
+
+type LibraryAuthScope = {
+  logged_in?: boolean;
+  uid?: string | null;
+} | null | undefined;
+
+function resetLibraryCardsCache() {
+  cachedRawLibraryCards = null;
+  cachedStorageKey = null;
+  cachedLibraryCards = [];
+}
+
+function normalizeLibraryScope(ownerId: string | null | undefined): string {
+  const normalized = typeof ownerId === "string" ? ownerId.trim() : "";
+  return normalized ? `user:${normalized}` : GUEST_LIBRARY_SCOPE;
+}
+
+function currentLibraryScope(): string {
+  if (typeof window === "undefined") return GUEST_LIBRARY_SCOPE;
+  return window.localStorage.getItem(NOMAD_LIBRARY_SCOPE_KEY) || GUEST_LIBRARY_SCOPE;
+}
+
+function currentLibraryStorageKey(): string {
+  return `${NOMAD_LIBRARY_KEY}:${currentLibraryScope()}`;
+}
+
+function legacyGuestLibraryFallback(): string | null {
+  if (typeof window === "undefined") return null;
+  if (currentLibraryScope() !== GUEST_LIBRARY_SCOPE) return null;
+  return window.localStorage.getItem(NOMAD_LIBRARY_KEY);
+}
+
+export function setLibraryStorageOwner(ownerId: string | null | undefined): void {
+  if (typeof window === "undefined") return;
+  const nextScope = normalizeLibraryScope(ownerId);
+  if (currentLibraryScope() === nextScope) return;
+  window.localStorage.setItem(NOMAD_LIBRARY_SCOPE_KEY, nextScope);
+  resetLibraryCardsCache();
+  window.dispatchEvent(new Event(NOMAD_LIBRARY_CHANGE_EVENT));
+}
+
+export function applyLibraryAuthScope(auth: LibraryAuthScope): void {
+  setLibraryStorageOwner(auth?.logged_in ? auth.uid ?? null : null);
+}
 
 function normalizeKey(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, "-");
@@ -216,35 +263,38 @@ export function calculateTemporaryCardOpacity(collectedAt: number, now: number, 
 export function readLibraryCards(): LibraryCard[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(NOMAD_LIBRARY_KEY);
+    const storageKey = currentLibraryStorageKey();
+    const raw = localStorage.getItem(storageKey) ?? legacyGuestLibraryFallback();
     if (!raw) {
+      cachedStorageKey = storageKey;
       cachedRawLibraryCards = null;
       cachedLibraryCards = [];
       return cachedLibraryCards;
     }
-    if (raw === cachedRawLibraryCards) return cachedLibraryCards;
+    if (storageKey === cachedStorageKey && raw === cachedRawLibraryCards) return cachedLibraryCards;
     const parsed = JSON.parse(raw);
+    cachedStorageKey = storageKey;
     cachedRawLibraryCards = raw;
     cachedLibraryCards = Array.isArray(parsed) ? parsed : [];
     return cachedLibraryCards;
   } catch {
-    cachedRawLibraryCards = null;
-    cachedLibraryCards = [];
+    resetLibraryCardsCache();
     return cachedLibraryCards;
   }
 }
 
 export function writeLibraryCards(cards: LibraryCard[]): void {
   if (typeof window === "undefined") return;
+  const storageKey = currentLibraryStorageKey();
   const serialized = JSON.stringify(cards);
+  cachedStorageKey = storageKey;
   cachedRawLibraryCards = serialized;
   cachedLibraryCards = cards;
   try {
-    localStorage.setItem(NOMAD_LIBRARY_KEY, serialized);
+    localStorage.setItem(storageKey, serialized);
     window.dispatchEvent(new Event(NOMAD_LIBRARY_CHANGE_EVENT));
   } catch {
-    cachedRawLibraryCards = null;
-    cachedLibraryCards = [];
+    resetLibraryCardsCache();
   }
 }
 

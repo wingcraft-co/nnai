@@ -8,6 +8,7 @@ import {
   getLegalLabels,
 } from "@/lib/legal-content.mjs";
 import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
+import { applyLibraryAuthScope } from "@/lib/library-storage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 
@@ -19,11 +20,13 @@ type AuthUser = {
   logged_in: boolean;
   name?: string;
   picture?: string;
+  uid?: string;
 };
 
 export function GoogleLoginPanel({ locale }: GoogleLoginPanelProps) {
   const labels = getLegalLabels(locale);
   const [auth, setAuth] = useState<AuthUser | null>(null);
+  const [currentUrl, setCurrentUrl] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchAuth() {
@@ -32,8 +35,10 @@ export function GoogleLoginPanel({ locale }: GoogleLoginPanelProps) {
           credentials: "include",
         });
         const payload = await response.json();
+        applyLibraryAuthScope(payload);
         setAuth(payload);
       } catch {
+        applyLibraryAuthScope(null);
         setAuth({ logged_in: false });
       }
     }
@@ -41,13 +46,27 @@ export function GoogleLoginPanel({ locale }: GoogleLoginPanelProps) {
     void fetchAuth();
   }, []);
 
-  function startLogin() {
-    markLoginPending();
-    trackLoginClick("google");
-    window.location.assign(buildGoogleLoginUrl(API_BASE, window.location.href));
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, []);
+
+  const loginHref = buildGoogleLoginUrl(API_BASE, currentUrl ?? undefined);
+
+  function trackLoginIntent() {
+    try {
+      markLoginPending();
+    } catch {
+      // Keep OAuth navigation working even if session storage is unavailable.
+    }
+    try {
+      trackLoginClick("google");
+    } catch {
+      // Analytics should never block login.
+    }
   }
 
   function startLogout() {
+    applyLibraryAuthScope(null);
     window.location.assign(buildLogoutUrl(API_BASE, window.location.href));
   }
 
@@ -81,13 +100,13 @@ export function GoogleLoginPanel({ locale }: GoogleLoginPanelProps) {
         ) : (
           <div className="space-y-3">
             <p className="text-sm font-medium text-foreground">{labels.login.loggedOut}</p>
-            <button
-              type="button"
-              onClick={startLogin}
+            <a
+              href={loginHref}
+              onClick={trackLoginIntent}
               className="inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               {labels.login.login}
-            </button>
+            </a>
           </div>
         )}
       </div>

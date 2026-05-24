@@ -816,7 +816,7 @@ export default function GuidePage() {
                 <PolarCheckoutButton
                   locale={locale}
                   returnPath={`/${locale}/guide/${cityId}?checkout=return`}
-                  idleLabel="맞춤 가이드 받기"
+                  idleLabel="맞춤 가이드 구매"
                   loadingLabel="결제 페이지 여는 중..."
                   className="ml-auto flex h-10 cursor-pointer items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 />

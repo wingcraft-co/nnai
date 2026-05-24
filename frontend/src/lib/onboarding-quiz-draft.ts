@@ -48,13 +48,21 @@ export function readOnboardingQuizDraft(storage: StorageLike): OnboardingQuizDra
 }
 
 export function writeOnboardingQuizDraft(storage: StorageLike, draft: OnboardingQuizDraft) {
-  storage.setItem(ONBOARDING_QUIZ_DRAFT_KEY, JSON.stringify(draft));
-  notifyOnboardingDraftUpdated();
+  try {
+    storage.setItem(ONBOARDING_QUIZ_DRAFT_KEY, JSON.stringify(draft));
+    notifyOnboardingDraftUpdated();
+  } catch {
+    // Draft persistence is best-effort; it must not block quiz progression.
+  }
 }
 
 export function clearOnboardingQuizDraft(storage: StorageLike) {
-  storage.removeItem(ONBOARDING_QUIZ_DRAFT_KEY);
-  notifyOnboardingDraftUpdated();
+  try {
+    storage.removeItem(ONBOARDING_QUIZ_DRAFT_KEY);
+    notifyOnboardingDraftUpdated();
+  } catch {
+    // Ignore storage failures during completion or reset.
+  }
 }
 
 function notifyOnboardingDraftUpdated() {

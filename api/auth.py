@@ -70,6 +70,7 @@ def _allowed_return_origins() -> list[str]:
         "https://www.nnai.app",
         "https://dev.nnai.app",
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ]
     unique: list[str] = []
     for origin in [*configured, *defaults]:

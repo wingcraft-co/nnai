@@ -2,13 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyLibraryAuthScope,
   buildLibraryDisplayCards,
   calculateTemporaryCardOpacity,
   libraryCardsFromServerGuides,
   libraryCardKey,
   mergeLibraryCards,
+  readLibraryCards,
+  setLibraryStorageOwner,
   toLibraryCard,
   unlockLibraryGuide,
+  writeLibraryCards,
 } from "./library-storage.ts";
 
 const bangkok = {
@@ -226,4 +230,51 @@ test("converts server saved markdown guides into unlocked library cards", () => 
   assert.equal(card.guide_unlocked, true);
   assert.equal(card.guide_markdown, "# Bangkok guide");
   assert.equal(card.updated_at, Date.parse("2026-05-02T00:00:00+00:00"));
+});
+
+test("keeps library cards isolated per authenticated user", () => {
+  const originalWindow = globalThis.window;
+  const store = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem(key) {
+        return store.get(key) ?? null;
+      },
+      setItem(key, value) {
+        store.set(key, value);
+      },
+      removeItem(key) {
+        store.delete(key);
+      },
+    },
+    dispatchEvent() {},
+  };
+  globalThis.localStorage = globalThis.window.localStorage;
+
+  try {
+    applyLibraryAuthScope({ logged_in: true, uid: "rosiewingit@gmail.com" });
+    writeLibraryCards([toLibraryCard(bangkok, 1000)]);
+
+    applyLibraryAuthScope({ logged_in: true, uid: "casewingit@gmail.com" });
+    assert.deepEqual(readLibraryCards(), []);
+
+    writeLibraryCards([
+      toLibraryCard({
+        id: "lisbon-pt",
+        city: "Lisbon",
+        city_kr: "리스본",
+        country: "Portugal",
+        country_id: "PT",
+      }, 2000),
+    ]);
+
+    applyLibraryAuthScope({ logged_in: true, uid: "rosiewingit@gmail.com" });
+    assert.deepEqual(readLibraryCards().map((card) => card.key), ["bangkok-th"]);
+
+    setLibraryStorageOwner(null);
+    assert.deepEqual(readLibraryCards(), []);
+  } finally {
+    globalThis.window = originalWindow;
+    delete globalThis.localStorage;
+  }
 });

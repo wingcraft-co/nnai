@@ -13,7 +13,7 @@ import {
   trackRecommendSuccess,
   trackResultRevealComplete,
 } from "@/lib/analytics/events";
-import { collectLibraryCities } from "@/lib/library-storage";
+import { applyLibraryAuthScope, collectLibraryCities } from "@/lib/library-storage";
 import { clearServerOnboardingDrafts } from "@/lib/onboarding-draft-sync.mjs";
 import { clearOnboardingFormDraft } from "@/lib/onboarding-form-draft";
 import { clearOnboardingQuizDraft } from "@/lib/onboarding-quiz-draft";
@@ -82,10 +82,12 @@ export default function ResultPage() {
         });
         if (cancelled || !response.ok) return;
         const payload = await response.json().catch(() => null);
+        applyLibraryAuthScope(payload);
         const loggedIn = Boolean(payload?.logged_in);
         const hasPersona = Boolean(localStorage.getItem("persona_type"));
         if (!cancelled) setTravelOnlyRetry(loggedIn && hasPersona);
       } catch {
+        applyLibraryAuthScope(null);
         // ignore
       }
     }

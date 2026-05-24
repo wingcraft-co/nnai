@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
 import { resolveAccountMenuDisplay } from "@/lib/account-menu.mjs";
+import { applyLibraryAuthScope } from "@/lib/library-storage";
 import { syncOnboardingDraftsAfterLogin } from "@/lib/onboarding-draft-sync.mjs";
 import { ONBOARDING_DRAFT_UPDATED_EVENT } from "@/lib/onboarding-form-draft";
 import {
@@ -26,6 +27,7 @@ type AuthUser = {
   logged_in: boolean;
   name?: string | null;
   picture?: string | null;
+  uid?: string | null;
 };
 
 export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccountMenuProps) {
@@ -33,6 +35,7 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
   const labels = getLegalLabels(locale).account;
   const [auth, setAuth] = useState<AuthUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState<string | null>(null);
   const isDarkChrome = shouldUseDarkLegalChrome(pathname);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,9 +55,11 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
           credentials: "include",
         });
         const payload = await response.json();
+        applyLibraryAuthScope(payload);
         if (isMounted) setAuth(payload);
         if (payload?.logged_in) syncOnboardingDrafts();
       } catch {
+        applyLibraryAuthScope(null);
         if (isMounted) setAuth({ logged_in: false });
       }
     }
@@ -85,17 +90,30 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
     };
   }, [auth?.logged_in, syncOnboardingDrafts]);
 
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, []);
+
   const display = resolveAccountMenuDisplay(auth, labels);
   const displayName = display.displayName;
   const initial = displayName.trim().charAt(0).toUpperCase() || "N";
+  const loginHref = buildGoogleLoginUrl(API_BASE, currentUrl ?? undefined);
 
-  function startLogin() {
-    markLoginPending();
-    trackLoginClick("google");
-    window.location.assign(buildGoogleLoginUrl(API_BASE, window.location.href));
+  function trackLoginIntent() {
+    try {
+      markLoginPending();
+    } catch {
+      // Keep OAuth navigation working even if session storage is unavailable.
+    }
+    try {
+      trackLoginClick("google");
+    } catch {
+      // Analytics should never block login.
+    }
   }
 
   function startLogout() {
+    applyLibraryAuthScope(null);
     window.location.assign(buildLogoutUrl(API_BASE, window.location.href));
   }
 
@@ -110,13 +128,13 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
 
   if (!display.isLoggedIn) {
     return (
-      <button
-        type="button"
-        onClick={startLogin}
+      <a
+        href={loginHref}
+        onClick={trackLoginIntent}
         className={`fixed ${positionClass} top-4 z-50 h-9 cursor-pointer bg-transparent px-2 font-serif text-xs transition-colors hover:bg-transparent ${triggerTextClass}`}
       >
         {displayName}
-      </button>
+      </a>
     );
   }
 
@@ -157,7 +175,7 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
           </button>
           <button
             type="button"
-            onClick={display.isLoggedIn ? startLogout : startLogin}
+            onClick={startLogout}
             className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-black/5"
           >
             {display.isLoggedIn && <LogOut className="size-3.5" aria-hidden="true" />}

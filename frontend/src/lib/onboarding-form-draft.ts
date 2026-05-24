@@ -36,13 +36,21 @@ export function readOnboardingFormDraft(storage: StorageLike): OnboardingFormDra
 }
 
 export function writeOnboardingFormDraft(storage: StorageLike, draft: OnboardingFormDraft) {
-  storage.setItem(ONBOARDING_FORM_DRAFT_KEY, JSON.stringify(draft));
-  notifyOnboardingDraftUpdated();
+  try {
+    storage.setItem(ONBOARDING_FORM_DRAFT_KEY, JSON.stringify(draft));
+    notifyOnboardingDraftUpdated();
+  } catch {
+    // Draft persistence is best-effort; it must not block onboarding.
+  }
 }
 
 export function clearOnboardingFormDraft(storage: StorageLike) {
-  storage.removeItem(ONBOARDING_FORM_DRAFT_KEY);
-  notifyOnboardingDraftUpdated();
+  try {
+    storage.removeItem(ONBOARDING_FORM_DRAFT_KEY);
+    notifyOnboardingDraftUpdated();
+  } catch {
+    // Ignore storage failures during completion or reset.
+  }
 }
 
 function notifyOnboardingDraftUpdated() {

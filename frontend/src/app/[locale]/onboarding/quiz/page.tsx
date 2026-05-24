@@ -12,10 +12,15 @@ import { ProgressBar } from "@/components/onboarding/progress-bar";
 import { getOnboardingCopy } from "@/lib/onboarding-content";
 import { clearServerOnboardingQuizDraft } from "@/lib/onboarding-draft-sync.mjs";
 import {
+  buildQuizSelectionDebugPayload,
+  type QuizSelectionDebugInput,
+} from "@/lib/onboarding-quiz-debug";
+import {
   clearOnboardingQuizDraft,
   readOnboardingQuizDraft,
   writeOnboardingQuizDraft,
 } from "@/lib/onboarding-quiz-draft";
+import { isDebugMode } from "@/lib/runtime-locale.mjs";
 import {
   trackFormAbandon,
   trackOnboardingStepDwell,
@@ -23,6 +28,17 @@ import {
 } from "@/lib/analytics/events";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
+const IS_DEBUG = isDebugMode(process.env.NEXT_PUBLIC_DEBUG_MODE);
+
+function logQuizSelectionDebug(input: QuizSelectionDebugInput) {
+  if (!IS_DEBUG) return;
+
+  const payload = buildQuizSelectionDebugPayload(input);
+  console.info(
+    `[NNAI quiz] ${payload.questionNumber}/${payload.totalQuestions} selected #${payload.selectedAnswerIndex}: "${payload.selectedAnswerLabel}" -> ${payload.selectedPersona}, next=${payload.nextQuestionNumber ?? "result"}`,
+    payload
+  );
+}
 
 export default function QuizPage() {
   const locale = useLocale();
@@ -33,12 +49,10 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<PersonaType[]>([]);
   const [answerIndices, setAnswerIndices] = useState<number[]>([]);
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null);
-  const [isAdvancing, setIsAdvancing] = useState(false);
   const previousStepRef = useRef<number | null>(null);
   const stepEnteredAtRef = useRef<number | null>(null);
   const currentStepRef = useRef(1);
   const completedRef = useRef(false);
-  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentQuestion = quizQuestions[currentIndex];
 
@@ -79,9 +93,6 @@ export default function QuizPage() {
 
   useEffect(() => {
     return () => {
-      if (advanceTimerRef.current) {
-        clearTimeout(advanceTimerRef.current);
-      }
       if (completedRef.current) return;
 
       trackOnboardingStepDwell({
@@ -97,13 +108,12 @@ export default function QuizPage() {
   }, []);
 
   function handleSelect(answerIndex: number) {
-    if (isAdvancing) return;
     setSelectedAnswerIndex(answerIndex);
-    setIsAdvancing(true);
 
+    const selectedOption = currentQuestion.options[answerIndex];
     const newAnswers = [
       ...answers.slice(0, currentIndex),
-      currentQuestion.options[answerIndex].persona,
+      selectedOption.persona,
     ];
     const newAnswerIndices = [
       ...answerIndices.slice(0, currentIndex),
@@ -114,17 +124,38 @@ export default function QuizPage() {
 
     if (currentIndex < quizQuestions.length - 1) {
       const nextIndex = currentIndex + 1;
+      logQuizSelectionDebug({
+        locale,
+        currentIndex,
+        totalQuestions: quizQuestions.length,
+        question: currentQuestion.question,
+        selectedAnswerIndex: answerIndex,
+        selectedAnswerLabel: selectedOption.label,
+        selectedPersona: selectedOption.persona,
+        nextIndex,
+        answers: newAnswers,
+        answerIndices: newAnswerIndices,
+      });
       writeOnboardingQuizDraft(localStorage, {
         currentIndex: nextIndex,
         answers: newAnswers,
         answerIndices: newAnswerIndices,
       });
-      advanceTimerRef.current = setTimeout(() => {
-        setCurrentIndex(nextIndex);
-        setSelectedAnswerIndex(newAnswerIndices[nextIndex] ?? null);
-        setIsAdvancing(false);
-      }, 220);
+      setCurrentIndex(nextIndex);
+      setSelectedAnswerIndex(newAnswerIndices[nextIndex] ?? null);
     } else {
+      logQuizSelectionDebug({
+        locale,
+        currentIndex,
+        totalQuestions: quizQuestions.length,
+        question: currentQuestion.question,
+        selectedAnswerIndex: answerIndex,
+        selectedAnswerLabel: selectedOption.label,
+        selectedPersona: selectedOption.persona,
+        nextIndex: null,
+        answers: newAnswers,
+        answerIndices: newAnswerIndices,
+      });
       writeOnboardingQuizDraft(localStorage, {
         currentIndex,
         answers: newAnswers,
@@ -132,15 +163,17 @@ export default function QuizPage() {
       });
       const persona = calculatePersona(newAnswers);
       const personaVector = calculatePersonaVector(newAnswers);
-      advanceTimerRef.current = setTimeout(() => {
-        completedRef.current = true;
-        trackQuizComplete(persona);
+      completedRef.current = true;
+      trackQuizComplete(persona);
+      try {
         localStorage.setItem("persona_type", persona);
         localStorage.setItem("persona_vector", JSON.stringify(personaVector));
-        clearOnboardingQuizDraft(localStorage);
-        void clearServerOnboardingQuizDraft({ apiBase: API_BASE }).catch(() => undefined);
-        router.push("/onboarding/quiz/result");
-      }, 220);
+      } catch {
+        // Persona persistence is best-effort; navigation should still complete.
+      }
+      clearOnboardingQuizDraft(localStorage);
+      void clearServerOnboardingQuizDraft({ apiBase: API_BASE }).catch(() => undefined);
+      router.push("/onboarding/quiz/result");
     }
   }
 
@@ -153,7 +186,6 @@ export default function QuizPage() {
       setAnswerIndices(previousAnswerIndices);
       setCurrentIndex(previousIndex);
       setSelectedAnswerIndex(previousAnswerIndices[previousIndex] ?? null);
-      setIsAdvancing(false);
       writeOnboardingQuizDraft(localStorage, {
         currentIndex: previousIndex,
         answers: previousAnswers,
@@ -168,7 +200,7 @@ export default function QuizPage() {
         {currentIndex === 0 ? (
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/?nav=home")}
             className="shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
           >
             <House className="size-4" />
@@ -197,7 +229,6 @@ export default function QuizPage() {
               options={currentQuestion.options.map((o) => o.label)}
               onSelect={handleSelect}
               selectedIndex={selectedAnswerIndex}
-              disabled={isAdvancing}
             />
           </motion.div>
         </AnimatePresence>
