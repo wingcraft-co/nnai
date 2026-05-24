@@ -89,6 +89,8 @@ function buildBaseConfig(): Partial<PostHogConfig> {
     // gzip-js compression triggers 400 on PostHog EU ingestion server
     disable_compression: true,
     ...buildAnalyticsModeConfig("disabled"),
+    // session recording is opt-in per page — started only on the guide page
+    disable_session_recording: true,
     before_send: (event: CaptureResult | null) => {
       return sanitizeEvent(event as EventPayload | null) as CaptureResult | null;
     },
@@ -146,9 +148,18 @@ export function applyAnalyticsConsent(
   if (shouldPostHogCaptureBeEnabled(nextMode)) {
     posthog.opt_in_capturing({ captureEventName: false });
   }
-  posthog.startSessionRecording();
   activeAnalyticsMode = nextMode;
   return nextMode;
+}
+
+export function startPageSessionRecording(): void {
+  if (!isAnalyticsEnabled() || activeAnalyticsMode !== "full") return;
+  posthog.startSessionRecording();
+}
+
+export function stopPageSessionRecording(): void {
+  if (!isAnalyticsEnabled()) return;
+  posthog.stopSessionRecording();
 }
 
 function ensureAnalyticsConsentApplied(): void {

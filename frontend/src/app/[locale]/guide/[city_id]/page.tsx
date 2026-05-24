@@ -22,6 +22,7 @@ import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
 import { readLibraryCards, unlockLibraryGuide, type LibraryCard } from "@/lib/library-storage";
 import { trackGuideRequestFailure } from "@/lib/analytics/events";
+import { startPageSessionRecording, stopPageSessionRecording } from "@/lib/analytics/posthog";
 
 const SESSION_V2_KEY = "result_session_v2";
 const PAYWALL_BLOCKED_KEY = "nnai_guide_paywall_blocked_v1";
@@ -494,6 +495,11 @@ export default function GuidePage() {
   const briefingDocumentRef = useRef<HTMLDivElement>(null);
   const [exportingBriefingPng, setExportingBriefingPng] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    startPageSessionRecording();
+    return () => stopPageSessionRecording();
+  }, []);
 
   useEffect(() => {
     function onPageShow(event: PageTransitionEvent) {
