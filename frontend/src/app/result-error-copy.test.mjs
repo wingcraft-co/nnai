@@ -117,7 +117,7 @@ test("free guide notice uses the quota card copy and neutral border style", () =
   assert.match(guideSource, /function formatDetailQuotaLabel/);
   assert.match(guideSource, /구매하신 보고서는 프로필의 보관함에서 다시 확인하실 수 있습니다\./);
   assert.doesNotMatch(guideSource, /Pro 플랜: 상세 가이드 횟수 제한 없이 사용할 수 있습니다\./);
-  assert.match(guideSource, /무료 상세 가이드/);
+  assert.match(guideSource, /무료 맞춤 보고서를 받으셨습니다\./);
   assert.match(guideSource, /className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground"/);
 });
 
@@ -327,7 +327,10 @@ test("pro briefing preview scales the 1080px document like the free png preview"
 });
 
 test("quota exceeded guide screen uses a purchase CTA instead of a free guide CTA", () => {
-  assert.match(guideSource, /무료 상세 가이드 횟수를 모두 사용했습니다\./);
-  assert.match(guideSource, /idleLabel="맞춤 가이드 구매"/);
+  assert.match(guideSource, /이 도시의 맞춤 보고서는 결제가 필요합니다\./);
+  assert.match(guideSource, /idleLabel="이 도시 보고서 구매하기"/);
   assert.doesNotMatch(guideSource, /idleLabel="맞춤 가이드 받기"/);
+  // 단건 결제 모델: launch sale 가격 표시 ($4.99 → $2.99)
+  assert.match(guideSource, /\$4\.99/);
+  assert.match(guideSource, /\$2\.99/);
 });

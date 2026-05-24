@@ -100,9 +100,8 @@ function formatDetailQuotaLabel(quota: DetailQuota): string {
   if (quota.is_unlimited) {
     return "구매하신 보고서는 프로필의 보관함에서 다시 확인하실 수 있습니다.";
   }
-
-  const remaining = quota.remaining ?? 0;
-  return `무료 상세 가이드 ${quota.used}/${quota.limit ?? 0}회 사용 (${remaining}회 남음)`;
+  // 단건 결제 모델: limit=1 무료 부여. 보고서당 구매 모델이므로 잔여 횟수 개념은 사용하지 않음.
+  return "무료 맞춤 보고서를 받으셨습니다. 다른 도시 보고서는 구매 후 이용하실 수 있습니다.";
 }
 
 function libraryCardToCity(card: LibraryCard): CityData {
@@ -896,17 +895,24 @@ export default function GuidePage() {
               <div className="flex items-start gap-3">
                 <LockKeyhole className="mt-0.5 size-5 text-primary" />
                 <div>
-                  <h2 className="font-serif text-lg font-bold">무료 상세 가이드 횟수를 모두 사용했습니다.</h2>
+                  <h2 className="font-serif text-lg font-bold">이 도시의 맞춤 보고서는 결제가 필요합니다.</h2>
                   <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
-                    {`나만의 맞춤 상세 가이드를 ${detailQuota?.limit ?? 2}회까지 무료로 받을 수 있습니다.\n현재 남은 횟수는 0회입니다.`}
+                    {`무료 맞춤 보고서 1회는 이미 다른 도시에서 사용하셨습니다.\n이 도시 보고서는 결제 후 워터마크 없이 영구 보관됩니다.`}
                   </p>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-sm text-muted-foreground line-through">$4.99</span>
+                    <span className="text-2xl font-bold text-primary">$2.99</span>
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                      런칭 특가 · 40% OFF
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="mt-5 flex w-full justify-end">
                 <PolarCheckoutButton
                   locale={locale}
                   returnPath={`/${locale}/guide/${cityId}?checkout=return`}
-                  idleLabel="맞춤 가이드 구매"
+                  idleLabel="이 도시 보고서 구매하기"
                   loadingLabel="결제 페이지 여는 중..."
                   className="ml-auto flex h-10 cursor-pointer items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 />
