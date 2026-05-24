@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import { NomadJourneyModal } from "@/components/journey/NomadJourneyModal";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 import { DEV_PREVIEW_PAYLOAD, type DevPreviewPlan } from "@/lib/dev-preview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
@@ -34,13 +33,12 @@ export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const forceHome = searchParams?.get("nav") === "home";
-  const [journeyOpen, setJourneyOpen] = useState(false);
   // null = auth 체크 중, true = 홈 표시
   const [ready, setReady] = useState<boolean>(forceHome);
+
   const isEn = locale === "en";
   const copy = isEn
     ? {
-        journeyLabel: "Open nomad journey map",
         title: "What kind of nomad are you?",
         subtitle: (
           <>
@@ -54,7 +52,6 @@ export default function Home() {
         postLoginFlow: "Post-login flow",
       }
     : {
-        journeyLabel: "노마드 여정 지도 열기",
         title: "나는 어떤 노마드일까?",
         subtitle: (
           <>
@@ -124,14 +121,7 @@ export default function Home() {
     <div className="mx-auto flex min-h-full max-w-sm w-full flex-col items-center justify-center px-4">
       {/* 지구본 */}
       <div className="mb-6">
-        <button
-          type="button"
-          onClick={() => setJourneyOpen(true)}
-          aria-label={copy.journeyLabel}
-          className="block transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/40"
-        >
-          <img src="/earth_web.gif" alt="" width={96} height={96} className="mx-auto" />
-        </button>
+        <img src="/earth_web.gif" alt="" width={96} height={96} className="mx-auto" />
       </div>
 
       {/* 헤드라인 */}
@@ -211,7 +201,6 @@ export default function Home() {
           </>
         )}
       </div>
-      <NomadJourneyModal open={journeyOpen} onClose={() => setJourneyOpen(false)} />
     </div>
   );
 }

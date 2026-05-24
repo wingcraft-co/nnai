@@ -24,7 +24,7 @@ import { readLibraryCards, unlockLibraryGuide, type LibraryCard } from "@/lib/li
 
 const SESSION_V2_KEY = "result_session_v2";
 const PAYWALL_BLOCKED_KEY = "nnai_guide_paywall_blocked_v1";
-const GUIDE_FETCH_TIMEOUT_MS = 15_000;
+const GUIDE_FETCH_TIMEOUT_MS = 60_000;
 
 function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeoutMs = GUIDE_FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -157,6 +157,51 @@ function saveVisibleGuideToServer({
       city_index: cityIndex,
     }),
   }).catch(() => undefined);
+}
+
+const LOADING_TIPS_KO = [
+  "Tip. 구매한 보고서는 보관함에서 다시 조회할 수 있어요.",
+  "Tip. 보관함에서 여러 도시 보고서를 비교해보세요.",
+  "Tip. 세무 및 비자 관련 내용은 공식 기관에서 한번 더 확인해주세요.",
+  "Tip. 보고서 이미지는 PNG로 저장할 수 있어요.",
+  "Tip. 도시별 비용은 환율에 따라 매일 조금씩 달라져요.",
+  "Tip. 페르소나 유형에 따라 추천 도시가 달라집니다."
+];
+const LOADING_TIPS_EN = [
+  "Tip. Purchased reports stay in your Library for re-reading.",
+  "Tip. Compare reports across cities from your Library.",
+  "Tip. Always double-check tax and visa details with official sources.",
+  "Tip. You can export reports as PNG.",
+  "Tip. Monthly costs shift slightly with exchange rates.",
+  "Tip. Your nomad persona changes which cities surface first.",
+];
+
+function LoadingTips({ locale }: { locale: string }) {
+  const tips = locale === "ko" ? LOADING_TIPS_KO : LOADING_TIPS_EN;
+  // SSR/CSR 일치를 위해 초기값은 항상 0, 마운트 후 클라이언트에서 랜덤 시작점으로 점프
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (tips.length > 1) {
+      setIndex(Math.floor(Math.random() * tips.length));
+    }
+    const id = window.setInterval(() => {
+      setIndex((i) => {
+        if (tips.length <= 1) return i;
+        let next = Math.floor(Math.random() * tips.length);
+        if (next === i) next = (next + 1) % tips.length;
+        return next;
+      });
+    }, 10000);
+    return () => window.clearInterval(id);
+  }, [tips.length]);
+  return (
+    <p
+      key={index}
+      className="whitespace-nowrap text-center text-xs leading-5 text-muted-foreground opacity-60 transition-opacity duration-500"
+    >
+      {tips[index]}
+    </p>
+  );
 }
 
 function ReportDisclaimer() {
@@ -482,9 +527,9 @@ export default function GuidePage() {
             selected = libraryCardToCity(libraryCard);
             const profileFromSession =
               session.parsedData &&
-              typeof session.parsedData === "object" &&
-              session.parsedData._user_profile &&
-              typeof session.parsedData._user_profile === "object"
+                typeof session.parsedData === "object" &&
+                session.parsedData._user_profile &&
+                typeof session.parsedData._user_profile === "object"
                 ? session.parsedData._user_profile
                 : { persona_type: "free_spirit", travel_type: "혼자 (솔로)" };
             baseParsedData = {
@@ -543,9 +588,9 @@ export default function GuidePage() {
           setQuotaExceeded(false);
           setBillingStatus(
             session.billingStatus ??
-              (restoredQuota?.is_unlimited
-                ? { entitlement: { plan_tier: "pro", status: "active" } }
-                : null)
+            (restoredQuota?.is_unlimited
+              ? { entitlement: { plan_tier: "pro", status: "active" } }
+              : null)
           );
           return;
         }
@@ -690,7 +735,7 @@ export default function GuidePage() {
           setQuotaExceeded(false);
           setError(null);
         } else {
-          setError("상세 가이드를 불러오지 못했습니다.");
+          setError("서버가 불안정합니다.\n다시 시도해주세요.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -784,8 +829,9 @@ export default function GuidePage() {
       </button>
       <div className="mx-auto w-full max-w-3xl px-5 py-8">
         {loading && (
-          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
-            <p className="animate-pulse">맞춤 보고서를 생성하고 있어요...</p>
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+            <p className="animate-pulse">맞춤형 보고서를 생성하는 중입니다...</p>
+            <LoadingTips locale={locale} />
           </div>
         )}
 

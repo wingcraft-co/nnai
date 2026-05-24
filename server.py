@@ -1,10 +1,13 @@
 """FastAPI 백엔드 서버."""
 from __future__ import annotations
 from contextlib import asynccontextmanager
+import logging
 import os
 import uuid
 from dotenv import load_dotenv
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -386,11 +389,20 @@ async def api_detail(req: DetailRequest, request: Request):
     if cap_response is not None:
         return cap_response
     try:
-        from app import show_city_detail_with_nationality
-        markdown = show_city_detail_with_nationality(
-            parsed_data=req.parsed_data,
-            city_index=req.city_index,
-        )
+        from app import show_city_detail_with_nationality, LLMUnavailableError
+        try:
+            markdown = show_city_detail_with_nationality(
+                parsed_data=req.parsed_data,
+                city_index=req.city_index,
+            )
+        except LLMUnavailableError as llm_err:
+            if reservation_key:
+                release_usage_reservation(reservation_key)
+            logger.warning(f"[api_detail] LLM unavailable after retries: {llm_err!s}")
+            raise HTTPException(
+                status_code=502,
+                detail="LLM 서비스가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.",
+            )
         if user_id:
             save_detail_guide_cache(
                 user_id=user_id,
@@ -407,6 +419,8 @@ async def api_detail(req: DetailRequest, request: Request):
                 "cache_key": cache_key,
             }
         return {"markdown": markdown}
+    except HTTPException:
+        raise
     except Exception:
         if reservation_key:
             release_usage_reservation(reservation_key)

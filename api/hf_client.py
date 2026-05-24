@@ -1,6 +1,7 @@
 # api/hf_client.py
 import os
 import re
+import time
 import logging
 from openai import OpenAI
 
@@ -10,6 +11,9 @@ MODEL_ID = "gemini-2.5-flash"
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 _client: OpenAI | None = None
+
+# transient 에러 backoff: 1s, 2s, 4s
+_QUERY_RETRY_DELAYS = (1.0, 2.0, 4.0)
 
 
 def _get_client() -> OpenAI:
@@ -27,20 +31,31 @@ def query_model(messages: list[dict], max_tokens: int = 2048) -> str:
 
     max_tokens를 충분히 크게 설정하여 thinking 토큰 소비 후에도 JSON이 잘리지 않게 합니다.
     응답에 <think>...</think> 블록이 있으면 제거 후 반환합니다.
+    transient 실패는 1s/2s/4s 백오프로 최대 3회 재시도합니다.
     """
-    try:
-        response = _get_client().chat.completions.create(
-            model=MODEL_ID,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=0.3,
-        )
-        raw = response.choices[0].message.content or ""
-        result = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
-        print(f"\n[API RESPONSE] length={len(result)}, first 300:\n{result[:300]!r}\n")
-        return result
-    except Exception as e:
-        return f"ERROR: {str(e)}"
+    last_error: Exception | None = None
+    for attempt, delay in enumerate(_QUERY_RETRY_DELAYS, start=1):
+        try:
+            response = _get_client().chat.completions.create(
+                model=MODEL_ID,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.3,
+            )
+            raw = response.choices[0].message.content or ""
+            result = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
+            if not result:
+                raise RuntimeError("empty LLM response")
+            if attempt > 1:
+                logger.info(f"[query_model] succeeded on retry attempt={attempt}")
+            print(f"\n[API RESPONSE] length={len(result)}, first 300:\n{result[:300]!r}\n")
+            return result
+        except Exception as e:
+            last_error = e
+            logger.warning(f"[query_model] attempt {attempt} failed: {e!r}")
+            if attempt < len(_QUERY_RETRY_DELAYS):
+                time.sleep(delay)
+    return f"ERROR: {last_error!s}"
 
 
 def query_model_cached(

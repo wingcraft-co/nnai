@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 _VISA_DB_CACHE: dict | None = None
 
 
+class LLMUnavailableError(RuntimeError):
+    """LLM 호출이 재시도 후에도 실패했을 때 발생. server.py에서 502로 매핑."""
+    pass
+
+
 def _is_debug_mode_enabled() -> bool:
     return os.getenv("DEBUG_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
 
@@ -161,7 +166,7 @@ def show_city_detail(
     raw = query_model(step2_messages, max_tokens=6144)
 
     if raw.startswith("ERROR"):
-        return f"⚠️ API error: {raw}" if language == "English" else f"⚠️ API 오류: {raw}"
+        raise LLMUnavailableError(raw)
 
     detail_parsed = parse_response(raw)
     detail_parsed["_user_profile"] = user_profile
@@ -219,8 +224,7 @@ def show_city_detail_with_nationality(
     raw = query_model(step2_messages, max_tokens=6144)
 
     if raw.startswith("ERROR"):
-        lang = user_profile_for_step2.get("language", language)
-        return f"⚠️ API error: {raw}" if lang == "English" else f"⚠️ API 오류: {raw}"
+        raise LLMUnavailableError(raw)
 
     detail_parsed = parse_response(raw)
     detail_parsed["_user_profile"] = user_profile_for_step2
