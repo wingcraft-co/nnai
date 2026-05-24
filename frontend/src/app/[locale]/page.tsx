@@ -7,12 +7,23 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 import { DEV_PREVIEW_PAYLOAD, type DevPreviewPlan } from "@/lib/dev-preview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
-import { applyLibraryAuthScope, readLibraryCards } from "@/lib/library-storage";
+import {
+  applyLibraryAuthScope,
+  libraryCardsFromServerGuides,
+  mergeLibraryCards,
+  readLibraryCards,
+  type LibraryGuideCacheEntry,
+  writeLibraryCards,
+} from "@/lib/library-storage";
 import { isDebugMode } from "@/lib/runtime-locale.mjs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 const IS_DEBUG = isDebugMode(process.env.NEXT_PUBLIC_DEBUG_MODE);
 const HOME_PREFLIGHT_TIMEOUT_MS = 1500;
+
+type LibraryGuidesResponse = {
+  guides?: LibraryGuideCacheEntry[];
+};
 
 async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
   const controller = new AbortController();
@@ -70,10 +81,8 @@ export default function Home() {
     let cancelled = false;
 
     async function run() {
-      if (forceHome) return;
-
       try {
-        if (DASHBOARD_FEATURE_ENABLED) {
+        if (!forceHome && DASHBOARD_FEATURE_ENABLED) {
           const dashboardResponse = await fetchWithTimeout(`${API_BASE}/api/dashboard`, {
             cache: "no-store",
             credentials: "include",
@@ -98,6 +107,24 @@ export default function Home() {
           if (payload?.logged_in && readLibraryCards().length > 0) {
             router.replace("/library");
             return;
+          }
+          if (payload?.logged_in) {
+            const guidesResponse = await fetchWithTimeout(`${API_BASE}/api/library/guides`, {
+              cache: "no-store",
+              credentials: "include",
+            });
+            if (cancelled) return;
+            if (guidesResponse.ok) {
+              const guidesPayload = await guidesResponse.json().catch(() => null) as LibraryGuidesResponse | null;
+              const serverCards = Array.isArray(guidesPayload?.guides)
+                ? libraryCardsFromServerGuides(guidesPayload.guides)
+                : [];
+              if (serverCards.length > 0) {
+                writeLibraryCards(mergeLibraryCards(readLibraryCards(), serverCards));
+                router.replace("/library");
+                return;
+              }
+            }
           }
         }
       } catch {

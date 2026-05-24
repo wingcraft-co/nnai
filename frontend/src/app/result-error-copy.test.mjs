@@ -18,6 +18,7 @@ const briefingSource = readFileSync(join(__dirname, "..", "lib", "briefing-gener
 const briefingRouteSource = readFileSync(join(__dirname, "api", "briefing", "generate", "route.ts"), "utf8");
 const briefingDocumentSource = readFileSync(join(__dirname, "..", "components", "guide", "CountryBriefingDocument.tsx"), "utf8");
 const briefingPngPreviewSource = readFileSync(join(__dirname, "..", "components", "guide", "BriefingPngPreview.tsx"), "utf8");
+const userAccountMenuSource = readFileSync(join(__dirname, "..", "components", "legal", "UserAccountMenu.tsx"), "utf8");
 
 test("recommendation backend failures show a server instability message", () => {
   assert.match(source, /서버가 불안정합니다\.\\n잠시 후 다시 시도해주세요\./);
@@ -93,7 +94,7 @@ test("dashboard feature stays hidden for this release", () => {
   assert.match(featureFlagSource, /NEXT_PUBLIC_DASHBOARD_FEATURE_ENABLED === "true"/);
   assert.match(featureFlagSource, /NEXT_PUBLIC_DASHBOARD_FEATURE_ENABLED === "1"/);
   assert.doesNotMatch(featureFlagSource, /NEXT_PUBLIC_DASHBOARD_FEATURE_ENABLED \?\?/);
-  assert.match(homeSource, /if \(DASHBOARD_FEATURE_ENABLED\) \{/);
+  assert.match(homeSource, /if \(!forceHome && DASHBOARD_FEATURE_ENABLED\) \{/);
   assert.match(homeSource, /router\.replace\("\/dashboard"\)/);
   assert.match(guideSource, /\{DASHBOARD_FEATURE_ENABLED && \(/);
   assert.match(dashboardSource, /router\.replace\("\/onboarding\/form"\)/);
@@ -135,10 +136,23 @@ test("library header shows the saved persona character and label", () => {
   assert.doesNotMatch(libraryPageSource, /내 노마드 유형/);
   assert.doesNotMatch(libraryPageSource, /My nomad type/);
   assert.match(libraryPageSource, /className="inline-flex h-9 max-w-\[52vw\] shrink-0 items-center gap-2 rounded-full bg-card\/80/);
+  assert.doesNotMatch(libraryPageSource, /retakePersona: isKorean \? "유형 다시 찾기" : "Retake type quiz"/);
+  assert.doesNotMatch(libraryPageSource, /onClick=\{retakePersonaQuiz\}/);
   assert.doesNotMatch(libraryPageSource, /rounded-full border border-border\/70 bg-card\/80/);
   assert.match(libraryPageSource, /src=\{`\/\$\{personaType\}\.gif`\}/);
   assert.match(libraryPageSource, /alt=\{personaLabel\}/);
   assert.match(libraryPageSource, /\{personaLabel\}/);
+});
+
+test("profile menu offers persona retake above the library button", () => {
+  assert.match(userAccountMenuSource, /import \{ Archive, LogOut, RotateCcw \} from "lucide-react"/);
+  assert.match(userAccountMenuSource, /import \{ clearOnboardingQuizDraft \} from "@\/lib\/onboarding-quiz-draft"/);
+  assert.match(userAccountMenuSource, /function retakePersonaQuiz\(\)/);
+  assert.match(userAccountMenuSource, /localStorage\.removeItem\("persona_type"\)/);
+  assert.match(userAccountMenuSource, /localStorage\.removeItem\("persona_vector"\)/);
+  assert.match(userAccountMenuSource, /clearOnboardingQuizDraft\(localStorage\)/);
+  assert.match(userAccountMenuSource, /window\.location\.assign\(`\/\$\{locale\}\/onboarding\/quiz`\)/);
+  assert.match(userAccountMenuSource, /onClick=\{retakePersonaQuiz\}[\s\S]*?<RotateCcw className="size-3\.5" aria-hidden="true" \/>[\s\S]*?유형 다시 찾기[\s\S]*?onClick=\{openLibrary\}/);
 });
 
 test("guide ends with a small disclaimer card", () => {
@@ -251,7 +265,11 @@ test("explicit home buttons bypass auto-redirect and force the landing page", ()
   assert.match(homeSource, /const HOME_PREFLIGHT_TIMEOUT_MS = 1500/);
   assert.match(homeSource, /controller\.abort\(\)/);
   assert.match(homeSource, /await fetchWithTimeout\(`\$\{API_BASE\}\/auth\/me`/);
-  assert.match(homeSource, /if \(forceHome\) return;/);
+  assert.doesNotMatch(homeSource, /if \(forceHome\) return;/);
+  assert.match(homeSource, /if \(!forceHome && DASHBOARD_FEATURE_ENABLED\) \{/);
+  assert.match(homeSource, /fetchWithTimeout\(`\$\{API_BASE\}\/api\/library\/guides`/);
+  assert.match(homeSource, /libraryCardsFromServerGuides\(guidesPayload\.guides\)/);
+  assert.match(homeSource, /writeLibraryCards\(mergeLibraryCards\(readLibraryCards\(\), serverCards\)\)/);
   assert.doesNotMatch(homeSource, /animate-pulse rounded-full bg-primary\/20/);
   assert.doesNotMatch(homeSource, /initial: \{ opacity: 0, y: 16 \}/);
   assert.doesNotMatch(homeSource, /motion\.div/);

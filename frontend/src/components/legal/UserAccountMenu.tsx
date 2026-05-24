@@ -1,12 +1,13 @@
 "use client";
 
-import { Archive, LogOut } from "lucide-react";
+import { Archive, LogOut, RotateCcw } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { markLoginPending, trackLoginClick } from "@/lib/analytics/events";
 import { resolveAccountMenuDisplay } from "@/lib/account-menu.mjs";
 import { applyLibraryAuthScope } from "@/lib/library-storage";
+import { clearOnboardingQuizDraft } from "@/lib/onboarding-quiz-draft";
 import { syncOnboardingDraftsAfterLogin } from "@/lib/onboarding-draft-sync.mjs";
 import { ONBOARDING_DRAFT_UPDATED_EVENT } from "@/lib/onboarding-form-draft";
 import {
@@ -121,6 +122,17 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
     window.location.assign(`/${locale}/library`);
   }
 
+  function retakePersonaQuiz() {
+    try {
+      localStorage.removeItem("persona_type");
+      localStorage.removeItem("persona_vector");
+      clearOnboardingQuizDraft(localStorage);
+    } catch {
+      // Reset is best-effort; navigation still lets the quiz recover.
+    }
+    window.location.assign(`/${locale}/onboarding/quiz`);
+  }
+
   const positionClass = hasLocaleSwitcher ? "right-20" : "right-4";
   const triggerTextClass = isDarkChrome
     ? "text-white/70 hover:text-white/85"
@@ -165,6 +177,14 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-40 rounded-md bg-white p-1 shadow-lg">
+          <button
+            type="button"
+            onClick={retakePersonaQuiz}
+            className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 font-serif text-xs text-[var(--onboarding-text-primary)] transition-colors hover:bg-black/5"
+          >
+            <RotateCcw className="size-3.5" aria-hidden="true" />
+            <span>{locale === "ko" ? "유형 다시 찾기" : "Retake type quiz"}</span>
+          </button>
           <button
             type="button"
             onClick={openLibrary}
