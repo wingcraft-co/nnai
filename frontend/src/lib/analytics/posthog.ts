@@ -86,6 +86,8 @@ function buildBaseConfig(): Partial<PostHogConfig> {
     api_host: POSTHOG_HOST,
     ui_host: POSTHOG_UI_HOST,
     cookieless_mode: "on_reject" as const,
+    // gzip-js compression triggers 400 on PostHog EU ingestion server
+    disable_compression: true,
     ...buildAnalyticsModeConfig("disabled"),
     before_send: (event: CaptureResult | null) => {
       return sanitizeEvent(event as EventPayload | null) as CaptureResult | null;
