@@ -7,6 +7,7 @@ import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentB
 import {
   clearLoginPending,
   hasPendingLogin,
+  identifyUser,
   trackLoginSuccess,
 } from "@/lib/analytics/events";
 import {
@@ -58,10 +59,13 @@ export function PostHogProvider({ children, privacyBodyHtmlByLocale }: Props) {
           credentials: "include",
         });
         const payload = (await response.json().catch(() => null)) as
-          | { logged_in?: boolean }
+          | { logged_in?: boolean; uid?: string; entitlement?: { plan_tier?: string } }
           | null;
 
         if (response.ok && payload?.logged_in) {
+          if (payload.uid) {
+            identifyUser(payload.uid, payload.entitlement?.plan_tier ?? "free");
+          }
           trackLoginSuccess("google");
           clearLoginPending();
         }

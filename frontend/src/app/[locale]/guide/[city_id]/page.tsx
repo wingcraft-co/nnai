@@ -21,6 +21,7 @@ import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocum
 import { BriefingPngPreview } from "@/components/guide/BriefingPngPreview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
 import { readLibraryCards, unlockLibraryGuide, type LibraryCard } from "@/lib/library-storage";
+import { trackGuideRequestFailure } from "@/lib/analytics/events";
 
 const SESSION_V2_KEY = "result_session_v2";
 const PAYWALL_BLOCKED_KEY = "nnai_guide_paywall_blocked_v1";
@@ -640,6 +641,12 @@ export default function GuidePage() {
           cache_key?: string;
         };
         if (detailResponse.status === 402) {
+          trackGuideRequestFailure({
+            cityId,
+            errorKind: "quota_exceeded",
+            httpStatus: 402,
+            isPro: isPro(currentBillingStatus),
+          });
           if (!cancelled) {
             setDetailQuota(detail.quota ?? null);
             setQuotaExceeded(true);
@@ -661,8 +668,24 @@ export default function GuidePage() {
           }
           return;
         }
-        if (!detailResponse.ok) throw new Error(`detail ${detailResponse.status}`);
-        if (!detail.markdown) throw new Error("empty detail");
+        if (!detailResponse.ok) {
+          trackGuideRequestFailure({
+            cityId,
+            errorKind: "http_error",
+            httpStatus: detailResponse.status,
+            isPro: isPro(currentBillingStatus),
+          });
+          throw new Error(`detail ${detailResponse.status}`);
+        }
+        if (!detail.markdown) {
+          trackGuideRequestFailure({
+            cityId,
+            errorKind: "empty_response",
+            httpStatus: detailResponse.status,
+            isPro: isPro(currentBillingStatus),
+          });
+          throw new Error("empty detail");
+        }
 
         if (!cancelled) {
           setMarkdown(detail.markdown);
@@ -722,6 +745,11 @@ export default function GuidePage() {
         }
       } catch {
         if (cancelled) return;
+        trackGuideRequestFailure({
+          cityId,
+          errorKind: "network",
+          isPro: isPro(billingStatus),
+        });
         // 실패 시 라이브러리 캐시 fallback — 이전에 LLM으로 받은 보고서가 있으면 그걸 보여줌
         const cachedCard = readLibraryCards().find(
           (card) =>

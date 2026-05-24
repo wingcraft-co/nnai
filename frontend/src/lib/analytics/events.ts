@@ -3,6 +3,8 @@
 import {
   captureAnalyticsEvent,
   captureFullAnalyticsEvent,
+  identifyAnalyticsUser,
+  resetAnalyticsUser,
   sanitizePathname,
 } from "@/lib/analytics/posthog";
 
@@ -324,4 +326,37 @@ export function trackJourneyFlagSaveSuccess({
 
 export function trackJourneyGithubIssueLinked(status: string): void {
   captureFullAnalyticsEvent("journey_github_issue_linked", { status });
+}
+
+export type GuideErrorKind =
+  | "quota_exceeded"
+  | "http_error"
+  | "network"
+  | "empty_response";
+
+export function trackGuideRequestFailure({
+  cityId,
+  errorKind,
+  httpStatus,
+  isPro,
+}: {
+  cityId: string;
+  errorKind: GuideErrorKind;
+  httpStatus?: number | null;
+  isPro: boolean;
+}): void {
+  captureAnalyticsEvent("guide_request_failure", {
+    city_id: cityId,
+    error_kind: errorKind,
+    http_status: httpStatus ?? null,
+    is_pro: isPro,
+  });
+}
+
+export function identifyUser(uid: string, planTier: string): void {
+  identifyAnalyticsUser(uid, { plan_tier: planTier });
+}
+
+export function resetUser(): void {
+  resetAnalyticsUser();
 }

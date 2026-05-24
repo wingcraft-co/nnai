@@ -178,4 +178,18 @@ export function captureFullAnalyticsEvent(
   posthog.capture(event, sanitizeProperties(properties));
 }
 
+export function identifyAnalyticsUser(
+  userId: string,
+  properties?: AnalyticsProperties,
+): void {
+  if (!isAnalyticsEnabled() || typeof window === "undefined") return;
+  initAnalytics();
+  posthog.identify(userId, sanitizeProperties(properties));
+}
+
+export function resetAnalyticsUser(): void {
+  if (!isAnalyticsEnabled() || typeof window === "undefined") return;
+  posthog.reset();
+}
+
 export { sanitizePathname, sanitizeProperties };
