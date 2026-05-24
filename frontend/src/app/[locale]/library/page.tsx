@@ -574,7 +574,7 @@ export default function LibraryPage() {
 
       {selectedCard && (
         <div className="fixed inset-0 z-50 bg-black/75 px-3 py-5 backdrop-blur-sm sm:px-6">
-          <section className="mx-auto flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl">
+          <section className="mx-auto flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl">
             <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-normal text-primary">{text.modalEyebrow}</p>
@@ -614,7 +614,7 @@ export default function LibraryPage() {
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-[#FAF8F4]">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[#FAF8F4] px-5 py-8">
               {modalBriefing ? (
                 <FormattedBriefingPreview data={modalBriefing} documentRef={briefingDocumentRef} />
               ) : modalMarkdown ? (
