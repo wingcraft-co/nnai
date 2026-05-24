@@ -68,6 +68,8 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "email_enc",
         "email_sha256",
         "name_enc",
+        "free_report_city_id",
+        "free_report_used_at",
     },
     "billing_entitlements": {
         "user_id",
@@ -91,7 +93,7 @@ _REQUIRED_SCHEMA_COLUMNS = {
         "status",
     },
     "dashboard_widget_settings": {"enabled_widgets", "widget_order", "widget_settings"},
-    "detail_guide_cache": {"cache_key", "markdown", "parsed_snapshot", "city_snapshot"},
+    "detail_guide_cache": {"cache_key", "markdown", "parsed_snapshot", "city_snapshot", "city_id", "is_free"},
     "nomad_journey_stops": {
         "id",
         "user_id",
@@ -199,6 +201,14 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         cur.execute("""
             ALTER TABLE users
             ADD COLUMN IF NOT EXISTS name_enc BYTEA;
+        """)
+        cur.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS free_report_city_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS free_report_used_at TIMESTAMPTZ;
         """)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_users_email_sha256
@@ -531,6 +541,18 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
                 updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE (user_id, cache_key)
             );
+        """)
+        cur.execute("""
+            ALTER TABLE detail_guide_cache
+            ADD COLUMN IF NOT EXISTS city_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE detail_guide_cache
+            ADD COLUMN IF NOT EXISTS is_free BOOLEAN NOT NULL DEFAULT FALSE;
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_detail_guide_cache_user_city
+            ON detail_guide_cache(user_id, city_id);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS verified_sources (
@@ -1089,7 +1111,8 @@ def list_detail_guide_cache_entries(user_id: str, limit: int = 50) -> list[dict]
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, markdown, parsed_snapshot, city_snapshot, created_at, updated_at
+            SELECT id, markdown, parsed_snapshot, city_snapshot,
+                   city_id, is_free, created_at, updated_at
             FROM detail_guide_cache
             WHERE user_id = %s
             ORDER BY updated_at DESC
@@ -1104,11 +1127,44 @@ def list_detail_guide_cache_entries(user_id: str, limit: int = 50) -> list[dict]
             "markdown": row[1],
             "parsed_snapshot": row[2] or {},
             "city_snapshot": row[3] or {},
-            "created_at": str(row[4]),
-            "updated_at": str(row[5]),
+            "city_id": row[4],
+            "is_free": bool(row[5]) if row[5] is not None else False,
+            "created_at": str(row[6]),
+            "updated_at": str(row[7]),
         }
         for row in rows
     ]
+
+
+def get_detail_guide_by_city_id(user_id: str, city_id: str) -> dict | None:
+    """단건 결제 모델: city_id로 보고서 1개 조회. is_free=false 우선 (결제분 우선)."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, markdown, parsed_snapshot, city_snapshot,
+                   city_id, is_free, cache_key, created_at, updated_at
+            FROM detail_guide_cache
+            WHERE user_id = %s AND city_id = %s
+            ORDER BY is_free ASC, updated_at DESC
+            LIMIT 1
+            """,
+            (user_id, city_id),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "markdown": row[1],
+        "parsed_snapshot": row[2] or {},
+        "city_snapshot": row[3] or {},
+        "city_id": row[4],
+        "is_free": bool(row[5]) if row[5] is not None else False,
+        "cache_key": row[6],
+        "created_at": str(row[7]),
+        "updated_at": str(row[8]),
+    }
 
 
 def save_detail_guide_cache(
@@ -1118,6 +1174,8 @@ def save_detail_guide_cache(
     markdown: str,
     parsed_data: dict,
     city_index: int,
+    city_id: str | None = None,
+    is_free: bool = False,
 ) -> dict:
     conn = get_conn()
     city_snapshot = _selected_city_snapshot(parsed_data, city_index)
@@ -1125,14 +1183,18 @@ def save_detail_guide_cache(
         cur.execute(
             """
             INSERT INTO detail_guide_cache (
-                user_id, cache_key, markdown, parsed_snapshot, city_snapshot, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, NOW())
+                user_id, cache_key, markdown, parsed_snapshot, city_snapshot,
+                city_id, is_free, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (user_id, cache_key) DO UPDATE SET
                 markdown = EXCLUDED.markdown,
                 parsed_snapshot = EXCLUDED.parsed_snapshot,
                 city_snapshot = EXCLUDED.city_snapshot,
+                city_id = COALESCE(EXCLUDED.city_id, detail_guide_cache.city_id),
+                -- 결제 완료 (is_free=false)는 무료 (is_free=true)로 다운그레이드되지 않음
+                is_free = detail_guide_cache.is_free AND EXCLUDED.is_free,
                 updated_at = NOW()
-            RETURNING id, markdown, parsed_snapshot, city_snapshot, created_at, updated_at
+            RETURNING id, markdown, parsed_snapshot, city_snapshot, city_id, is_free, created_at, updated_at
             """,
             (
                 user_id,
@@ -1140,6 +1202,8 @@ def save_detail_guide_cache(
                 markdown,
                 Json(parsed_data),
                 Json(city_snapshot),
+                city_id,
+                is_free,
             ),
         )
         row = cur.fetchone()
@@ -1149,9 +1213,79 @@ def save_detail_guide_cache(
         "markdown": row[1],
         "parsed_snapshot": row[2] or {},
         "city_snapshot": row[3] or {},
-        "created_at": str(row[4]),
-        "updated_at": str(row[5]),
+        "city_id": row[4],
+        "is_free": bool(row[5]) if row[5] is not None else False,
+        "created_at": str(row[6]),
+        "updated_at": str(row[7]),
     }
+
+
+# ── 무료 보고서 1회 권한 추적 ───────────────────────────────────────
+
+def get_user_free_report_city_id(user_id: str) -> str | None:
+    """사용자가 무료로 받은 도시 id를 반환. NULL이면 아직 미사용."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT free_report_city_id FROM users WHERE id = %s",
+            (user_id,),
+        )
+        row = cur.fetchone()
+    return row[0] if row and row[0] else None
+
+
+def claim_free_report_city(user_id: str, city_id: str) -> bool:
+    """무료 보고서를 city_id로 부여. 이미 다른 도시에 부여됐으면 False, 새로 부여하면 True."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE users
+            SET free_report_city_id = %s,
+                free_report_used_at = NOW()
+            WHERE id = %s
+              AND (free_report_city_id IS NULL OR free_report_city_id = %s)
+            RETURNING free_report_city_id
+            """,
+            (city_id, user_id, city_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None and row[0] == city_id
+
+
+def mark_report_purchased(user_id: str, city_id: str) -> None:
+    """결제 완료 시 호출. 해당 city_id의 is_free=true 행을 false로 업그레이드."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE detail_guide_cache
+            SET is_free = FALSE, updated_at = NOW()
+            WHERE user_id = %s AND city_id = %s AND is_free = TRUE
+            """,
+            (user_id, city_id),
+        )
+    conn.commit()
+
+
+def list_user_owned_city_ids(user_id: str) -> list[dict]:
+    """사용자가 보유한 city_id 목록 (free/purchased 모두). /auth/me 응답용."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT city_id,
+                   bool_and(is_free) AS only_free  -- 모두 무료면 true (결제분 있으면 false)
+            FROM detail_guide_cache
+            WHERE user_id = %s AND city_id IS NOT NULL
+            GROUP BY city_id
+            ORDER BY MAX(updated_at) DESC
+            """,
+            (user_id,),
+        )
+        rows = cur.fetchall()
+    return [{"city_id": row[0], "is_free": bool(row[1])} for row in rows]
 
 
 def upsert_billing_entitlement(

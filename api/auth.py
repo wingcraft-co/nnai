@@ -157,12 +157,34 @@ def _db_unavailable_response() -> JSONResponse:
 
 
 def build_me_response(session_data: dict, entitlement: dict | None) -> dict:
+    """`/auth/me` 응답.
+
+    2026-05-25 변경 (단건 결제 모델):
+    - `free_report_city_id`: 무료로 받은 도시 id (없으면 null)
+    - `library`: 보유한 보고서 목록 + 워터마크 여부
+    - `entitlement`: deprecated. 하위 호환을 위해 plan_tier=free 고정으로 유지.
+    """
+    from utils.db import get_user_free_report_city_id, list_user_owned_city_ids
+
+    uid = session_data["uid"]
+    try:
+        free_report_city_id = get_user_free_report_city_id(uid)
+    except Exception:
+        free_report_city_id = None
+    try:
+        library = list_user_owned_city_ids(uid)
+    except Exception:
+        library = []
+
     normalized = normalize_entitlement(entitlement)
     return {
         "logged_in": True,
         "name": session_data["name"],
         "picture": session_data.get("picture"),
-        "uid": session_data["uid"],
+        "uid": uid,
+        "free_report_city_id": free_report_city_id,
+        "library": library,
+        # deprecated — 단건 결제 모델 전환으로 사용 중단. 하위 호환을 위해 유지.
         "entitlement": {
             "plan_tier": normalized["plan_tier"],
             "status": normalized["status"],

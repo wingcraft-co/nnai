@@ -101,13 +101,18 @@ GET /auth/google/callback?code={code}
 GET /auth/me
 ```
 
-**응답 (로그인된 경우):**
+**응답 (로그인된 경우, 단건 결제 모델 — 2026-05-25 변경):**
 ```json
 {
   "logged_in": true,
   "uid": "google_user_sub_id",
   "name": "홍길동",
   "picture": "https://lh3.googleusercontent.com/...",
+  "free_report_city_id": "lisbon",
+  "library": [
+    { "city_id": "lisbon", "is_free": true },
+    { "city_id": "bangkok", "is_free": false }
+  ],
   "entitlement": {
     "plan_tier": "free",
     "status": "active",
@@ -117,7 +122,9 @@ GET /auth/me
 }
 ```
 
-`entitlement`는 entitlement row가 없더라도 정규화된 기본값(`free`, `active`, `payg_enabled=false`)으로 반환됩니다.
+- `free_report_city_id`: 무료 보고서 1회 부여받은 도시. NULL이면 미사용. 첫 `/api/detail` 호출 시 해당 도시 id로 자동 기록됨.
+- `library`: 사용자가 보유한 city_id 목록 + `is_free` 플래그 (`true`면 워터마크+블러).
+- `entitlement`: **deprecated**. 단건 결제 모델 전환으로 의미 없음. 하위 호환을 위해 `plan_tier=free`로 고정 반환.
 
 **응답 (미로그인):**
 ```json
@@ -327,7 +334,8 @@ Content-Type: application/json
 
 ### POST /api/detail
 
-**Step 2** — 선택한 도시의 상세 이민 가이드를 반환합니다.
+**Step 2** — 선택한 도시의 상세 이민 가이드를 반환합니다. **단건 결제 모델 (2026-05-25 변경)**:
+사용자별 평생 1개 도시 무료 부여(워터마크+블러) + 추가 도시는 결제 시에만 (`USD 2.99`, 정가 `USD 4.99`).
 
 ```
 POST /api/detail
@@ -338,7 +346,7 @@ Content-Type: application/json
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `parsed_data` | object | ✅ | Step 1 응답의 `parsed` 객체 전체 |
+| `parsed_data` | object | ✅ | Step 1 응답의 `parsed` 객체 전체. `top_cities[city_index].city`로부터 city_id 도출 |
 | `city_index` | integer | ❌ | 도시 인덱스 (0=1위, 1=2위, 2=3위), 기본값 `0` |
 
 **요청 예시:**
@@ -355,36 +363,43 @@ Content-Type: application/json
   "markdown": "## 🏙 리스본 상세 이민 가이드\n### 출국 전 준비사항\n...",
   "cache_key": "sha256:...",
   "cached": false,
-  "quota": {
-    "is_unlimited": false,
-    "limit": 2,
-    "used": 1,
-    "remaining": 1
-  }
+  "city_id": "lisbon",
+  "is_free": true
 }
 ```
 
-로그인 사용자의 경우 `user_id + onboarding _user_profile + 선택 도시` 기준으로 상세 가이드 markdown을 캐시합니다. 같은 온보딩 값과 같은 도시로 다시 요청하면 LLM을 재호출하지 않고 `cached: true`로 캐시된 markdown을 반환합니다.
+- `markdown`: 풀콘텐츠 (무료/유료 동일)
+- `is_free`: `true`면 프론트엔드가 워터마크 + 뒷부분 블러 + 다운로드 잠금 적용
+- `city_id`: `parsed_data.top_cities[city_index].city`를 `lowercase + space→hyphen` 변환한 값
 
-무료 플랜은 캐시 miss 기준 상세 가이드 생성 2회까지 허용합니다. 캐시 hit은 추가 차감하지 않습니다. Pro 플랜은 quota가 무제한입니다.
+**권한 분기 (응답 결정 로직):**
 
-> 인증 없이 호출하는 레거시 요청은 캐시/무료 quota 없이 기존처럼 markdown만 반환합니다.
-> `/api/recommend`와 minute bucket을 공유하지 않습니다. endpoint별/등급별 정책이 각각 적용됩니다.
+| 사용자 상태 | 응답 |
+|-----------|------|
+| 비로그인 | `401 Login required` |
+| 결제 완료 도시 (`detail_guide_cache.is_free=false`) | `200` + `is_free=false` |
+| 무료 부여 도시 (`is_free=true`) | `200` + `is_free=true` |
+| `free_report_city_id IS NULL` + 첫 호출 | 이 도시로 무료 부여 + LLM 호출 + `200` + `is_free=true` |
+| `free_report_city_id != city_id` + 미결제 | `402 Payment Required` |
 
-**에러 (402):**
+**에러 (402 Payment Required):**
 ```json
 {
-  "detail": "Free detail guide quota reached.",
-  "quota": {
-    "is_unlimited": false,
-    "limit": 2,
-    "used": 2,
-    "remaining": 0
-  }
+  "detail": "Payment required for this city report.",
+  "city_id": "bangkok",
+  "free_used_for": "lisbon",
+  "price_usd": 2.99,
+  "list_price_usd": 4.99
 }
 ```
 
-pay-as-you-go 월 한도 도달 시에도 `402`를 반환합니다.
+**에러 (400 Bad Request):**
+`parsed_data.top_cities[city_index]`에서 city 이름을 추출할 수 없을 때:
+```json
+{ "detail": "city_id could not be derived from parsed_data." }
+```
+
+> `/api/recommend`와 minute bucket을 공유하지 않습니다. endpoint별/등급별 정책이 각각 적용됩니다.
 
 **에러 (429):**
 ```json

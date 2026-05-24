@@ -18,14 +18,17 @@ from pydantic import BaseModel, Field
 from api.auth import router as auth_router, extract_user_id
 from api.billing import router as billing_router
 from api.dashboard import router as dashboard_router
-from api.detail_cache import build_detail_cache_key, build_detail_quota
+from api.detail_cache import build_detail_cache_key, build_detail_quota, derive_city_id
 from api.journey import router as journey_router
 from api.onboarding import router as onboarding_router
 from api.visits import router as visits_router
 from utils.db import (
+    claim_free_report_city,
     consume_rate_limit_token,
     ensure_database_ready,
     get_billing_entitlement,
+    get_detail_guide_by_city_id,
+    get_user_free_report_city_id,
     count_detail_guide_cache_entries,
     list_detail_guide_cache_entries,
     release_thread_connection_transaction,
@@ -355,30 +358,77 @@ async def api_reveal(req: RevealRequest):
 
 @app.post("/api/detail")
 async def api_detail(req: DetailRequest, request: Request):
-    user_id, entitlement, access_mode = enforce_endpoint_rate_limit(request, "detail")
-    effective_plan_tier = (
-        "pro"
-        if user_id
-        and entitlement.get("plan_tier") == "pro"
-        and entitlement.get("status") in {"active", "grace"}
-        else "free"
-    )
-    cache_key = build_detail_cache_key(req.parsed_data, req.city_index)
+    """단건 결제 모델 (2026-05-25 변경):
 
-    if user_id:
-        cached = get_detail_guide_cache(user_id, cache_key)
-        used_count = count_detail_guide_cache_entries(user_id)
-        quota = build_detail_quota(effective_plan_tier, used_count)
-        if cached:
-            return {"markdown": cached["markdown"], "cached": True, "quota": quota, "cache_key": cache_key}
-        if not quota["is_unlimited"] and quota["remaining"] <= 0:
+    - 비로그인: 401
+    - 결제 완료 도시 (`is_free=false`) → 풀콘텐츠 markdown + `is_free=false`
+    - 무료 부여 도시 (`is_free=true`) → 동일 markdown + `is_free=true` (프론트가 워터마크+블러)
+    - 무료 보고서 미사용 + 첫 요청 → 이 도시를 무료로 자동 부여 + LLM 호출 (is_free=true)
+    - 무료 보고서 사용 완료(다른 도시) + 미결제 → 402 Payment Required
+    """
+    user_id, entitlement, access_mode = enforce_endpoint_rate_limit(request, "detail")
+    cache_key = build_detail_cache_key(req.parsed_data, req.city_index)
+    city_id = derive_city_id(req.parsed_data, req.city_index)
+
+    if not user_id:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Login required to receive a guide."},
+        )
+
+    # 1. city_id별 기존 보고서 조회 (결제분 우선)
+    if city_id:
+        existing = get_detail_guide_by_city_id(user_id, city_id)
+        if existing:
+            return {
+                "markdown": existing["markdown"],
+                "cached": True,
+                "cache_key": existing["cache_key"],
+                "city_id": existing["city_id"],
+                "is_free": existing["is_free"],
+            }
+
+    # 2. cache_key 기반 fallback (city_id 없는 과거 데이터 호환)
+    cached = get_detail_guide_cache(user_id, cache_key)
+    if cached:
+        return {
+            "markdown": cached["markdown"],
+            "cached": True,
+            "cache_key": cache_key,
+            "city_id": city_id,
+            "is_free": cached.get("is_free", False),
+        }
+
+    # 3. 무료 보고서 1회 부여 가능한가?
+    is_free = False
+    if city_id:
+        existing_free_city = get_user_free_report_city_id(user_id)
+        if existing_free_city is None:
+            # 무료 미사용 → 이 도시로 부여
+            claimed = claim_free_report_city(user_id, city_id)
+            if claimed:
+                is_free = True
+        elif existing_free_city == city_id:
+            # 무료 도시와 동일 (보고서가 아직 생성 안 됐을 경우)
+            is_free = True
+        else:
+            # 무료 도시와 다른 도시 + 미결제 → 결제 필요
             return JSONResponse(
                 status_code=402,
                 content={
-                    "detail": "Free detail guide quota reached.",
-                    "quota": quota,
+                    "detail": "Payment required for this city report.",
+                    "city_id": city_id,
+                    "free_used_for": existing_free_city,
+                    "price_usd": 2.99,
+                    "list_price_usd": 4.99,
                 },
             )
+    else:
+        # city_id 도출 실패 — 보수적으로 결제 요구
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "city_id could not be derived from parsed_data."},
+        )
 
     reservation_key, cap_response = reserve_payg_budget_if_needed(
         user_id,
@@ -403,22 +453,22 @@ async def api_detail(req: DetailRequest, request: Request):
                 status_code=502,
                 detail="LLM 서비스가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.",
             )
-        if user_id:
-            save_detail_guide_cache(
-                user_id=user_id,
-                cache_key=cache_key,
-                markdown=markdown,
-                parsed_data=req.parsed_data,
-                city_index=req.city_index,
-            )
-            used_count = count_detail_guide_cache_entries(user_id)
-            return {
-                "markdown": markdown,
-                "cached": False,
-                "quota": build_detail_quota(effective_plan_tier, used_count),
-                "cache_key": cache_key,
-            }
-        return {"markdown": markdown}
+        save_detail_guide_cache(
+            user_id=user_id,
+            cache_key=cache_key,
+            markdown=markdown,
+            parsed_data=req.parsed_data,
+            city_index=req.city_index,
+            city_id=city_id,
+            is_free=is_free,
+        )
+        return {
+            "markdown": markdown,
+            "cached": False,
+            "cache_key": cache_key,
+            "city_id": city_id,
+            "is_free": is_free,
+        }
     except HTTPException:
         raise
     except Exception:

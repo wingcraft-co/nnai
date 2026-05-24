@@ -31,6 +31,18 @@ def build_detail_cache_key(parsed_data: dict, city_index: int) -> str:
     return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
+def derive_city_id(parsed_data: dict, city_index: int) -> str | None:
+    """Frontend의 `normalizeCityId`와 동일한 규칙으로 city_id를 도출.
+
+    Frontend: `value.toLowerCase().replace(/\\s+/g, "-")`
+    """
+    city = _selected_city(parsed_data, city_index)
+    name = city.get("city")
+    if not isinstance(name, str) or not name.strip():
+        return None
+    return "-".join(name.strip().lower().split())
+
+
 def build_detail_quota(plan_tier: str, used_count: int) -> dict:
     if plan_tier == "pro":
         return {

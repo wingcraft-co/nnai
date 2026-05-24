@@ -36,3 +36,9 @@
 - DB 점검 및 오래된 자료 정리: `scripts/migrate_sqlite_to_pg.py`, `scripts/drop_mobile_tables.sql`, `tests/test_pdf_generator.py`, `IMPLEMENTATION_STATUS.md` 삭제. utils/db.py ↔ db-schema.md 동기화 상태 확인.
 - 타로 세션 PostgreSQL 마이그레이션: `tarot_sessions` 테이블 신설 (TTL 24시간, lazy cleanup, `SELECT FOR UPDATE` 동시성 처리). `api/tarot_session.py`의 in-memory `_sessions` 딕셔너리 제거 → Railway 재배포 시 세션 유실 문제 해결. CI에 `test_tarot_session.py` 등록.
 - 프론트엔드 의존성 취약점 14건 해결: `next` 16.2.4 → 16.2.6, `hono` overrides 4.12.22, `@hono/node-server` 2.0.4, `postcss` override ^8.5.10 추가. `npm audit fix` + 수동 버전 업으로 0건 달성.
+
+## 2026-05-25
+- 유료 보고서 강화 Phase 1 spec(`cowork/marketing/paid-report-phase1-spec.md`) 정리: A·I·G·H 4개 카테고리(Personalized Summary·Resource Pack·Pre-Departure Timeline·Plan B) 구현 우선순위 결정.
+- Pricing 단건 결제 전환 spec(`cowork/marketing/pricing-migration-spec.md`) 신설: free/pro 폐지, 보고서당 정가 $4.99 / 런칭 할인 $2.99 단건 결제, Polar 단일 product + city_id metadata.
+- 무료 사용자 정책: 평생 1개 도시 보고서 풀콘텐츠 제공 (LLM 분기 없음 — 응답 `is_free` 플래그로 프론트 분기). 무료 = **앞 3섹션 명확 + 뒷부분 블러(`blur-sm`) + 대각선 워터마크 + 다운로드 잠금**. 결제 시 모두 해제. DB: `users.free_report_city_id`, `detail_guide_cache.is_free`/`city_id` 컬럼 신설.
+- P1 백엔드 단건 결제 모델 구현 완료: `utils/db.py` 헬퍼(`get_user_free_report_city_id`, `claim_free_report_city`, `get_detail_guide_by_city_id`, `list_user_owned_city_ids`, `mark_report_purchased`) 추가, `api/detail_cache.py`에 `derive_city_id` 추가, `/api/detail` 가드를 quota 기반 → city_id 단건 모델로 교체 (401/402/200 + is_free 응답), `/auth/me` 응답에 `free_report_city_id`·`library` 추가. `cowork/backend/db-schema.md`·`api-reference.md` 동기화. 회귀 385 PASS.

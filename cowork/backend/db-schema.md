@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-05-24
+> 최종 업데이트: 2026-05-25 (단건 결제 모델 컬럼 추가)
 
 운영 메모:
 - 스키마 보장 시점은 FastAPI startup (`server.py`) 입니다.
@@ -24,7 +24,7 @@
 | `billing_checkout_sessions` | Polar checkout 생성/완료 추적 |
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
-| `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 및 무료 quota 기준 |
+| `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 + 단건 결제 보유 보고서 기록 (`city_id`, `is_free`) |
 | `tarot_sessions` | 타로 카드 5장 추천 결과 + reveal 게이팅 (TTL 24시간) |
 | `nomad_journey_stops` | 지원 도시 또는 검증된 여행 로그용 위치로 저장한 노마드 여정 stop |
 | `visits` | 경로별 방문자 수 집계 |
@@ -53,7 +53,9 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT,               -- ISO 8601 타임스탬프 (UTC)
     email_enc  BYTEA,              -- 이메일 암호화본 (application-level encryption)
     email_sha256 TEXT,             -- 이메일 검색/중복확인용 hash
-    name_enc   BYTEA               -- 이름 암호화본 (application-level encryption)
+    name_enc   BYTEA,              -- 이름 암호화본 (application-level encryption)
+    free_report_city_id TEXT,      -- 무료 보고서를 1회 부여받은 도시 id (NULL이면 미사용)
+    free_report_used_at TIMESTAMPTZ -- 무료 보고서 부여 시각
 );
 ```
 
@@ -68,6 +70,8 @@ CREATE TABLE IF NOT EXISTS users (
 | `email_enc` | BYTEA | 이메일 암호화본 |
 | `email_sha256` | TEXT | 이메일 hash |
 | `name_enc` | BYTEA | 이름 암호화본 |
+| `free_report_city_id` | TEXT | 단건 결제 모델(2026-05-25): 무료 보고서 1회 부여받은 도시 id. NULL이면 미사용. 한 번 설정되면 변경 불가 |
+| `free_report_used_at` | TIMESTAMPTZ | 무료 보고서 부여 시각 |
 
 **참고:** 재로그인 시 picture 및 encrypted copy는 갱신됩니다. 신규 OAuth upsert는 raw `email`, `name` 평문을 더 이상 저장하지 않습니다. 앱 시작 시 기존 레거시 plain `email`/`name` 레코드도 encrypted copy로 백필한 뒤 `NULL` 처리합니다.
 
@@ -235,7 +239,7 @@ CREATE TABLE IF NOT EXISTS billing_provider_events (
 
 ## detail_guide_cache
 
-Step 2 상세 가이드 markdown 캐시입니다. 같은 로그인 사용자, 같은 온보딩 프로필, 같은 선택 도시에 대해 LLM을 최초 1회만 호출하고 이후에는 캐시된 markdown을 반환합니다. 무료 플랜의 상세 가이드 2회 제한은 이 테이블의 사용자별 unique cache row 수를 기준으로 계산합니다.
+Step 2 상세 가이드 markdown 캐시 + 단건 결제 모델(2026-05-25) 보유 보고서 기록을 겸합니다. 같은 로그인 사용자, 같은 온보딩 프로필, 같은 선택 도시에 대해 LLM을 최초 1회만 호출하고 이후에는 캐시된 markdown을 반환합니다. `city_id` + `is_free` 컬럼을 통해 무료 부여 / 결제 완료 보고서를 구분합니다.
 
 ```sql
 CREATE TABLE IF NOT EXISTS detail_guide_cache (
@@ -245,19 +249,25 @@ CREATE TABLE IF NOT EXISTS detail_guide_cache (
     markdown        TEXT NOT NULL,
     parsed_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
     city_snapshot   JSONB NOT NULL DEFAULT '{}'::jsonb,
+    city_id         TEXT,                          -- 도시 id (lowercase + hyphen). frontend `normalizeCityId` 규칙과 일치
+    is_free         BOOLEAN NOT NULL DEFAULT FALSE, -- TRUE면 무료 부여 (워터마크+블러). FALSE면 결제 완료
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, cache_key)
 );
+CREATE INDEX IF NOT EXISTS idx_detail_guide_cache_user_city
+ON detail_guide_cache(user_id, city_id);
 ```
 
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | `user_id` | TEXT FK | `users.id` 참조 |
 | `cache_key` | TEXT | `_user_profile + selected_city` canonical JSON의 SHA-256 |
-| `markdown` | TEXT | 캐시된 상세 가이드 markdown |
+| `markdown` | TEXT | 캐시된 상세 가이드 markdown (무료/유료 동일 콘텐츠) |
 | `parsed_snapshot` | JSONB | 요청 당시 Step 1 parsed 데이터 스냅샷 |
 | `city_snapshot` | JSONB | 선택 도시 스냅샷 |
+| `city_id` | TEXT | 도시 식별자. `users.free_report_city_id`와 `library_guides` 조회에 사용. 과거 데이터는 NULL일 수 있음 |
+| `is_free` | BOOLEAN | TRUE = 무료 부여 (프론트가 워터마크+블러+다운로드 잠금). FALSE = 결제 완료. 결제 시 같은 row의 is_free가 FALSE로 다운그레이드 |
 
 ---
 
