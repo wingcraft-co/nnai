@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -9,24 +8,35 @@ import { NomadJourneyModal } from "@/components/journey/NomadJourneyModal";
 import { trackLandingCtaClick, trackQuizStart } from "@/lib/analytics/events";
 import { DEV_PREVIEW_PAYLOAD, type DevPreviewPlan } from "@/lib/dev-preview";
 import { DASHBOARD_FEATURE_ENABLED } from "@/lib/feature-flags";
-import { readLibraryCards } from "@/lib/library-storage";
+import { applyLibraryAuthScope, readLibraryCards } from "@/lib/library-storage";
 import { isDebugMode } from "@/lib/runtime-locale.mjs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7860";
 const IS_DEBUG = isDebugMode(process.env.NEXT_PUBLIC_DEBUG_MODE);
+const HOME_PREFLIGHT_TIMEOUT_MS = 1500;
 
-const fadeUp = (delay: number) => ({
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const, delay } },
-});
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), HOME_PREFLIGHT_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 export default function Home() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const forceHome = searchParams?.get("nav") === "home";
-  const [checking, setChecking] = useState(true);
   const [journeyOpen, setJourneyOpen] = useState(false);
+  // null = auth 체크 중, true = 홈 표시
+  const [ready, setReady] = useState<boolean>(forceHome);
   const isEn = locale === "en";
   const copy = isEn
     ? {
@@ -62,9 +72,11 @@ export default function Home() {
     let cancelled = false;
 
     async function run() {
+      if (forceHome) return;
+
       try {
-        if (DASHBOARD_FEATURE_ENABLED && !forceHome) {
-          const dashboardResponse = await fetch(`${API_BASE}/api/dashboard`, {
+        if (DASHBOARD_FEATURE_ENABLED) {
+          const dashboardResponse = await fetchWithTimeout(`${API_BASE}/api/dashboard`, {
             cache: "no-store",
             credentials: "include",
           });
@@ -77,25 +89,23 @@ export default function Home() {
           }
         }
 
-        if (!forceHome) {
-          const authResponse = await fetch(`${API_BASE}/auth/me`, {
-            cache: "no-store",
-            credentials: "include",
-          });
-          if (cancelled) return;
-          if (authResponse.ok) {
-            const payload = await authResponse.json().catch(() => null);
-            if (payload?.logged_in && readLibraryCards().length > 0) {
-              router.replace("/library");
-              return;
-            }
+        const authResponse = await fetchWithTimeout(`${API_BASE}/auth/me`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (cancelled) return;
+        if (authResponse.ok) {
+          const payload = await authResponse.json().catch(() => null);
+          applyLibraryAuthScope(payload);
+          if (payload?.logged_in && readLibraryCards().length > 0) {
+            router.replace("/library");
+            return;
           }
         }
       } catch {
         // ignore errors, show landing
-      } finally {
-        if (!cancelled) setChecking(false);
       }
+      if (!cancelled) setReady(true);
     }
 
     run();
@@ -104,18 +114,16 @@ export default function Home() {
     };
   }, [router, forceHome]);
 
-  if (checking) {
-    return (
-      <div className="flex min-h-full flex-1 items-center justify-center">
-        <div className="size-8 animate-pulse rounded-full bg-primary/20" />
-      </div>
-    );
-  }
+  if (!ready) return (
+    <div className="dark flex min-h-screen w-full items-center justify-center bg-background">
+      <p className="animate-pulse text-sm text-muted-foreground">로딩 중...</p>
+    </div>
+  );
 
   return (
     <div className="mx-auto flex min-h-full max-w-sm w-full flex-col items-center justify-center px-4">
       {/* 지구본 */}
-      <motion.div {...fadeUp(0.2)} className="mb-6">
+      <div className="mb-6">
         <button
           type="button"
           onClick={() => setJourneyOpen(true)}
@@ -124,21 +132,21 @@ export default function Home() {
         >
           <img src="/earth_web.gif" alt="" width={96} height={96} className="mx-auto" />
         </button>
-      </motion.div>
+      </div>
 
       {/* 헤드라인 */}
-      <motion.div {...fadeUp(0.4)} className="text-center mb-8">
+      <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold text-foreground leading-snug mb-3">
           {copy.title}
         </h1>
         <p className="text-sm text-muted-foreground">
           {copy.subtitle}
         </p>
-      </motion.div>
+      </div>
 
       {/* CTA */}
       <div className="w-full space-y-4">
-        <motion.div {...fadeUp(0.6)}>
+        <div>
           <Link
             href="/onboarding/quiz"
             onClick={() => {
@@ -149,9 +157,9 @@ export default function Home() {
           >
             {copy.quizCta}
           </Link>
-        </motion.div>
+        </div>
 
-        <motion.div {...fadeUp(0.8)}>
+        <div>
           <Link
             href="/onboarding/form"
             onClick={() => {
@@ -164,12 +172,11 @@ export default function Home() {
           <p className="text-xs text-muted-foreground text-center mt-2 opacity-50">
             {copy.hint}
           </p>
-        </motion.div>
+        </div>
 
         {IS_DEBUG && (
           <>
-            {/* Demo: skip form, go straight to card flow */}
-            <motion.div {...fadeUp(1.0)}>
+            <div>
               <button
                 type="button"
                 onClick={() => {
@@ -181,10 +188,9 @@ export default function Home() {
               >
                 {copy.cardPreview}
               </button>
-            </motion.div>
+            </div>
 
-            {/* Dev: post-login flow preview (Free / Pro 토글) */}
-            <motion.div {...fadeUp(1.1)}>
+            <div>
               <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
                 <span className="uppercase tracking-widest">{copy.postLoginFlow}</span>
                 {(["free", "pro"] as const).map((plan: DevPreviewPlan) => (
@@ -201,7 +207,7 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </>
         )}
       </div>
