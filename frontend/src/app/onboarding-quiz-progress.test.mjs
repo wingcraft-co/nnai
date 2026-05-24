@@ -8,10 +8,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const pageSource = readFileSync(join(__dirname, "[locale]", "onboarding", "quiz", "page.tsx"), "utf8");
 const cardSource = readFileSync(join(__dirname, "..", "components", "onboarding", "quiz-card.tsx"), "utf8");
 
-test("quiz page keeps a selected answer visible before auto-advancing", () => {
+test("quiz page advances immediately after storing the selected answer", () => {
   assert.match(pageSource, /selectedAnswerIndex/);
-  assert.match(pageSource, /setTimeout\(\(\) =>/);
+  assert.match(pageSource, /writeOnboardingQuizDraft\(localStorage, \{[\s\S]*?currentIndex: nextIndex/);
+  assert.match(pageSource, /setCurrentIndex\(nextIndex\)/);
   assert.match(pageSource, /selectedIndex=\{selectedAnswerIndex\}/);
+});
+
+test("quiz page redirects users who already have a saved persona", () => {
+  assert.match(pageSource, /localStorage\.getItem\("persona_type"\)/);
+  assert.match(pageSource, /router\.replace\("\/onboarding\/form"\)/);
 });
 
 test("quiz card can render a controlled selected option", () => {

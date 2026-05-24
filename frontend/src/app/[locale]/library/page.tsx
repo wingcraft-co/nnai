@@ -7,6 +7,7 @@ import { Columns2, Download, House, Image as ImageIcon, LockKeyhole, X } from "l
 
 import { CountryBriefingDocument } from "@/components/guide/CountryBriefingDocument";
 import type { CityData } from "@/components/tarot/types";
+import { PERSONAS, type PersonaType } from "@/data/personas";
 import cityScoresData from "@/data/city_scores.json";
 import type { BriefingData } from "@/lib/briefing-data";
 import { briefingFromMarkdownWithFallback, briefingToMarkdown } from "@/lib/briefing-markdown";
@@ -94,6 +95,19 @@ function normalizeLibraryCityId(value: string): string {
 
 function guidePathForLibraryCard(card: LibraryCard, locale: string): string {
   return `/${locale}/guide/${encodeURIComponent(normalizeLibraryCityId(card.city))}`;
+}
+
+function isPersonaType(value: string | null): value is PersonaType {
+  return Boolean(value && value in PERSONAS);
+}
+
+function readStoredPersonaType(): PersonaType | null {
+  try {
+    const value = localStorage.getItem("persona_type");
+    return isPersonaType(value) ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function LockedTextBar({
@@ -254,6 +268,7 @@ export default function LibraryPage() {
   const [selectedCard, setSelectedCard] = useState<LibraryCard | null>(null);
   const [compareKeys, setCompareKeys] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [personaType, setPersonaType] = useState<PersonaType | null>(null);
   const briefingDocumentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -280,6 +295,10 @@ export default function LibraryPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    setPersonaType(readStoredPersonaType());
   }, []);
 
   useEffect(() => {
@@ -337,6 +356,8 @@ export default function LibraryPage() {
     sectionCards: "CARDS",
     sectionLocked: "LOCKED CARDS",
   };
+  const persona = personaType ? PERSONAS[personaType] : null;
+  const personaLabel = persona ? (isKorean ? persona.label : persona.labelEn) : null;
   const modalMarkdown = selectedCard ? guideMarkdown(selectedCard) : null;
   const modalBriefing = selectedCard ? guideBriefing(selectedCard) : null;
   const compareCards = compareKeys
@@ -360,7 +381,7 @@ export default function LibraryPage() {
   return (
     <main className="dark min-h-screen w-full min-w-0 flex-1 bg-background px-5 py-14 text-foreground">
       <div className="mx-auto max-w-5xl">
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <header className="mb-8">
           <div>
             <Link
               href={`/${locale}?nav=home`}
@@ -370,7 +391,23 @@ export default function LibraryPage() {
               <House className="size-4" />
             </Link>
             <p className="text-xs font-semibold uppercase tracking-normal text-primary">{text.eyebrow}</p>
-            <h1 className="mt-2 font-serif text-3xl font-bold">{text.title}</h1>
+            <div className="mt-2 flex items-center justify-between gap-4">
+              <h1 className="min-w-0 font-serif text-3xl font-bold leading-none">{text.title}</h1>
+              {persona && personaLabel && (
+                <div className="inline-flex h-9 max-w-[52vw] shrink-0 items-center gap-2 rounded-full bg-card/80 px-2.5 shadow-[0_14px_32px_rgba(0,0,0,0.22)] sm:max-w-xs">
+                  <span className="truncate font-serif text-sm font-bold leading-none text-foreground">
+                    {personaLabel}
+                  </span>
+                  <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-background/70">
+                    <img
+                      src={`/${personaType}.gif`}
+                      alt={personaLabel}
+                      className="size-8 object-contain"
+                    />
+                  </span>
+                </div>
+              )}
+            </div>
             {isLoggedIn && (
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
                 <span>{text.tipComparePrefix}</span>
@@ -422,7 +459,7 @@ export default function LibraryPage() {
                     </button>
                   )}
                   {/* 화투 크기처럼 작게 보이도록 정보 밀도를 낮춘 수집 카드 */}
-                  <div className={`space-y-1 ${showCompareButton ? "pr-7" : ""}`}>
+                  <div className={`space-y-1 ${showCompareButton ? "pr-4" : ""}`}>
                     {isLocked ? (
                       <p className="text-[10px] font-semibold uppercase tracking-normal text-primary/70">
                         {text.locked}
@@ -442,7 +479,9 @@ export default function LibraryPage() {
                         <h2 className="line-clamp-3 whitespace-pre-line break-keep font-serif text-base font-bold leading-tight text-foreground">
                           {((card.city_kr || card.city) ?? "").replace(/\s*\(/, "\n(")}
                           {" "}
-                          <span aria-hidden="true">{countryFlagEmoji(card.country_id)}</span>
+                          <span className="align-baseline font-sans text-base font-normal leading-normal" aria-hidden="true">
+                            {countryFlagEmoji(card.country_id)}
+                          </span>
                         </h2>
                         <p className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
                           {card.city}, {card.country}

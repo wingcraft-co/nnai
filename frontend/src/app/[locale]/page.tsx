@@ -35,6 +35,7 @@ export default function Home() {
   const forceHome = searchParams?.get("nav") === "home";
   // null = auth 체크 중, true = 홈 표시
   const [ready, setReady] = useState<boolean>(forceHome);
+  const [hasPersona, setHasPersona] = useState<boolean | null>(null);
 
   const isEn = locale === "en";
   const copy = isEn
@@ -111,7 +112,18 @@ export default function Home() {
     };
   }, [router, forceHome]);
 
-  if (!ready) return (
+  useEffect(() => {
+    try {
+      setHasPersona(Boolean(localStorage.getItem("persona_type")));
+    } catch {
+      setHasPersona(false);
+    }
+  }, []);
+
+  const primaryCtaHref = hasPersona ? "/onboarding/form" : "/onboarding/quiz";
+  const primaryCtaLabel = hasPersona ? copy.formCta : copy.quizCta;
+
+  if (!ready || hasPersona === null) return (
     <div className="dark flex min-h-screen w-full items-center justify-center bg-background">
       <p className="animate-pulse text-sm text-muted-foreground">로딩 중...</p>
     </div>
@@ -138,31 +150,33 @@ export default function Home() {
       <div className="w-full space-y-4">
         <div>
           <Link
-            href="/onboarding/quiz"
+            href={primaryCtaHref}
             onClick={() => {
-              trackLandingCtaClick("quiz");
-              trackQuizStart("home");
+              trackLandingCtaClick(hasPersona ? "form" : "quiz");
+              if (!hasPersona) trackQuizStart("home");
             }}
             className="block w-full bg-primary py-3.5 text-center text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            {copy.quizCta}
+            {primaryCtaLabel}
           </Link>
         </div>
 
-        <div>
-          <Link
-            href="/onboarding/form"
-            onClick={() => {
-              trackLandingCtaClick("form");
-            }}
-            className="block w-full border border-border py-3.5 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            {copy.formCta}
-          </Link>
-          <p className="text-xs text-muted-foreground text-center mt-2 opacity-50">
-            {copy.hint}
-          </p>
-        </div>
+        {!hasPersona && (
+          <div>
+            <Link
+              href="/onboarding/form"
+              onClick={() => {
+                trackLandingCtaClick("form");
+              }}
+              className="block w-full border border-border py-3.5 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              {copy.formCta}
+            </Link>
+            <p className="text-xs text-muted-foreground text-center mt-2 opacity-50">
+              {copy.hint}
+            </p>
+          </div>
+        )}
 
         {IS_DEBUG && (
           <>

@@ -57,6 +57,16 @@ export default function QuizPage() {
   const currentQuestion = quizQuestions[currentIndex];
 
   useEffect(() => {
+    try {
+      if (readOnboardingQuizDraft(localStorage)) return;
+      if (!localStorage.getItem("persona_type")) return;
+      router.replace("/onboarding/form");
+    } catch {
+      // If storage is unavailable, keep the quiz usable.
+    }
+  }, [router]);
+
+  useEffect(() => {
     const draft = readOnboardingQuizDraft(localStorage);
     if (!draft) return;
 

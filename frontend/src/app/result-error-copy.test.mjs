@@ -28,7 +28,8 @@ test("recommendation backend failures show a server instability message", () => 
 
 test("loading error retry actions show a pointer cursor", () => {
   assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*카드 펼치기/);
-  assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*처음부터 다시하기/);
+  assert.match(source, /const retryLabel = travelOnlyRetry \? "여행 유형 다시 고르기" : "처음부터 다시하기"/);
+  assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*\{retryLabel\}/);
 });
 
 test("loading error message uses a subdued red warning tone", () => {
@@ -57,7 +58,7 @@ test("completed result restore infers selected cards before rendering done state
 test("guide result return restores completed cards instead of starting recommendation again", () => {
   assert.match(guideSource, /const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested"/);
   assert.match(guideSource, /localStorage\.setItem\(GUIDE_RESULT_RESTORE_KEY, "1"\)/);
-  assert.match(guideSource, /router\.push\(`\/\$\{locale\}\/result`\)/);
+  assert.match(guideSource, /router\.push\("\/result"\)/);
   assert.doesNotMatch(guideSource, /window\.history\.back\(\)/);
 
   assert.match(source, /const GUIDE_RESULT_RESTORE_KEY = "guide_result_restore_requested"/);
@@ -76,7 +77,7 @@ test("guide restores cached briefing when returning from the library", () => {
 });
 
 test("guide loading copy says custom report and breathes while generating", () => {
-  assert.match(guideSource, /맞춤 보고서를 생성하고 있어요\.\.\./);
+  assert.match(guideSource, /맞춤형 보고서를 생성하는 중입니다\.\.\./);
   assert.match(guideSource, /animate-pulse/);
   assert.doesNotMatch(guideSource, /상세 가이드를 생성하고 있어요\.\.\./);
 });
@@ -84,7 +85,7 @@ test("guide loading copy says custom report and breathes while generating", () =
 test("guide detail request forces preferred language from the route locale", () => {
   assert.match(guideSource, /function withRoutePreferredLanguage/);
   assert.match(guideSource, /locale === "ko" \? "한국어" : "English"/);
-  assert.match(guideSource, /const localizedParsedData = withRoutePreferredLanguage\(session\.parsedData, locale\)/);
+  assert.match(guideSource, /const localizedParsedData = withRoutePreferredLanguage\(baseParsedData, locale\)/);
   assert.match(guideSource, /parsed_data: localizedParsedData/);
 });
 
@@ -92,7 +93,8 @@ test("dashboard feature stays hidden for this release", () => {
   assert.match(featureFlagSource, /NEXT_PUBLIC_DASHBOARD_FEATURE_ENABLED === "true"/);
   assert.match(featureFlagSource, /NEXT_PUBLIC_DASHBOARD_FEATURE_ENABLED === "1"/);
   assert.doesNotMatch(featureFlagSource, /NEXT_PUBLIC_DASHBOARD_FEATURE_ENABLED \?\?/);
-  assert.match(homeSource, /if \(!DASHBOARD_FEATURE_ENABLED\) \{\s*setChecking\(false\)/);
+  assert.match(homeSource, /if \(DASHBOARD_FEATURE_ENABLED\) \{/);
+  assert.match(homeSource, /router\.replace\("\/dashboard"\)/);
   assert.match(guideSource, /\{DASHBOARD_FEATURE_ENABLED && \(/);
   assert.match(dashboardSource, /router\.replace\("\/onboarding\/form"\)/);
   assert.match(dashboardSource, /준비 중인 기능입니다\./);
@@ -122,6 +124,21 @@ test("library loads saved markdown reports from the server for logged in users",
   assert.match(libraryPageSource, /fetch\(`\$\{API_BASE\}\/api\/library\/guides`, \{ credentials: "include" \}\)/);
   assert.match(libraryPageSource, /libraryCardsFromServerGuides\(payload\.guides\)/);
   assert.match(libraryPageSource, /writeLibraryCards\(mergeLibraryCards\(readLibraryCards\(\), serverCards\)\)/);
+});
+
+test("library header shows the saved persona character and label", () => {
+  assert.match(libraryPageSource, /import \{ PERSONAS, type PersonaType \} from "@\/data\/personas"/);
+  assert.match(libraryPageSource, /localStorage\.getItem\("persona_type"\)/);
+  assert.match(libraryPageSource, /const persona = personaType \? PERSONAS\[personaType\] : null/);
+  assert.match(libraryPageSource, /const personaLabel = persona \? \(isKorean \? persona\.label : persona\.labelEn\) : null/);
+  assert.match(libraryPageSource, /className="mt-2 flex items-center justify-between gap-4"/);
+  assert.doesNotMatch(libraryPageSource, /내 노마드 유형/);
+  assert.doesNotMatch(libraryPageSource, /My nomad type/);
+  assert.match(libraryPageSource, /className="inline-flex h-9 max-w-\[52vw\] shrink-0 items-center gap-2 rounded-full bg-card\/80/);
+  assert.doesNotMatch(libraryPageSource, /rounded-full border border-border\/70 bg-card\/80/);
+  assert.match(libraryPageSource, /src=\{`\/\$\{personaType\}\.gif`\}/);
+  assert.match(libraryPageSource, /alt=\{personaLabel\}/);
+  assert.match(libraryPageSource, /\{personaLabel\}/);
 });
 
 test("guide ends with a small disclaimer card", () => {
@@ -176,24 +193,25 @@ test("library page matches the dark card system and reopens the formatted briefi
   assert.doesNotMatch(libraryPageSource, /aria-label="프린트"/);
   assert.match(libraryPageSource, /<Download className="size-4" \/>/);
   assert.doesNotMatch(libraryPageSource, /<Printer className="size-4" \/>/);
-  assert.match(libraryPageSource, /href="\/"/);
   assert.match(libraryPageSource, /import \{ Columns2, Download, House, Image as ImageIcon, LockKeyhole, X \} from "lucide-react"/);
   assert.match(libraryPageSource, /<House className="size-4" \/>/);
   assert.match(libraryPageSource, /href=\{`\/\$\{locale\}\?nav=home`\}/);
   assert.match(libraryPageSource, /aria-label=\{isKorean \? "홈으로" : "Go home"\}/);
   assert.doesNotMatch(libraryPageSource, /<Home className="size-6"/);
-  assert.match(libraryPageSource, /\{reportCards\.length\} reports, \{cardCount\} cards, \{lockedCount\} locked cards/);
+  assert.match(libraryPageSource, /const groups: Array<\{ key: string; label: string; count: number; cards: DisplayLibraryCard\[\] \}>/);
+  assert.match(libraryPageSource, /\{group\.count\} \{group\.label\}/);
   assert.doesNotMatch(libraryPageSource, /\{displayCards\.length\} cards · \{guideCount\} reports/);
   assert.match(libraryPageSource, /buyGuide: isKorean \? "가이드 구매" : "Buy guide"/);
-  assert.match(libraryPageSource, /href=\{guidePathForLibraryCard\(card, locale\)\}/);
+  assert.match(libraryPageSource, /href=\{`\$\{guidePathForLibraryCard\(card, locale\)\}\?from=library`\}/);
   assert.match(libraryPageSource, /\{text\.buyGuide\}/);
   assert.doesNotMatch(libraryPageSource, /가이드 없음/);
-  assert.match(libraryPageSource, /function countryFlagEmoji/);
-  assert.match(libraryPageSource, /\{"\\u00A0"\}/);
-  assert.match(libraryPageSource, /<span className="align-baseline text-sm" aria-hidden="true">\{countryFlagEmoji\(card\.country_id\)\}<\/span>/);
+  assert.match(libraryPageSource, /import \{ countryFlagEmoji \} from "@\/lib\/country-flag"/);
+  assert.match(libraryPageSource, /<h2 className="line-clamp-3 whitespace-pre-line break-keep font-serif text-base font-bold leading-tight text-foreground">/);
+  assert.match(libraryPageSource, /\{"[^"]*"\}/);
+  assert.match(libraryPageSource, /<span className="align-baseline font-sans text-base font-normal leading-normal" aria-hidden="true">\s*\{countryFlagEmoji\(card\.country_id\)\}\s*<\/span>/);
   assert.doesNotMatch(libraryPageSource, /<span className="ml-1[^"]*" aria-hidden="true">\{countryFlagEmoji\(card\.country_id\)\}<\/span>/);
   assert.match(libraryPageSource, /const showCompareButton = hasGuide && reportCards\.length > 1/);
-  assert.match(libraryPageSource, /className=\{`space-y-1 \$\{showCompareButton \? "pr-7" : ""\}`\}/);
+  assert.match(libraryPageSource, /className=\{`space-y-1 \$\{showCompareButton \? "pr-4" : ""\}`\}/);
   assert.doesNotMatch(libraryPageSource, /<div className="space-y-1 pr-7">/);
   assert.doesNotMatch(libraryPageSource, /<p className="line-clamp-2[^"]*">\s*<span aria-hidden="true">\{countryFlagEmoji\(card\.country_id\)\}<\/span>/);
   assert.match(libraryPageSource, /collected: isKorean \? "CARD" : "CARD"/);
@@ -226,6 +244,10 @@ test("explicit home buttons bypass auto-redirect and force the landing page", ()
   assert.match(onboardingFormSource, /onClick=\{\(\) => router\.push\("\/\?nav=home"\)\}/);
   assert.match(onboardingQuizSource, /onClick=\{\(\) => router\.push\("\/\?nav=home"\)\}/);
   assert.match(homeSource, /const forceHome = searchParams\?\.get\("nav"\) === "home"/);
+  assert.match(homeSource, /const \[hasPersona, setHasPersona\] = useState<boolean \| null>\(null\)/);
+  assert.match(homeSource, /localStorage\.getItem\("persona_type"\)/);
+  assert.match(homeSource, /const primaryCtaHref = hasPersona \? "\/onboarding\/form" : "\/onboarding\/quiz"/);
+  assert.match(homeSource, /if \(!ready \|\| hasPersona === null\) return/);
   assert.match(homeSource, /const HOME_PREFLIGHT_TIMEOUT_MS = 1500/);
   assert.match(homeSource, /controller\.abort\(\)/);
   assert.match(homeSource, /await fetchWithTimeout\(`\$\{API_BASE\}\/auth\/me`/);
