@@ -35,3 +35,4 @@
 - 국기 이모지 lookup 테이블 3종(`TarotDeck`, `TarotReading`, `TarotCard`) 통합 → ISO-2 Regional Indicator 기반 `@/lib/country-flag` 유틸로 일원화 (PY 등 누락 국가가 🌍로 표시되던 문제 해결).
 - DB 점검 및 오래된 자료 정리: `scripts/migrate_sqlite_to_pg.py`, `scripts/drop_mobile_tables.sql`, `tests/test_pdf_generator.py`, `IMPLEMENTATION_STATUS.md` 삭제. utils/db.py ↔ db-schema.md 동기화 상태 확인.
 - 타로 세션 PostgreSQL 마이그레이션: `tarot_sessions` 테이블 신설 (TTL 24시간, lazy cleanup, `SELECT FOR UPDATE` 동시성 처리). `api/tarot_session.py`의 in-memory `_sessions` 딕셔너리 제거 → Railway 재배포 시 세션 유실 문제 해결. CI에 `test_tarot_session.py` 등록.
+- 프론트엔드 의존성 취약점 14건 해결: `next` 16.2.4 → 16.2.6, `hono` overrides 4.12.22, `@hono/node-server` 2.0.4, `postcss` override ^8.5.10 추가. `npm audit fix` + 수동 버전 업으로 0건 달성.
