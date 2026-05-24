@@ -45,6 +45,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "nomad_journey_stops",
     "onboarding_drafts",
     "rate_limit_hits",
+    "tarot_sessions",
     "user_city_plans",
     "users",
     "verification_logs",
@@ -307,6 +308,19 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_bucket_window_created
             ON rate_limit_hits(bucket_key, window_name, created_at);
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tarot_sessions (
+                session_id        TEXT PRIMARY KEY,
+                cities            JSONB NOT NULL,
+                revealed_indices  JSONB,
+                created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                expires_at        TIMESTAMPTZ NOT NULL
+            );
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tarot_sessions_expires_at
+            ON tarot_sessions(expires_at);
         """)
         cur.execute("DROP TABLE IF EXISTS pins;")
         cur.execute("""

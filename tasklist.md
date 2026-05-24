@@ -33,3 +33,5 @@
 - 가이드 구매 후 보관함의 CARD가 REPORT로 승격되도록 `mergeLibraryCards` 수정, 회귀 테스트 추가.
 - 보관함→guide 진입 시 `?from=library` 분기 처리(뒤로가기 라벨/목적지). 라이브러리에서 진입할 때 세션 revealedCities[0]로 잘못 fallback되던 버그 수정.
 - 국기 이모지 lookup 테이블 3종(`TarotDeck`, `TarotReading`, `TarotCard`) 통합 → ISO-2 Regional Indicator 기반 `@/lib/country-flag` 유틸로 일원화 (PY 등 누락 국가가 🌍로 표시되던 문제 해결).
+- DB 점검 및 오래된 자료 정리: `scripts/migrate_sqlite_to_pg.py`, `scripts/drop_mobile_tables.sql`, `tests/test_pdf_generator.py`, `IMPLEMENTATION_STATUS.md` 삭제. utils/db.py ↔ db-schema.md 동기화 상태 확인.
+- 타로 세션 PostgreSQL 마이그레이션: `tarot_sessions` 테이블 신설 (TTL 24시간, lazy cleanup, `SELECT FOR UPDATE` 동시성 처리). `api/tarot_session.py`의 in-memory `_sessions` 딕셔너리 제거 → Railway 재배포 시 세션 유실 문제 해결. CI에 `test_tarot_session.py` 등록.

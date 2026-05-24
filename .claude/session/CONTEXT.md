@@ -95,9 +95,12 @@ _Last updated: 2026-05-01 KST (세션 8)_
 - `total_budget_krw: int | None` — 단기 체류 시 월 예산 (만원)
 - `persona_vector: dict[str, float] | None` — 퍼지 페르소나 벡터
 
-### 타로 세션 (인메모리)
-- `api/tarot_session.py` — 서버 메모리에 5장 저장, reveal 시 3장 반환
-- **Railway 재배포 시 세션 초기화됨** — 추후 DB/Redis 마이그레이션 필요
+### 타로 세션 (PostgreSQL)
+- `api/tarot_session.py` — `tarot_sessions` 테이블에 5장 저장, reveal 시 3장 반환
+- **TTL 24시간**, `create_session` 호출마다 만료된 row lazy cleanup
+- `reveal_cards`는 `SELECT FOR UPDATE`로 잠금 → 중복 reveal 차단
+- 비로그인 사용자도 발급되므로 `user_id` FK 없음
+- Railway 재배포에도 세션 유지됨
 
 ### 팀 작업 — Pro 도시 대시보드 신규 (rosie, 2026-04-26)
 > 자세한 스펙은 `cowork/backend/api-reference.md` / `db-schema.md` 참조
@@ -174,7 +177,7 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [ ] 영문 라벨 worst case 2줄 여부 실측 (필요시 `TAG_LABELS` 추가 축약)
 - [ ] Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영)
 - [ ] visa_free_days 아내팀 검수 (docs/review/REVIEW_visa_free_days.md)
-- [ ] 타로 세션 DB/Redis 마이그레이션 (현재 인메모리)
+- [x] 타로 세션 PostgreSQL 마이그레이션 (`tarot_sessions` 테이블, TTL 24시간, lazy cleanup) — 세션 9
 - [ ] IRT 문항반응이론 도입 (사용자 데이터 1000명+ 수집 후)
 - [ ] 페르소나 결과 공유 기능
 - [ ] 도시 데이터 확충 (북미/중동 커버리지 부족 → 빈 결과 원인)

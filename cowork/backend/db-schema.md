@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 데이터베이스 스키마 레퍼런스
 > DB: PostgreSQL (Railway)
 > 정의 위치: `utils/db.py` → `init_db()`
-> 최종 업데이트: 2026-05-22
+> 최종 업데이트: 2026-05-24
 
 운영 메모:
 - 스키마 보장 시점은 FastAPI startup (`server.py`) 입니다.
@@ -25,6 +25,7 @@
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
 | `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 및 무료 quota 기준 |
+| `tarot_sessions` | 타로 카드 5장 추천 결과 + reveal 게이팅 (TTL 24시간) |
 | `nomad_journey_stops` | 지원 도시 또는 검증된 여행 로그용 위치로 저장한 노마드 여정 stop |
 | `visits` | 경로별 방문자 수 집계 |
 | `user_city_plans` | Pro 대시보드 활성 도시 플랜 |
@@ -257,6 +258,39 @@ CREATE TABLE IF NOT EXISTS detail_guide_cache (
 | `markdown` | TEXT | 캐시된 상세 가이드 markdown |
 | `parsed_snapshot` | JSONB | 요청 당시 Step 1 parsed 데이터 스냅샷 |
 | `city_snapshot` | JSONB | 선택 도시 스냅샷 |
+
+---
+
+## tarot_sessions
+
+`/api/recommend` 응답으로 발급되는 타로 카드 5장 세션 저장소입니다. 사용자가 `/api/reveal`로 3장을 선택할 때까지 추천 결과를 서버사이드에 보관하여 임의 reveal을 차단합니다. 비로그인 사용자도 사용 가능하므로 `user_id` FK는 없습니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS tarot_sessions (
+    session_id        TEXT PRIMARY KEY,
+    cities            JSONB NOT NULL,
+    revealed_indices  JSONB,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at        TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tarot_sessions_expires_at
+ON tarot_sessions(expires_at);
+```
+
+| 컬럼 | 타입 | Null | 설명 |
+|------|------|------|------|
+| `session_id` | TEXT PK | NOT NULL | 16자 hex (uuid4 prefix) |
+| `cities` | JSONB | NOT NULL | 추천 도시 5장 원본 데이터 |
+| `revealed_indices` | JSONB | NULL 가능 | 사용자가 선택해 공개한 3장 indices (정렬됨). 미공개면 `NULL` |
+| `created_at` | TIMESTAMPTZ | NOT NULL | 세션 생성 시각 (기본값: NOW()) |
+| `expires_at` | TIMESTAMPTZ | NOT NULL | 세션 만료 시각 (기본 TTL 24시간) |
+
+운영 메모:
+- `expires_at > NOW()` row만 유효합니다.
+- `create_session` 호출 시 만료된 row가 자동 정리됩니다 (lazy cleanup, 별도 cron 불필요).
+- `reveal_cards`는 `SELECT ... FOR UPDATE`로 잠금을 잡고 `revealed_indices`가 `NULL`일 때만 갱신합니다 (중복 reveal 차단).
+- TTL은 `api.tarot_session.SESSION_TTL_SECONDS` 상수로 조정합니다.
 
 ---
 
@@ -633,6 +667,8 @@ users (id)
   └── onboarding_drafts (user_id) — 1:1
 
 visits — 독립 테이블 (외래키 없음)
+
+tarot_sessions — 독립 테이블 (비로그인 사용자도 발급되므로 외래키 없음, TTL 24시간)
 
 verified_sources (id)
   └── verified_city_sources (source_id) — 1:N

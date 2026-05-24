@@ -72,6 +72,7 @@ jobs:
             tests/test_server_endpoints.py \
             tests/test_server_startup.py \
             tests/test_sync_nomaddb_csv_to_json.py \
+            tests/test_tarot_session.py \
             tests/test_tax_warning.py \
             tests/test_verification_metadata.py \
             tests/test_visa_db.py \
