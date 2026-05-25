@@ -62,3 +62,11 @@ def test_library_guides_endpoint_reads_saved_detail_cache():
     assert '"cache_key": cache_key' in server_source
     assert 'raise HTTPException(status_code=401, detail="Login required.")' in server_source
     assert 'return {"guides": list_detail_guide_cache_entries(user_id)}' in server_source
+
+
+def test_detail_endpoint_allows_purchased_city_before_cache_generation():
+    server_source = Path("server.py").read_text()
+
+    assert "user_has_report_purchase" in server_source
+    assert "has_paid_report = bool(city_id and user_has_report_purchase(user_id, city_id))" in server_source
+    assert "if has_paid_report:" in server_source

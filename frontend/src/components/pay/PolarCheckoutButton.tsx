@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import type { PaymentRequest, PaymentResponse } from '@portone/browser-sdk/v2';
 import {
   trackCheckoutClick,
+  trackCheckoutSuccess,
   trackPricingSectionEngagement,
 } from '@/lib/analytics/events';
 
@@ -10,11 +12,26 @@ type PolarCheckoutButtonProps = {
   locale: string;
   directCheckoutUrl?: string;
   planCode?: string;
+  cityId?: string;
   returnPath?: string;
   idleLabel: string;
   loadingLabel: string;
   className?: string;
 };
+
+type CheckoutResponse = {
+  checkout_url?: string;
+  url?: string;
+  provider?: string;
+  payment_id?: string;
+  client_payload?: Record<string, unknown>;
+};
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+
+function billingEndpoint(path: string): string {
+  return API_BASE ? `${API_BASE}${path}` : path;
+}
 
 function pickErrorMessage(payload: unknown, locale: string): string {
   const fallback = locale === 'en'
@@ -34,10 +51,19 @@ function pickErrorMessage(payload: unknown, locale: string): string {
   return fallback;
 }
 
+function pickPortOneErrorMessage(response: PaymentResponse | undefined, locale: string): string {
+  const fallback = locale === 'en'
+    ? 'Payment was not completed. Please try again.'
+    : '결제가 완료되지 않았습니다. 다시 시도해주세요.';
+  if (!response) return fallback;
+  return response.message || response.pgMessage || fallback;
+}
+
 export function PolarCheckoutButton({
   locale,
   directCheckoutUrl,
-  planCode = 'pro_monthly',
+  planCode = 'city_report',
+  cityId,
   returnPath,
   idleLabel,
   loadingLabel,
@@ -50,7 +76,6 @@ export function PolarCheckoutButton({
     if (loading) return;
     setError(null);
     trackPricingSectionEngagement({ section: 'pro_plan', action: 'click' });
-    trackCheckoutClick('polar');
 
     function openCheckout(url: string) {
       const win = window.open(url, '_blank');
@@ -63,6 +88,7 @@ export function PolarCheckoutButton({
     }
 
     if (directCheckoutUrl) {
+      trackCheckoutClick('polar');
       openCheckout(directCheckoutUrl);
       return;
     }
@@ -70,20 +96,19 @@ export function PolarCheckoutButton({
     setLoading(true);
     try {
       const resolvedReturnPath = returnPath || `/${locale}/pricing?checkout=return`;
-      const response = await fetch('/api/billing/checkout', {
+      const response = await fetch(billingEndpoint('/api/billing/checkout'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
+          city_id: cityId,
           plan_code: planCode,
           locale,
           return_path: resolvedReturnPath,
         }),
       });
 
-      const payload = (await response.json().catch(() => ({}))) as {
-        checkout_url?: string;
-        url?: string;
-      };
+      const payload = (await response.json().catch(() => ({}))) as CheckoutResponse;
 
       if (!response.ok) {
         setError(pickErrorMessage(payload, locale));
@@ -100,6 +125,59 @@ export function PolarCheckoutButton({
         return;
       }
 
+      if (payload.provider === 'portone') {
+        const paymentRequest = payload.client_payload as PaymentRequest | undefined;
+        if (!paymentRequest) {
+          setError(
+            locale === 'en'
+              ? 'PortOne payment payload is missing.'
+              : '포트원 결제 요청 정보가 없습니다.'
+          );
+          return;
+        }
+
+        trackCheckoutClick('portone');
+        const PortOne = await import('@portone/browser-sdk/v2');
+        const paymentResponse = await PortOne.requestPayment(paymentRequest);
+        if (!paymentResponse || paymentResponse.code) {
+          setError(pickPortOneErrorMessage(paymentResponse, locale));
+          return;
+        }
+
+        const paymentId =
+          paymentResponse.paymentId ||
+          payload.payment_id ||
+          (typeof payload.client_payload?.paymentId === 'string' ? payload.client_payload.paymentId : '');
+        if (!paymentId) {
+          setError(
+            locale === 'en'
+              ? 'PortOne payment ID is missing.'
+              : '포트원 결제 ID가 없습니다.'
+          );
+          return;
+        }
+
+        const completeResponse = await fetch(billingEndpoint('/api/billing/complete'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ payment_id: paymentId }),
+        });
+        const completePayload = await completeResponse.json().catch(() => ({}));
+        if (!completeResponse.ok) {
+          setError(pickErrorMessage(completePayload, locale));
+          return;
+        }
+
+        trackCheckoutSuccess('portone');
+        const completedUrl = new URL(redirectUrl, window.location.origin);
+        completedUrl.searchParams.set('checkout', 'complete');
+        completedUrl.searchParams.set('paymentId', paymentId);
+        window.location.assign(completedUrl.toString());
+        return;
+      }
+
+      trackCheckoutClick('polar');
       openCheckout(redirectUrl);
     } catch {
       setError(

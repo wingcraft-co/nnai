@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const billingProvider = (process.env.BILLING_PROVIDER || process.env.NEXT_PUBLIC_BILLING_PROVIDER || 'portone')
-    .trim()
-    .toLowerCase();
-  const directCheckoutUrl = billingProvider === 'polar'
-    ? process.env.POLAR_CHECKOUT_URL || process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL
-    : '';
-  if (directCheckoutUrl) {
-    return NextResponse.json({ checkout_url: directCheckoutUrl });
-  }
-
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nnai.app';
   const cookie = req.headers.get('cookie');
   const rawBody = await req.text();
 
-  const upstream = await fetch(`${apiBase}/api/billing/checkout`, {
+  const upstream = await fetch(`${apiBase}/api/billing/complete`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

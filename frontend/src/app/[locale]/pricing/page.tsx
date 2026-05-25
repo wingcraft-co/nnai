@@ -17,8 +17,12 @@ export default async function LocalizedPricingPage({ params }: Props) {
     acceptLanguage: requestHeaders.get('accept-language') ?? undefined,
   });
   const content = getPricingContent(locale);
-  const directCheckoutUrl =
-    process.env.POLAR_CHECKOUT_URL || process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL;
+  const billingProvider = (process.env.BILLING_PROVIDER || process.env.NEXT_PUBLIC_BILLING_PROVIDER || 'portone')
+    .trim()
+    .toLowerCase();
+  const directCheckoutUrl = billingProvider === 'polar'
+    ? process.env.POLAR_CHECKOUT_URL || process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL
+    : undefined;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-4 py-10">

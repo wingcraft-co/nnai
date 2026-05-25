@@ -29,6 +29,7 @@ from utils.db import (
     get_billing_entitlement,
     get_detail_guide_by_city_id,
     get_user_free_report_city_id,
+    user_has_report_purchase,
     count_detail_guide_cache_entries,
     list_detail_guide_cache_entries,
     release_thread_connection_transaction,
@@ -402,8 +403,11 @@ async def api_detail(req: DetailRequest, request: Request):
     # 3. 무료 보고서 1회 부여 가능한가?
     is_free = False
     if city_id:
+        has_paid_report = bool(city_id and user_has_report_purchase(user_id, city_id))
         existing_free_city = get_user_free_report_city_id(user_id)
-        if existing_free_city is None:
+        if has_paid_report:
+            is_free = False
+        elif existing_free_city is None:
             # 무료 미사용 → 이 도시로 부여
             claimed = claim_free_report_city(user_id, city_id)
             if claimed:

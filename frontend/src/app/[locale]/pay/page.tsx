@@ -7,8 +7,12 @@ type Props = {
 export default async function LocalizedPayPage({ params }: Props) {
   const { locale } = await params;
   const isEn = locale === 'en';
-  const directCheckoutUrl =
-    process.env.POLAR_CHECKOUT_URL || process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL;
+  const billingProvider = (process.env.BILLING_PROVIDER || process.env.NEXT_PUBLIC_BILLING_PROVIDER || 'portone')
+    .trim()
+    .toLowerCase();
+  const directCheckoutUrl = billingProvider === 'polar'
+    ? process.env.POLAR_CHECKOUT_URL || process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL
+    : undefined;
 
   return (
     <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:px-8">

@@ -21,7 +21,8 @@
 | `users` | Google OAuth 로그인 유저 |
 | `auth_sessions` | 웹 로그인 opaque session 저장소 |
 | `billing_entitlements` | 웹 entitlement / plan 상태 |
-| `billing_checkout_sessions` | Polar checkout 생성/완료 추적 |
+| `billing_checkout_sessions` | 결제 provider checkout 생성/완료 추적 |
+| `report_purchases` | 도시별 유료 보고서 구매 기록 |
 | `billing_usage_ledger` | pay-as-you-go 사용량 ledger |
 | `billing_provider_events` | billing provider webhook 멱등 처리 |
 | `detail_guide_cache` | 상세 가이드 LLM 응답 캐시 + 단건 결제 보유 보고서 기록 (`city_id`, `is_free`) |
@@ -151,7 +152,7 @@ CREATE TABLE IF NOT EXISTS billing_entitlements (
 
 ## billing_checkout_sessions
 
-checkout 생성 이후 webhook 도착 전까지 복구/추적에 사용하는 테이블입니다.
+checkout 생성 이후 결제 완료 검증 및 복구/추적에 사용하는 테이블입니다.
 
 ```sql
 CREATE TABLE IF NOT EXISTS billing_checkout_sessions (
@@ -160,6 +161,8 @@ CREATE TABLE IF NOT EXISTS billing_checkout_sessions (
     provider             TEXT NOT NULL,
     provider_checkout_id TEXT UNIQUE,
     plan_code            TEXT NOT NULL,
+    city_id              TEXT,
+    amount_krw           INTEGER,
     status               TEXT NOT NULL CHECK (status IN ('created', 'completed', 'expired', 'failed')),
     return_path          TEXT,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -171,13 +174,48 @@ CREATE TABLE IF NOT EXISTS billing_checkout_sessions (
 |------|------|------|
 | `id` | BIGSERIAL PK | 내부 checkout row ID |
 | `user_id` | TEXT FK | `users.id` 참조 |
-| `provider` | TEXT | 현재는 `polar` |
-| `provider_checkout_id` | TEXT | Polar checkout ID |
+| `provider` | TEXT | 결제 provider (`portone`, `polar`) |
+| `provider_checkout_id` | TEXT | provider checkout/payment ID. PortOne은 `paymentId`, Polar는 checkout ID |
 | `plan_code` | TEXT | 내부 플랜 코드 |
+| `city_id` | TEXT | 도시 보고서 단건 결제 대상 city_id |
+| `amount_krw` | INTEGER | PortOne 결제 검증용 원화 결제 예정 금액 |
 | `status` | TEXT | `created`, `completed`, `expired`, `failed` |
 | `return_path` | TEXT | 프론트 복귀 경로 |
 | `created_at` | TIMESTAMPTZ | checkout 생성 시각 |
 | `completed_at` | TIMESTAMPTZ | 완료 처리 시각 |
+
+---
+
+## report_purchases
+
+도시별 유료 보고서 구매 권한의 단일 진실 공급원입니다. 무료 보고서 사용 기록은 `users.free_report_city_id`, 실제 보고서 캐시는 `detail_guide_cache`에 남지만, 유료 구매 여부는 이 테이블로 판단합니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS report_purchases (
+    id                  BIGSERIAL PRIMARY KEY,
+    user_id             TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    city_id             TEXT NOT NULL,
+    provider            TEXT NOT NULL,
+    provider_payment_id TEXT NOT NULL,
+    amount_krw          INTEGER,
+    purchased_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (provider, provider_payment_id),
+    UNIQUE (user_id, city_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_purchases_user_city
+ON report_purchases(user_id, city_id);
+```
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | BIGSERIAL PK | 내부 구매 row ID |
+| `user_id` | TEXT FK | `users.id` 참조 |
+| `city_id` | TEXT | 구매한 도시 보고서 ID |
+| `provider` | TEXT | 결제 provider (`portone`, `polar`) |
+| `provider_payment_id` | TEXT | provider 결제 ID. PortOne은 `paymentId` |
+| `amount_krw` | INTEGER | 결제 금액(KRW). 글로벌 provider에서는 NULL 가능 |
+| `purchased_at` | TIMESTAMPTZ | 구매 확정 시각 |
 
 ---
 

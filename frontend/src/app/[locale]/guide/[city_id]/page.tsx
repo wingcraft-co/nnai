@@ -478,7 +478,9 @@ export default function GuidePage() {
   const searchParams = useSearchParams();
   const cityId = normalizeCityId(params.city_id);
   const fromLibrary = searchParams?.get("from") === "library";
-  const checkoutReturned = searchParams?.get("checkout") === "return";
+  const checkoutState = searchParams?.get("checkout");
+  const checkoutReturned = checkoutState === "return" || checkoutState === "complete";
+  const returnedPaymentId = searchParams?.get("paymentId") ?? searchParams?.get("payment_id") ?? "";
 
   const [city, setCity] = useState<CityData | null>(null);
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(null);
@@ -567,12 +569,36 @@ export default function GuidePage() {
         setCity(selected);
         setParsedData(localizedParsedData);
 
+        let paymentCompletedFromReturn = false;
+        if (checkoutReturned && returnedPaymentId) {
+          const completeResponse = await fetchWithTimeout(`${API_BASE}/api/billing/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ payment_id: returnedPaymentId }),
+          });
+          if (!completeResponse.ok) {
+            setMarkdown(null);
+            setBriefing(null);
+            setQuotaExceeded(true);
+            return;
+          }
+          paymentCompletedFromReturn = true;
+          try {
+            if (localStorage.getItem(PAYWALL_BLOCKED_KEY) === cityId) {
+              localStorage.removeItem(PAYWALL_BLOCKED_KEY);
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         const cachedQuota = session.detailQuota ?? null;
         const cachedQuotaExhausted = Boolean(
           cachedQuota && !cachedQuota.is_unlimited && (cachedQuota.remaining ?? 0) <= 0
         );
         const paywallBlockedForCity = localStorage.getItem(PAYWALL_BLOCKED_KEY) === cityId;
-        if (checkoutReturned || cachedQuotaExhausted || paywallBlockedForCity) {
+        if ((checkoutReturned && !paymentCompletedFromReturn) || cachedQuotaExhausted || paywallBlockedForCity) {
           setDetailQuota(cachedQuota);
           setBillingStatus(session.billingStatus ?? null);
           setMarkdown(null);
@@ -779,7 +805,7 @@ export default function GuidePage() {
     return () => {
       cancelled = true;
     };
-  }, [cityId, locale, router, fromLibrary, checkoutReturned, reloadTick]);
+  }, [cityId, locale, router, fromLibrary, checkoutReturned, returnedPaymentId, reloadTick]);
 
   async function confirmCity() {
     if (!city || confirming) return;
@@ -897,20 +923,23 @@ export default function GuidePage() {
                 <div>
                   <h2 className="font-serif text-lg font-bold">이 도시의 맞춤 보고서는 결제가 필요합니다.</h2>
                   <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
-                    {`무료 맞춤 보고서 1회는 이미 다른 도시에서 사용하셨습니다.\n이 도시 보고서는 결제 후 워터마크 없이 영구 보관됩니다.`}
+                    {`무료 맞춤 보고서 1회는 이미 다른 도시에서 사용하셨습니다.\n보고서는 결제 후 워터마크 없이 영구 보관됩니다.`}
                   </p>
                   <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-sm text-muted-foreground line-through">$4.99</span>
-                    <span className="text-2xl font-bold text-primary">$2.99</span>
-                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
-                      런칭 특가 · 40% OFF
-                    </span>
+                    <span className="text-2xl font-bold text-primary">₩2,900</span>
+                    <span className="text-sm text-muted-foreground line-through">₩4,900</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold text-primary">런칭 이벤트</span>
+                    <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold text-primary">~26.06.30까지</span>
+                    <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold text-primary">40% OFF</span>
                   </div>
                 </div>
               </div>
               <div className="mt-5 flex w-full justify-end">
                 <PolarCheckoutButton
                   locale={locale}
+                  cityId={cityId}
                   returnPath={`/${locale}/guide/${cityId}?checkout=return`}
                   idleLabel="이 도시 보고서 구매하기"
                   loadingLabel="결제 페이지 여는 중..."
@@ -1036,6 +1065,7 @@ export default function GuidePage() {
                     </div>
                     <PolarCheckoutButton
                       locale={locale}
+                      cityId={cityId}
                       returnPath={`/${locale}/guide/${cityId}?checkout=return`}
                       idleLabel="확정하러가기"
                       loadingLabel="결제 페이지 여는 중..."

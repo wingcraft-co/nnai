@@ -170,7 +170,10 @@ function CityLightbox({
   const krwRate = useKrwRate();
   const [index, setIndex] = useState(startIndex);
   const current = cards[index] ?? cards[0];
-  const directCheckoutUrl = process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL ?? null;
+  const directCheckoutUrl =
+    process.env.NEXT_PUBLIC_BILLING_PROVIDER === "polar"
+      ? process.env.NEXT_PUBLIC_POLAR_CHECKOUT_URL ?? null
+      : null;
   const isEn = locale === "en";
 
   const goPrev = () => setIndex((i) => (i - 1 + cards.length) % cards.length);

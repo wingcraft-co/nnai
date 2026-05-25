@@ -42,3 +42,7 @@
 - Pricing 단건 결제 전환 spec(`cowork/marketing/pricing-migration-spec.md`) 신설: free/pro 폐지, 보고서당 정가 $4.99 / 런칭 할인 $2.99 단건 결제, Polar 단일 product + city_id metadata.
 - 무료 사용자 정책: 평생 1개 도시 보고서 풀콘텐츠 제공 (LLM 분기 없음 — 응답 `is_free` 플래그로 프론트 분기). 무료 = **앞 3섹션 명확 + 뒷부분 블러(`blur-sm`) + 대각선 워터마크 + 다운로드 잠금**. 결제 시 모두 해제. DB: `users.free_report_city_id`, `detail_guide_cache.is_free`/`city_id` 컬럼 신설.
 - P1 백엔드 단건 결제 모델 구현 완료: `utils/db.py` 헬퍼(`get_user_free_report_city_id`, `claim_free_report_city`, `get_detail_guide_by_city_id`, `list_user_owned_city_ids`, `mark_report_purchased`) 추가, `api/detail_cache.py`에 `derive_city_id` 추가, `/api/detail` 가드를 quota 기반 → city_id 단건 모델로 교체 (401/402/200 + is_free 응답), `/auth/me` 응답에 `free_report_city_id`·`library` 추가. `cowork/backend/db-schema.md`·`api-reference.md` 동기화. 회귀 385 PASS.
+- 결제 API를 provider-neutral 구조로 분리: 기본 `BILLING_PROVIDER=portone`, 글로벌 전환용 `polar` adapter 유지, `/api/billing/*` 경로는 유지.
+- 가이드 페이지 결제 요청에 `city_id`를 포함하고, Polar 직링크는 provider가 `polar`일 때만 사용하도록 BFF/프론트 우회 조건을 제한함.
+- PortOne V2 브라우저 SDK를 추가하고 `/api/billing/complete` 서버 검증 플로우를 구현함: `paymentId` 조회 → `PAID`/금액/`customData` 검증 → `report_purchases` 구매 기록 저장.
+- 프론트 결제 버튼은 PortOne SDK 결제창 호출 후 구매 확정 페이지로 복귀하며, 모바일 리디렉션 복귀 시에도 가이드 페이지가 `paymentId`를 재검증하도록 처리함.

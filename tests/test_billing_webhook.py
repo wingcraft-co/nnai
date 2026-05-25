@@ -14,6 +14,7 @@ from api.billing import router as billing_router
 
 def _build_client(monkeypatch) -> TestClient:
     app = FastAPI()
+    monkeypatch.setenv("BILLING_PROVIDER", "polar")
     app.include_router(billing_router)
     return TestClient(app)
 
@@ -47,6 +48,22 @@ def test_webhook_rejects_invalid_signature(monkeypatch):
     assert response.status_code == 403
 
 
+def test_portone_webhook_is_not_acknowledged_until_verification_is_implemented(monkeypatch):
+    app = FastAPI()
+    monkeypatch.setenv("BILLING_PROVIDER", "portone")
+    app.include_router(billing_router)
+    client = TestClient(app)
+
+    response = client.post("/api/billing/webhook", json={"paymentId": "payment-123"})
+
+    assert response.status_code == 501
+    assert response.json() == {
+        "ok": False,
+        "provider": "portone",
+        "detail": "PortOne webhook handling is not implemented.",
+    }
+
+
 def test_webhook_is_idempotent(monkeypatch):
     secret = base64.b64encode(b"super-secret").decode("utf-8")
     payload = {
@@ -69,9 +86,9 @@ def test_webhook_is_idempotent(monkeypatch):
     calls: list[dict[str, object]] = []
     inserts = iter([True, False])
     monkeypatch.setenv("POLAR_WEBHOOK_SECRET", secret)
-    monkeypatch.setattr("api.billing.record_billing_provider_event", lambda **kwargs: next(inserts))
-    monkeypatch.setattr("api.billing.mark_checkout_session_status", lambda *args, **kwargs: None)
-    monkeypatch.setattr("api.billing.upsert_billing_entitlement", lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr("api.billing_providers.polar.record_billing_provider_event", lambda **kwargs: next(inserts))
+    monkeypatch.setattr("api.billing_providers.polar.mark_checkout_session_status", lambda *args, **kwargs: None)
+    monkeypatch.setattr("api.billing_providers.polar.upsert_billing_entitlement", lambda **kwargs: calls.append(kwargs))
     client = _build_client(monkeypatch)
 
     first = client.post("/api/billing/webhook", content=raw_payload, headers=headers)

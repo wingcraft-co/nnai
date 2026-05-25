@@ -330,7 +330,7 @@ test("quota exceeded guide screen uses a purchase CTA instead of a free guide CT
   assert.match(guideSource, /이 도시의 맞춤 보고서는 결제가 필요합니다\./);
   assert.match(guideSource, /idleLabel="이 도시 보고서 구매하기"/);
   assert.doesNotMatch(guideSource, /idleLabel="맞춤 가이드 받기"/);
-  // 단건 결제 모델: launch sale 가격 표시 ($4.99 → $2.99)
-  assert.match(guideSource, /\$4\.99/);
-  assert.match(guideSource, /\$2\.99/);
+  // 단건 결제 모델: 국내 launch sale 가격 표시 (₩4,900 → ₩2,900)
+  assert.match(guideSource, /₩4,900/);
+  assert.match(guideSource, /₩2,900/);
 });

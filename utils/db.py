@@ -39,6 +39,7 @@ _REQUIRED_SCHEMA_TABLES = {
     "billing_checkout_sessions",
     "billing_entitlements",
     "billing_provider_events",
+    "report_purchases",
     "billing_usage_ledger",
     "dashboard_widget_settings",
     "detail_guide_cache",
@@ -304,8 +305,33 @@ def init_db(url: str | None = None) -> psycopg2.extensions.connection:
             );
         """)
         cur.execute("""
+            ALTER TABLE billing_checkout_sessions
+            ADD COLUMN IF NOT EXISTS city_id TEXT;
+        """)
+        cur.execute("""
+            ALTER TABLE billing_checkout_sessions
+            ADD COLUMN IF NOT EXISTS amount_krw INTEGER;
+        """)
+        cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_billing_checkout_sessions_user_id
             ON billing_checkout_sessions(user_id);
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS report_purchases (
+                id                  BIGSERIAL PRIMARY KEY,
+                user_id             TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                city_id             TEXT NOT NULL,
+                provider            TEXT NOT NULL,
+                provider_payment_id TEXT NOT NULL,
+                amount_krw          INTEGER,
+                purchased_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (provider, provider_payment_id),
+                UNIQUE (user_id, city_id)
+            );
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_report_purchases_user_city
+            ON report_purchases(user_id, city_id);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS rate_limit_hits (
@@ -1356,21 +1382,57 @@ def persist_billing_checkout_session(
     return_path: str | None,
     status: str,
     provider: str = "polar",
+    city_id: str | None = None,
+    amount_krw: int | None = None,
 ) -> None:
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO billing_checkout_sessions (
-                user_id, provider, provider_checkout_id, plan_code, status, return_path
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                user_id, provider, provider_checkout_id, plan_code,
+                city_id, amount_krw, status, return_path
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (provider_checkout_id) DO UPDATE SET
+                city_id = COALESCE(EXCLUDED.city_id, billing_checkout_sessions.city_id),
+                amount_krw = COALESCE(EXCLUDED.amount_krw, billing_checkout_sessions.amount_krw),
                 status = EXCLUDED.status,
                 return_path = EXCLUDED.return_path
             """,
-            (user_id, provider, provider_checkout_id, plan_code, status, return_path),
+            (user_id, provider, provider_checkout_id, plan_code, city_id, amount_krw, status, return_path),
         )
     conn.commit()
+
+
+def get_billing_checkout_session(provider_checkout_id: str | None) -> dict | None:
+    if not provider_checkout_id:
+        return None
+
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT user_id, provider, provider_checkout_id, plan_code,
+                   city_id, amount_krw, status, return_path, completed_at
+            FROM billing_checkout_sessions
+            WHERE provider_checkout_id = %s
+            """,
+            (provider_checkout_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "user_id": row[0],
+        "provider": row[1],
+        "provider_checkout_id": row[2],
+        "plan_code": row[3],
+        "city_id": row[4],
+        "amount_krw": row[5],
+        "status": row[6],
+        "return_path": row[7],
+        "completed_at": row[8],
+    }
 
 
 def mark_checkout_session_status(
@@ -1395,6 +1457,48 @@ def mark_checkout_session_status(
             (status, status, provider_checkout_id),
         )
     conn.commit()
+
+
+def record_report_purchase(
+    *,
+    user_id: str,
+    city_id: str,
+    provider: str,
+    provider_payment_id: str,
+    amount_krw: int | None,
+) -> None:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO report_purchases (
+                user_id, city_id, provider, provider_payment_id, amount_krw
+            ) VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (user_id, city_id) DO UPDATE SET
+                provider = EXCLUDED.provider,
+                provider_payment_id = EXCLUDED.provider_payment_id,
+                amount_krw = EXCLUDED.amount_krw,
+                purchased_at = NOW()
+            """,
+            (user_id, city_id, provider, provider_payment_id, amount_krw),
+        )
+    conn.commit()
+
+
+def user_has_report_purchase(user_id: str, city_id: str) -> bool:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1
+            FROM report_purchases
+            WHERE user_id = %s AND city_id = %s
+            LIMIT 1
+            """,
+            (user_id, city_id),
+        )
+        row = cur.fetchone()
+    return row is not None
 
 
 def record_billing_provider_event(

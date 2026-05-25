@@ -3,7 +3,7 @@
 > 프론트엔드 개발자용 백엔드 API 레퍼런스
 > Base URL (로컬): `http://localhost:7860`
 > Base URL (프로덕션): `https://api.nnai.app`
-> 최종 업데이트: 2026-05-22
+> 최종 업데이트: 2026-05-25
 
 운영 메모:
 - FastAPI 앱은 startup lifecycle에서 `utils.db.ensure_database_ready()`를 호출합니다.
@@ -493,11 +493,13 @@ Content-Type: application/json
 
 ## 결제 API
 
-Polar 결제는 앱 권한의 단일 진실 공급원으로 `billing_entitlements`를 사용합니다. 카드번호/CVC/청구주소 원문은 앱 DB에 저장하지 않습니다.
+결제 API 경로는 결제사와 무관하게 유지합니다. 현재 한국 대상 결제는 PortOne/KG이니시스를 우선 사용하고, 글로벌 전환 시 `BILLING_PROVIDER=polar`로 Polar adapter를 사용할 수 있습니다. 카드번호/CVC/청구주소 원문은 앱 DB에 저장하지 않습니다.
+
+권한의 단일 진실 공급원은 Pro 구독이 아니라 도시별 보고서 보유 상태입니다. 결제 성공 시 해당 `city_id`의 보고서를 구매 상태(`is_free=false`)로 승격합니다. 기존 `billing_entitlements`는 하위 호환용으로 유지하지만 신규 보고서 구매 권한 판단에는 사용하지 않습니다.
 
 ### POST /api/billing/checkout
 
-로그인된 사용자를 Polar checkout으로 보냅니다.
+로그인된 사용자의 도시 보고서 결제를 시작합니다.
 
 ```http
 POST /api/billing/checkout
@@ -508,9 +510,9 @@ Content-Type: application/json
 
 ```json
 {
-  "plan_code": "pro_monthly",
+  "city_id": "lisbon",
   "locale": "ko",
-  "return_path": "/ko/pricing?checkout=return"
+  "return_path": "/ko/guide/lisbon?checkout=return"
 }
 ```
 
@@ -518,14 +520,74 @@ Content-Type: application/json
 
 ```json
 {
-  "checkout_url": "https://polar.sh/checkout/..."
+  "checkout_url": "https://nnai.app/ko/guide/lisbon?checkout=return",
+  "provider": "portone",
+  "payment_id": "report_lisbon_xxx",
+  "client_payload": {
+    "storeId": "store_xxx",
+    "channelKey": "channel_xxx",
+    "paymentId": "report_lisbon_xxx",
+    "orderName": "NomadNavigator AI 맞춤 보고서 - lisbon",
+    "totalAmount": 2900,
+    "currency": "KRW",
+    "payMethod": "CARD",
+    "customer": {
+      "fullName": "User Example",
+      "email": "user@example.com"
+    },
+    "customData": {
+      "city_id": "lisbon",
+      "user_id": "google-sub",
+      "product": "city_report"
+    },
+    "redirectUrl": "https://nnai.app/ko/guide/lisbon?checkout=return"
+  }
 }
 ```
 
 메모:
 - 로그인되지 않으면 `401`
-- 서버는 `external_customer_id=user_id`로 checkout을 생성합니다
-- 생성된 checkout은 `billing_checkout_sessions`에 기록됩니다
+- `city_id`가 없으면 `400`
+- 생성된 결제 세션은 `billing_checkout_sessions`에 기록됩니다
+- Polar provider에서는 `checkout_url`이 Polar hosted checkout URL입니다
+- PortOne provider에서는 프론트엔드가 `client_payload`로 PortOne SDK 결제창을 호출해야 합니다
+- `PORTONE_REPORT_PRICE_KRW` 기본값은 런칭 할인가 `2900`입니다. 정가 표시는 프론트 카피(`₩4,900`)로만 처리합니다.
+- `PORTONE_PAY_METHOD` 기본값은 `CARD`이며, 간편결제 채널 사용 시 `EASY_PAY`로 설정할 수 있습니다.
+
+### POST /api/billing/complete
+
+PortOne 브라우저 결제 완료 후 서버 검증을 수행하고 도시 보고서를 구매 처리합니다.
+
+```http
+POST /api/billing/complete
+Content-Type: application/json
+```
+
+요청 예시:
+
+```json
+{
+  "payment_id": "report_lisbon_xxx"
+}
+```
+
+응답 예시:
+
+```json
+{
+  "ok": true,
+  "provider": "portone",
+  "payment_id": "report_lisbon_xxx",
+  "city_id": "lisbon",
+  "unlocked": true
+}
+```
+
+검증 내용:
+- `billing_checkout_sessions`의 소유자, provider, `city_id`, 금액과 일치해야 합니다.
+- PortOne V2 결제 단건 조회(`GET /payments/{paymentId}`) 결과 `status`가 `PAID`여야 합니다.
+- PortOne 조회 결과의 `amount.total`, `customData.city_id`, `customData.user_id`를 서버 세션과 대조합니다.
+- 성공 시 `report_purchases`에 `(user_id, city_id)` 구매 기록을 저장하고 `detail_guide_cache.is_free=false`로 승격합니다.
 
 ### GET /api/billing/status
 
@@ -539,6 +601,7 @@ GET /api/billing/status
 
 ```json
 {
+  "provider": "portone",
   "entitlement": {
     "plan_tier": "free",
     "status": "active",
@@ -550,21 +613,22 @@ GET /api/billing/status
 
 ### POST /api/billing/webhook
 
-Polar webhook 수신 엔드포인트입니다.
+결제사 webhook 수신 엔드포인트입니다.
 
 ```http
 POST /api/billing/webhook
 ```
 
 보안 메모:
-- Polar 문서 기준 Standard Webhooks 헤더(`webhook-id`, `webhook-timestamp`, `webhook-signature`)를 검증합니다.
+- 현재 Polar adapter는 Standard Webhooks 헤더(`webhook-id`, `webhook-timestamp`, `webhook-signature`)를 검증합니다.
+- PortOne adapter는 위조 방지를 위해 웹훅 서명 검증 구현 전까지 `501`을 반환합니다. 현재 구매 확정은 `/api/billing/complete`의 PortOne 서버 조회로 처리합니다.
 - 서명 실패 시 `403`
 - `(provider, event_id)` 기준 멱등 처리로 중복 delivery는 무해합니다.
-- `subscription.active`, `subscription.updated`, `subscription.past_due`, `subscription.canceled`, `subscription.revoked`, `order.paid`를 entitlement 반영에 사용합니다.
+- Polar provider는 `subscription.active`, `subscription.updated`, `subscription.past_due`, `subscription.canceled`, `subscription.revoked`, `order.paid`를 entitlement 반영에 사용합니다.
 
 ### POST /api/billing/restore
 
-로그인된 사용자의 `external_customer_id=user_id`를 기준으로 Polar customer state를 다시 조회해 entitlement를 복구합니다.
+로그인된 사용자의 결제 상태 복구를 시도합니다. Polar provider는 `external_customer_id=user_id`를 기준으로 customer state를 다시 조회합니다. PortOne provider는 단건 구매 복구를 `/api/billing/complete`에서 처리하므로 이 엔드포인트에서는 `restored=false`를 반환합니다.
 
 ```http
 POST /api/billing/restore
@@ -575,9 +639,10 @@ POST /api/billing/restore
 ```json
 {
   "ok": true,
-  "restored": true,
+  "restored": false,
+  "provider": "portone",
   "entitlement": {
-    "plan_tier": "pro",
+    "plan_tier": "free",
     "status": "active",
     "payg_enabled": false,
     "payg_monthly_cap_usd": 50.0
