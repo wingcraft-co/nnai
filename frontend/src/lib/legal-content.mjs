@@ -2,6 +2,15 @@ function normalizeLegalLocale(locale) {
   return locale === "ko" ? "ko" : "en";
 }
 
+export const BUSINESS_INFO = {
+  companyName: "사운드셰프",
+  ceo: "정다훈",
+  businessNumber: "212-78-00145",
+  address:
+    "경기도 수원시 영통구 신원로250번길 13, B동 14층 1416호(원천동, 현대 테라타워 영통)",
+  email: "nnai.support@gmail.com",
+};
+
 const legalLabels = {
   ko: {
     footer: {
@@ -10,6 +19,13 @@ const legalLabels = {
       support: "문의",
       privacySettings: "쿠키설정",
       close: "닫기",
+      business: {
+        companyName: "상호",
+        ceo: "대표자",
+        businessNumber: "사업자등록번호",
+        address: "주소",
+        email: "이메일",
+      },
     },
     login: {
       eyebrow: "NNAI Account",
@@ -43,6 +59,13 @@ const legalLabels = {
       support: "Support",
       privacySettings: "Cookie",
       close: "Close",
+      business: {
+        companyName: "Company",
+        ceo: "CEO",
+        businessNumber: "Business No.",
+        address: "Address",
+        email: "Email",
+      },
     },
     login: {
       eyebrow: "NNAI Account",
