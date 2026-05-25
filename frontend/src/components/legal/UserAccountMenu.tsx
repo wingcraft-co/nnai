@@ -115,6 +115,12 @@ export function UserAccountMenu({ locale, hasLocaleSwitcher = false }: UserAccou
 
   function startLogout() {
     applyLibraryAuthScope(null);
+    try {
+      localStorage.removeItem("persona_type");
+      localStorage.removeItem("persona_vector");
+    } catch {
+      // best-effort cleanup
+    }
     window.location.assign(buildLogoutUrl(API_BASE, window.location.href));
   }
 
