@@ -10,6 +10,8 @@ dist/
 .venv/
 reports/
 *.png
+!frontend/public/og-image.png
+!frontend/src/app/icon.png
 *.jpg
 *.jpeg
 *.log
