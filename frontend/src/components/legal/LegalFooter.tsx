@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { AnalyticsSettingsButton } from "@/components/analytics/AnalyticsSettingsButton";
 import {
+  BUSINESS_INFO,
   getLegalLabels,
   shouldHideLegalFooter,
   shouldUseDarkLegalChrome,
@@ -44,6 +45,10 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
   const footerBrandClass = isDarkChrome
     ? "cursor-pointer text-center text-[11px] text-white/22 transition-colors hover:text-white/45"
     : "cursor-pointer text-center text-[11px] text-muted-foreground/80 transition-colors hover:text-foreground";
+  const businessBlockClass = isDarkChrome
+    ? "mx-auto mt-3 w-full max-w-5xl border-t border-white/10 pt-3 text-[10.5px] leading-relaxed text-white/24"
+    : "mx-auto mt-3 w-full max-w-5xl border-t border-border/40 pt-3 text-[10.5px] leading-relaxed text-muted-foreground/80";
+  const businessLabel = labels.footer.business;
 
   useEffect(() => {
     if (!activeDialog) return;
@@ -98,6 +103,39 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
           >
             Wingcraft Co
           </a>
+        </div>
+
+        <div className={businessBlockClass}>
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-start">
+            <span>
+              <span className="font-medium">{businessLabel.companyName}</span>{" "}
+              {BUSINESS_INFO.companyName}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              <span className="font-medium">{businessLabel.ceo}</span>{" "}
+              {BUSINESS_INFO.ceo}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              <span className="font-medium">{businessLabel.businessNumber}</span>{" "}
+              {BUSINESS_INFO.businessNumber}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              <span className="font-medium">{businessLabel.email}</span>{" "}
+              <a
+                href={`mailto:${BUSINESS_INFO.email}`}
+                className="underline-offset-2 hover:underline"
+              >
+                {BUSINESS_INFO.email}
+              </a>
+            </span>
+          </p>
+          <p className="mt-1 text-center sm:text-left">
+            <span className="font-medium">{businessLabel.address}</span>{" "}
+            {BUSINESS_INFO.address}
+          </p>
         </div>
       </footer>
 
