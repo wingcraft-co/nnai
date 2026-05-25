@@ -45,6 +45,17 @@ JSON 재생성 후 프론트엔드 enrichment용 복사본도 갱신해야 한�
 - **push는 항상 `develop` 브랜치**로 한다. `main`으로의 병합은 별도 협의 후 진행.
 - Railway는 각 브랜치에 대응하는 환경(production / develop)으로 자동 배포된다.
 
+#### 운영(main) 반영 규칙 (필수)
+
+코드 반영은 **기본적으로 `develop` 브랜치**에만 이루어진다.
+사용자가 **명시적으로 "운영에 푸쉬", "main에 올려", "production 반영" 등을 지시한 경우에만** `main`에 push한다.
+
+- ❌ "코드 푸쉬해줘" → `develop`에만 push (main 금지)
+- ❌ "배포해줘" / "올려줘" → `develop`에만 push (main 금지)
+- ✅ "운영에 푸쉬해줘" / "main에도 올려줘" / "프로덕션 반영해줘" → `main`에 push
+
+애매한 경우 반드시 사용자에게 확인 후 진행. 임의로 `main`에 push 금지.
+
 ### 로컬 환경 설정 분리
 
 CLAUDE.md는 git으로 추적되는 팀 공유 파일이다.
