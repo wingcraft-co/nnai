@@ -45,13 +45,14 @@ test("lightbox previous, next, and close controls show a pointer cursor", () => 
 
 test("locked card Korean copy uses neutral lock wording", () => {
   assert.match(source, /: `잠겨진 카드 #\$\{orderNumber\}`/);
-  assert.match(source, /: "잠금 해제 \(\$1\)"/);
+  assert.match(source, /: "잠금 해제"/);
   assert.doesNotMatch(source, /Pro 전용 카드/);
   assert.doesNotMatch(source, /Pro로 모든 도시 보기/);
 });
 
 test("done retry CTA shows a pointer cursor", () => {
-  assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*처음부터 다시하기/);
+  assert.match(source, /retryLabel = "처음부터 다시하기"/);
+  assert.match(source, /className="[^"]*cursor-pointer[^"]*"[\s\S]*?>\s*\{retryLabel\}/);
 });
 
 test("lightbox card protects long city copy from clipping the CTA", () => {
@@ -85,8 +86,8 @@ test("city names with parentheses show the parenthetical on a clean second line"
 });
 
 test("tarot card flag map includes Taiwan for Taipei cards", () => {
-  assert.match(cardSource, /TW:\s*"🇹🇼"/);
-  assert.match(cardSource, /FLAG_EMOJI\[cityData\.country_id\.toUpperCase\(\)\]/);
+  assert.match(cardSource, /import \{ countryFlagEmoji \} from "@\/lib\/country-flag"/);
+  assert.match(cardSource, /countryFlagEmoji\(cityData\.country_id\)/);
 });
 
 test("google login restores the selected city lightbox after oauth return", () => {

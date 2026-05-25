@@ -209,7 +209,7 @@ test("library page matches the dark card system and reopens the formatted briefi
   assert.doesNotMatch(libraryPageSource, /<Printer className="size-4" \/>/);
   assert.match(libraryPageSource, /import \{ Columns2, Download, House, Image as ImageIcon, LockKeyhole, X \} from "lucide-react"/);
   assert.match(libraryPageSource, /<House className="size-4" \/>/);
-  assert.match(libraryPageSource, /href=\{`\/\$\{locale\}\?nav=home`\}/);
+  assert.match(libraryPageSource, /onClick=\{handleHomeClick\}/);
   assert.match(libraryPageSource, /aria-label=\{isKorean \? "홈으로" : "Go home"\}/);
   assert.doesNotMatch(libraryPageSource, /<Home className="size-6"/);
   assert.match(libraryPageSource, /const groups: Array<\{ key: string; label: string; count: number; cards: DisplayLibraryCard\[\] \}>/);
