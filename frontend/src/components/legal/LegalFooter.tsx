@@ -111,17 +111,17 @@ export function LegalFooter({ locale, termsBlocks, privacyBodyHtml }: LegalFoote
               <span className="font-medium">{businessLabel.companyName}</span>{" "}
               {BUSINESS_INFO.companyName}
             </span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true" className="opacity-40">|</span>
             <span>
               <span className="font-medium">{businessLabel.ceo}</span>{" "}
               {BUSINESS_INFO.ceo}
             </span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true" className="opacity-40">|</span>
             <span>
               <span className="font-medium">{businessLabel.businessNumber}</span>{" "}
               {BUSINESS_INFO.businessNumber}
             </span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true" className="opacity-40">|</span>
             <span>
               <span className="font-medium">{businessLabel.email}</span>{" "}
               <a
