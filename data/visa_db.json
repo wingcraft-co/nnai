@@ -179,8 +179,8 @@
     },
     {
       "id": "ES",
-      "name": "Spain (Canary Islands)",
-      "name_kr": "스페인 (카나리아 제도)",
+      "name": "Spain",
+      "name_kr": "스페인",
       "visa_type": "Digital Nomad Visa (Ley de Startups)",
       "min_income_usd": 2530,
       "stay_months": 12,
@@ -193,7 +193,7 @@
       "visa_fee_usd": 0,
       "tax_note": "베케리아 법: 외국 소득 4년간 24% 단일세율",
       "cost_tier": "medium",
-      "notes": "DN 비자 유지; 해외 신청 비자는 1년 유효하고 스페인 체류 중 신청 시 최대 3년 거주허가 가능; 카나리아 제도 연중 온난; 라스팔마스 인기 도시; Schengen EES 2026-04-10 전면 시행.",
+      "notes": "DN 비자 유지; 해외 신청 비자는 1년 유효하고 스페인 체류 중 신청 시 최대 3년 거주허가 가능; 카나리아 제도는 스페인 내 추천 지역으로 유지; Schengen EES는 2026-04-10부터 전면 운영 중.",
       "source": "https://www.exteriores.gob.es/Embajadas/seul/ko/ServiciosConsulares/Paginas/Telework-visa.aspx",
       "schengen": true,
       "visa_free_days": 90,
@@ -293,7 +293,7 @@
       "visa_fee_usd": 100,
       "tax_note": "독일 거주자로 전 세계 소득 과세. 세율 14~45%",
       "cost_tier": "high",
-      "notes": "전용 DN 비자 없음; Freiberufler/자영업 체류허가 활용; 최초 최대 3년·연장 가능 공식 재확인; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(European Commission/eu-LISA).",
+      "notes": "전용 DN 비자 없음; Freiberufler/자영업 체류허가 활용; 최초 최대 3년·연장 가능 공식 재확인; Schengen EES 운영은 2025-10-12 시작 후 2026-04-10 전면 시행 완료(European Commission/eu-LISA).",
       "source": "https://www.make-it-in-germany.com/en/visa-residence/types/other/self-employment",
       "schengen": true,
       "visa_free_days": 90,
@@ -370,7 +370,7 @@
       "visa_fee_usd": 100,
       "tax_note": "외국 소득 비과세 (영토 과세 원칙)",
       "cost_tier": "medium",
-      "notes": "공식 법률(Ley 10008) 기준 디지털 노마드 체류 제도 유지; 생태 관광 허브; 아열대 자연",
+      "notes": "Ley 10008 및 Reglamento 43619 기준 디지털 노마드 체류 제도 유지; 월 $3,000 소득·1년+1회 연장·정부 수수료 $100 재확인; 생태 관광 허브",
       "source": "https://pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_norma.aspx?nValor1=1&nValor2=95085&nValor3=126839&param1=NRM&strTipM=FN",
       "schengen": false,
       "visa_free_days": 90,
@@ -380,9 +380,9 @@
       "mid_term_rental_available": false,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-13",
+      "data_verified_date": "2026-06-07",
       "visa_notes": [
-        "법률 제10008 기준 월 $3,000, 가족 포함 시 월 $4,000 소득 요건; 1년 체류 후 갱신 가능",
+        "Ley 10008 및 Reglamento 43619 기준 월 $3,000, 가족 포함 시 월 $4,000 소득 요건과 정부 수수료 $100이 유지된다",
         "한국인 무비자 90일"
       ]
     },
@@ -434,7 +434,7 @@
       "name": "Philippines",
       "name_kr": "필리핀",
       "visa_type": "Digital Nomad Visa (EO No. 86, s.2025)",
-      "min_income_usd": 2000,
+      "min_income_usd": null,
       "stay_months": 12,
       "renewable": true,
       "key_docs": [
@@ -442,11 +442,11 @@
         "소득 증빙 ($2,000+/월)",
         "왕복 항공권"
       ],
-      "visa_fee_usd": 350,
+      "visa_fee_usd": null,
       "tax_note": "외국 소득 비과세 (영토 과세)",
       "cost_tier": "low",
-      "notes": "EO No. 86 및 DFA 재외공관 안내 기준 DNV 제도 유지. 최대 1년 체류 후 동일 기간 갱신 가능하나 최소소득/수수료 등 하위 규정은 여전히 확인필요.",
-      "source": "https://thehaguepe.dfa.gov.ph/index.php/visa/digital-nomad-visa-dnv",
+      "notes": "EO No. 86 기준 DNV 제도는 유효하나 최소소득·수수료 등 시행 세부치는 2026-06-06 기준 공식 본문에서 확인되지 않아 확인필요",
+      "source": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/5/98965",
       "schengen": false,
       "visa_free_days": 30,
       "buffer_zone": true,
@@ -455,10 +455,10 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-01",
+      "data_verified_date": "2026-06-06",
       "visa_notes": [
-        "연소득 $24,000 ($2,000/월); 2025년 6월 정식 출시; DFA·이민청 공동 운영; 신청비 $200~500; 12개월+12개월 갱신",
-        "한국인 무비자 30일; 비자 없이 최대 36개월까지 연장 가능 (비자오피스 연장)"
+        "EO No. 86은 해외 고용주·클라이언트를 위한 원격근무자 대상 DNV, 최대 1년 체류 및 동일 기간 갱신 가능만 명시한다",
+        "최소소득·신청 수수료·실제 접수 절차는 시행 가이드라인 확인 전까지 확인필요"
       ]
     },
     {
@@ -542,7 +542,7 @@
       "visa_fee_usd": 0,
       "tax_note": "체코 거주자 세율 15% 단일세율. 소득공제 후 실효세율 낮음",
       "cost_tier": "medium",
-      "notes": "전용 단일 DN 비자는 없지만 체코 정부의 Digital Nomad Program(IT/마케팅 직군 대상 장기비자·거주허가 패스트트랙)은 운영 중; 프라하 인프라 우수; Schengen EES 운영: 2025-10-12 시작, 2026-04-10 전면 시행 예정(European Commission/eu-LISA).",
+      "notes": "전용 단일 DN 비자는 없지만 체코 정부의 Digital Nomad Program(IT/마케팅 직군 대상 장기비자·거주허가 패스트트랙)은 운영 중; 프라하 인프라 우수; Schengen EES 운영은 2025-10-12 시작 후 2026-04-10 전면 시행 완료(European Commission/eu-LISA).",
       "source": "https://mzv.gov.cz/losangeles/en/visa_information/digital_nomad_program.html",
       "schengen": true,
       "visa_free_days": 90,
@@ -639,8 +639,8 @@
       "visa_fee_usd": 300,
       "tax_note": "몰타 거주자 비거주자 세율 15% (특별 프로그램 적용 시)",
       "cost_tier": "medium",
-      "notes": "쉥겐 내 영어 공용어 국가. 지중해 섬나라. EU 디지털 허브 성장 중",
-      "source": "https://nomad.residencymalta.gov.mt/topic/eligibility/",
+      "notes": "쉥겐 내 영어 공용어 국가. 지중해 섬나라. 공식 Nomad Residence Permit 제도 유지",
+      "source": "https://staging4.nomad.residencymalta.gov.mt/nomad-eligibility/",
       "schengen": true,
       "visa_free_days": 90,
       "buffer_zone": false,
@@ -649,12 +649,12 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-04-10",
+      "data_verified_date": "2026-06-06",
       "min_income_monthly_eur": 3500,
       "min_income_annual_eur": 42000,
       "visa_notes": [
-        "Residency Malta 기준 2024-04-01 이후 신규 신청자는 연 총소득 €42,000 이상 필요",
-        "초기 1년 허가 후 최대 3회 갱신 가능"
+        "Residency Malta 안내 기준 신규 신청자는 연 총소득 42,000유로 이상 필요",
+        "허가는 1년 단위이며 자격 유지 시 Residency Malta 재량으로 갱신 가능"
       ]
     },
     {
@@ -673,8 +673,8 @@
       "visa_fee_usd": 70,
       "tax_note": "사이프러스 비거주자 현지 소득세 없음. EU 비쉥겐 섬나라",
       "cost_tier": "medium",
-      "notes": "EU 회원국이나 쉥겐 비편입 — 쉥겐 소진 후 버퍼로 활용 가능. 영어 광범위 통용",
-      "source": "https://www.moi.gov.cy/dmmip/md.nsf/All/93641364946C6F77C2258921002BFE31/%24file/DIGITAL%20NOMAD%20VISA%20SCHEME%20-%20EL.pdf?OpenElement=",
+      "notes": "공식 Digital Nomad Visa Scheme 재개 접수 유지. EU 회원국이나 쉥겐 비편입으로 쉥겐 소진 후 버퍼로 활용 가능. 영어 광범위 통용",
+      "source": "https://www.gov.cy/mip-md/en/documents/digital-nomads-and-family-members/",
       "schengen": false,
       "visa_free_days": 90,
       "buffer_zone": true,
@@ -683,11 +683,11 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-04-10",
+      "data_verified_date": "2026-06-06",
       "min_income_monthly_eur": 3500,
       "visa_notes": [
-        "키프로스 디지털 노마드 스킴 기준 세후 월 €3,500 이상 소득 필요",
-        "1년 체류 후 최대 2년 추가 갱신 가능"
+        "키프로스 이민부 영문 안내 기준 세후 월 3,500유로 이상 안정적 소득 필요",
+        "최초 1년 거주허가 후 갱신 시 최대 2년까지 부여 가능"
       ]
     },
     {
@@ -748,39 +748,43 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-04-10",
+      "data_verified_date": "2026-06-06",
       "visa_notes": [
-        "세르비아 외교부 기준 한국 일반여권은 180일 중 최대 90일 무비자 체류 가능",
-        "단기 체류만으로 임시거주 신청 근거가 되지 않아 기본값은 갱신 불가로 유지"
+        "세르비아 외교부 비자 레짐 페이지 기준 한국 일반여권은 최대 90일 무비자 입국 가능",
+        "전용 디지털 노마드 비자나 원격근무 전용 장기체류 카테고리는 공식 출처에서 확인되지 않아 기본값은 단기 체류로 유지"
       ]
     },
     {
       "id": "MK",
       "name": "North Macedonia",
       "name_kr": "북마케도니아",
-      "visa_type": "무비자 체류 (90일)",
-      "min_income_usd": 0,
+      "visa_type": "사전비자 필요 (목적지 정부 기준)",
+      "min_income_usd": null,
       "stay_months": 3,
       "renewable": false,
       "key_docs": [
-        "유효 여권 (입국 시 자동 허가)",
-        "소득 증빙 불필요",
-        "귀국 항공권 (선택)"
+        "유효 여권",
+        "여행자보험 및 체류 경비 증빙",
+        "초청장 또는 숙소·방문 목적 증빙"
       ],
-      "visa_fee_usd": 0,
+      "visa_fee_usd": 60,
       "tax_note": "비거주자 현지 소득세 없음. 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "스코페 물가 발칸 최저권. 비쉥겐. 쉥겐 인접 지리적 위치로 루트 활용 가능",
-      "source": "https://www.mfa.gov.mk",
+      "notes": "목적지 정부 MFA 비자 체커는 2026-06-07 기준 Republic of Korea 여권 소지자에게 사전비자가 필요하다고 안내한다. 한국 정부 0404 안내와 상충해 출국 전 대사관 재확인을 권장",
+      "source": "https://mfa.gov.mk/en-GB/konzularni-uslugi/dali-ti-e-potrebna-viza?region=asia",
       "schengen": false,
-      "visa_free_days": 90,
-      "buffer_zone": true,
+      "visa_free_days": 0,
+      "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": false,
       "mid_term_rental_available": false,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2025-12"
+      "data_verified_date": "2026-06-07",
+      "visa_notes": [
+        "북마케도니아 MFA의 국가별 비자 체커는 Republic of Korea 국적에 대해 Visa for foreign citizens: Needed로 표시한다",
+        "공식 안내상 단기 C비자·장기 D비자 체계만 확인되며 전용 디지털 노마드 비자는 확인되지 않는다"
+      ]
     },
     {
       "id": "MX",
@@ -825,13 +829,13 @@
       "renewable": true,
       "key_docs": [
         "원격근무 고용계약서 또는 프리랜서 계약서",
-        "소득 증빙 ($750+/월)",
+        "최근 3개월 3 SMLMV 이상 은행거래내역",
         "범죄경력증명서"
       ],
-      "visa_fee_usd": 220,
+      "visa_fee_usd": 194,
       "tax_note": "비거주자 외국 소득 비과세. 영토 과세 원칙",
       "cost_tier": "low",
-      "notes": "공식 DN 비자 보유; 메데진 노마드 허브; 저렴한 물가",
+      "notes": "공식 V Nómadas Digitales 유지; 최근 3개월 3 SMLMV 소득 증빙과 최대 2년 체류를 재확인; 메데진 노마드 허브; 저렴한 물가",
       "source": "https://www.cancilleria.gov.co/v/nomadadigital",
       "schengen": false,
       "visa_free_days": 90,
@@ -841,10 +845,10 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-13",
+      "data_verified_date": "2026-06-07",
       "visa_notes": [
-        "최소 소득 COP 4,270,500/월 (~$1,100); 신청비 $52 + 승인 후 $170~230; 최대 2년",
-        "한국인 무비자 90일"
+        "Cancillería 기준 최근 3개월 3 SMLMV 소득이 필요하며 2026 SMMLV 기준 약 COP 5,252,715/월이다; USD 값은 환율 추정치다",
+        "2026 Cancillería 수수료 고시 기준 Visa Tipo V 총액은 USD 194이며, 한국인은 무비자 90일 후 최대 180일까지 체류 연장이 가능하다"
       ]
     },
     {
@@ -852,18 +856,18 @@
       "name": "Argentina",
       "name_kr": "아르헨티나",
       "visa_type": "Digital Nomad Visa",
-      "min_income_usd": 2750,
+      "min_income_usd": null,
       "stay_months": 6,
       "renewable": true,
       "key_docs": [
-        "소득 증빙 (정기 해외 송금 증명 $1,000+)",
-        "은행 잔고 증명",
-        "범죄경력증명서 + 아포스티유"
+        "여권",
+        "사진",
+        "원격근무 또는 프리랜서 활동 증빙 (계약서·회사 확인서·수입자료 등)"
       ],
-      "visa_fee_usd": 200,
+      "visa_fee_usd": null,
       "tax_note": "외국 소득 비과세 (영토 과세). 페소 환율 변동 주의",
       "cost_tier": "low",
-      "notes": "DN 비자 보유; 환율 혜택; 부에노스아이레스 카페 문화",
+      "notes": "공식 Argentina.gob.ar 및 Disposición 758/2022 기준 180일 체류 후 동일 기간 1회 연장 가능. 최소소득·USD 수수료는 현재 공식 본문에서 확인되지 않아 확인필요; 환율 혜택; 부에노스아이레스 카페 문화",
       "source": "https://www.argentina.gob.ar/servicio/tramitacion-de-ingreso-electronica-nomadas-digitales",
       "schengen": false,
       "visa_free_days": 90,
@@ -873,10 +877,10 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-13",
+      "data_verified_date": "2026-06-07",
       "visa_notes": [
-        "월 $2,500~3,000; 6개월+6개월 갱신 (총 12개월); 환율 혜택 (블루달러)",
-        "한국인 무비자 90일"
+        "Argentina.gob.ar 기준 디지털 노마드 입국 허가는 최대 180일이며 Disposición 758/2022는 동일 기간 1회 prorroga를 허용한다",
+        "고정 소득 하한과 USD 수수료는 현재 공식 본문에서 확인되지 않아 확인필요이며, 한국인은 관광목적 무비자 90일 입국이 가능하다"
       ]
     },
     {
@@ -896,7 +900,7 @@
       "tax_note": "브라질 비거주자 현지 소득세 없음. 외국 소득 비과세",
       "cost_tier": "low",
       "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권",
-      "source": "https://www.gov.br/mre",
+      "source": "https://portaldeimigracao.mj.gov.br/images/Informativos_Publica%C3%A7%C3%A3o/FOLDER_INGLES.pdf",
       "schengen": false,
       "visa_free_days": 90,
       "buffer_zone": false,
@@ -905,7 +909,11 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2025-12"
+      "data_verified_date": "2026-06-04",
+      "visa_notes": [
+        "브라질 이민 포털 안내 기준 월 1,500달러 또는 잔고 18,000달러 증빙 필요",
+        "최초 1년 체류 후 동일 기간 갱신 가능, 90일 이하 체류는 방문자 규정 활용 가능"
+      ]
     },
     {
       "id": "AE",
@@ -976,20 +984,20 @@
       "id": "CA",
       "name": "Canada",
       "name_kr": "캐나다",
-      "visa_type": "Open Work Permit / IEC Working Holiday",
-      "min_income_usd": 2500,
-      "stay_months": 12,
-      "renewable": false,
+      "visa_type": "없음 (방문자 자격 원격근무)",
+      "min_income_usd": 0,
+      "stay_months": 6,
+      "renewable": true,
       "key_docs": [
-        "고용주 없이 발급 가능 여부 확인 필요",
-        "재정 자립 증명 (잔고 CAD 2,500 이상)",
-        "건강보험"
+        "유효 여권 + eTA 또는 방문비자",
+        "캐나다 고용주가 아닌 해외 원격근무 증빙 (질의 시 제시)",
+        "6개월 초과 체류 시 Visitor Record 연장 신청"
       ],
-      "visa_fee_usd": 155,
+      "visa_fee_usd": 5,
       "tax_note": "캐나다 거주자 전 세계 소득 과세. 세율 15~33% 연방 + 주세",
       "cost_tier": "high",
-      "notes": "밴쿠버·토론토 영어권 허브. 한인 커뮤니티 대규모. 영주권 경로 다양",
-      "source": "https://www.canada.ca",
+      "notes": "전용 DN 비자 없음. 방문자 자격으로 해외 고용주 대상 원격근무 가능; 밴쿠버·토론토 영어권 허브. 한인 커뮤니티 대규모.",
+      "source": "https://www.canada.ca/en/immigration-refugees-citizenship/corporate/transparency/committees/cimm-nov-07-2023/tech-talent-strategy-digital-nomads.html",
       "schengen": false,
       "visa_free_days": 180,
       "buffer_zone": false,
@@ -998,7 +1006,11 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2025-12"
+      "data_verified_date": "2026-06-04",
+      "visa_notes": [
+        "캐나다 정부는 디지털 노마드가 방문자 자격으로 최대 6개월 체류하며 해외 고용주·본인 사업을 위한 원격근무를 할 수 있다고 안내",
+        "6개월 초과 체류는 방문자 연장 신청이 가능하지만 캐나다 취업은 별도 취업허가가 필요"
+      ]
     },
     {
       "id": "JP",

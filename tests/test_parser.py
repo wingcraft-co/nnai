@@ -419,6 +419,26 @@ def test_inject_visa_urls_empty_top_cities_no_crash():
         assert result["top_cities"] == []
 
 
+def test_format_result_markdown_planb_handles_unverified_income():
+    data = {
+        "plan_b": {
+            "summary": "backup",
+            "alternative_countries": [
+                {
+                    "name": "Philippines",
+                    "name_kr": "필리핀",
+                    "visa_type": "Digital Nomad Visa",
+                    "min_income_usd": None,
+                    "reason": "공식 소득 기준이 아직 미공개",
+                }
+            ],
+        }
+    }
+
+    result = format_result_markdown(data, language="Korean")
+    assert "소득 기준 확인필요" in result
+
+
 def test_parse_response_injects_visa_url_for_known_country():
     """parse_response should inject official visa URL for a known country_id."""
     from unittest.mock import patch

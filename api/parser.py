@@ -680,9 +680,20 @@ def format_step2_markdown(data: dict, visa_data: dict | None = None) -> str:
             planb_items = []
             for s in suggestions:
                 name_display = s["name"] if language == "English" else s["name_kr"]
-                income_note = f" (소득 기준 없음)" if s["min_income_usd"] == 0 else f" (월 ${s['min_income_usd']:,}+ 필요)"
+                min_income = s.get("min_income_usd")
+                if min_income is None:
+                    income_note = " (소득 기준 확인필요)"
+                elif min_income == 0:
+                    income_note = " (소득 기준 없음)"
+                else:
+                    income_note = f" (월 ${min_income:,}+ 필요)"
                 if language == "English":
-                    income_note = " (no income requirement)" if s["min_income_usd"] == 0 else f" (${s['min_income_usd']:,}+/month required)"
+                    if min_income is None:
+                        income_note = " (income requirement unverified)"
+                    elif min_income == 0:
+                        income_note = " (no income requirement)"
+                    else:
+                        income_note = f" (${min_income:,}+/month required)"
                 planb_items.append(
                     f"**{name_display}** ({s['visa_type']}){income_note}\n> {s['reason']}"
                 )
