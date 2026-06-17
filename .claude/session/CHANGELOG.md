@@ -1,5 +1,109 @@
 # CHANGELOG
 
+## [2026-05-25 KST 세션 13] — 단건 결제(PortOne) 모델 전환 + SEO + 사업자정보 footer
+
+### 변경 파일
+- `cowork/marketing/pricing-migration-spec.md` (신규) : free/pro 폐지 → 보고서당 단건 결제 전환 spec (정가 $4.99 / 런칭 할인 $2.99)
+- `cowork/marketing/paid-report-phase1-spec.md` (신규) : 유료 보고서 강화 P1 — A·I·G·H 4 카테고리(Personalized Summary·Resource Pack·Pre-Departure Timeline·Plan B) 구현 우선순위
+- `utils/db.py` : 단건 결제 헬퍼 추가(`get_user_free_report_city_id`/`claim_free_report_city`/`get_detail_guide_by_city_id`/`list_user_owned_city_ids`/`mark_report_purchased`), `users.free_report_city_id`·`detail_guide_cache.is_free`/`city_id`·`report_purchases` 스키마 신설
+- `api/detail_cache.py` : `derive_city_id` 추가
+- `server.py` / `api/detail.py` : `/api/detail` 가드를 quota 기반 → city_id 단건 모델로 교체 (401/402/200 + `is_free` 응답)
+- `api/auth.py` : `/auth/me` 응답에 `free_report_city_id`·`library` 추가
+- `api/billing.py` : provider-neutral 분리 (`BILLING_PROVIDER=portone` 기본, `polar` adapter 유지), `/api/billing/complete` PortOne V2 서버 검증 플로우(`paymentId` 조회 → `PAID`/금액/`customData` 검증 → `report_purchases` 저장)
+- `frontend/` : PortOne V2 브라우저 SDK 결제창 + 구매 확정 페이지 복귀(모바일 리디렉션 `paymentId` 재검증), 결제 요청에 `city_id` 포함, Polar 직링크는 provider=polar일 때만
+- `frontend/src/app/[locale]/{terms,privacy}` : 이용약관·개인정보처리방침 단건 모델 전환
+- `frontend/src/components/legal/LegalFooter.tsx` / `frontend/src/lib/legal-content.mjs` : PortOne 결제 승인용 사업자정보 블록 추가 (구분자 `·` → `|`, opacity 40%)
+- SEO: sitemap / robots / OG / JSON-LD 기본 설정
+- `cowork/backend/db-schema.md`·`api-reference.md` : 단건 모델 동기화
+- `.github/workflows/main-tests.yml` : Node 20 → 22 (`--experimental-strip-types` 지원), CI 테스트 4건 assertion 수정
+- `CLAUDE.md` : 운영(main) push 규칙 추가
+
+### 작업 요약
+- **무엇을**: 과금 모델을 free/pro 구독 + PAYG에서 **보고서당 단건 결제**로 전환. 무료는 **평생 1개 도시 보고서 풀콘텐츠** 제공(앞 3섹션 명확 + 뒷부분 `blur-sm` + 대각선 워터마크 + 다운로드 잠금, 결제 시 전부 해제). 결제 provider를 PortOne V2로 통합(국내), Polar는 글로벌 전환용 adapter로 유지. Google SEO 기본 세팅 + 결제 승인용 사업자정보 footer 추가.
+- **왜**: 구독·PAYG 모델은 노마드 1회성 의사결정 상품과 정합성이 낮음. 보고서 단위 단건 결제가 전환 funnel·가격 인지에 단순. 국내 결제 승인(PortOne) 요건상 사업자정보·약관 정비 필요.
+- **영향 범위**: `/api/detail` 게이팅 로직(quota→city_id), `/auth/me` 응답 스키마, billing 전 경로, DB(`report_purchases`·`free_report_city_id` 등 신규), 결제/약관 프론트, CI(Node22). 회귀 385 PASS.
+
+### 다음 세션 참고사항
+- **CLAUDE.md ↔ 코드 불일치**: CLAUDE.md의 "Rate Limit & Billing" 섹션이 여전히 free/pro + PAYG 구독 모델을 기술. 코드는 단건 결제로 전환됨 → CLAUDE.md / api-reference 추가 정합화 필요(팀 협의 후).
+- 유료 보고서 강화 P1(A·I·G·H) 콘텐츠 구현은 spec만 확정, 본 구현은 후속.
+
+---
+
+## [2026-05-24 KST 세션 12] — 보관함 카테고리화 + 타로 세션 PG 마이그레이션 + 의존성 0건
+
+### 변경 파일
+- `frontend/src/.../library` : 보관함 카드 REPORT/CARD/LOCKED 카테고리화 + 헤더 카운트, 한글 도시명 `break-keep`, 구매 후 CARD→REPORT 승격(`mergeLibraryCards` 수정 + 회귀 테스트), `?from=library` 진입 분기(뒤로가기 라벨/목적지), 로그아웃 시 보관함 데이터 격리
+- `frontend/src/lib/country-flag.ts` (신규) : ISO-2 Regional Indicator 기반 국기 유틸 — `TarotDeck`/`TarotReading`/`TarotCard` lookup 3종 통합 (PY 등 누락 국가 🌍 표시 버그 해결)
+- `api/tarot_session.py` : in-memory `_sessions` dict 제거 → `tarot_sessions` 테이블 (TTL 24h, lazy cleanup, `SELECT FOR UPDATE` 동시성). Railway 재배포 시 세션 유실 해결
+- `tests/test_tarot_session.py` (신규) + `.github/workflows/main-tests.yml` 등록
+- 삭제: `scripts/migrate_sqlite_to_pg.py`, `scripts/drop_mobile_tables.sql`, `tests/test_pdf_generator.py`, `IMPLEMENTATION_STATUS.md` (오래된 자료 정리, utils/db.py ↔ db-schema.md 동기화 확인)
+- `frontend/package.json` : `next` 16.2.4→16.2.6, `hono` 4.12.22 / `@hono/node-server` 2.0.4 overrides, `postcss` ^8.5.10 override — npm audit 14건 → 0건
+- 운영 안정화: PostHog EU 서버 400 해결, 유료 가이드 실패 트래킹 추가, 세션 레코딩을 상세보고서 페이지로 한정, LLM 재시도/타임아웃 안정화, favicon 지구본 png 교체
+
+### 작업 요약
+- **무엇을**: 보관함(/library) UX를 카테고리·카운트·승격 로직으로 정비하고, 타로 세션을 PostgreSQL로 영속화(Railway 재배포 세션 유실 근본 해결), 프론트 의존성 취약점 전건 해소, 국기 lookup 일원화.
+- **왜**: in-memory 세션은 Railway 재배포마다 유실되어 reveal 흐름이 깨짐. 보관함은 REPORT/CARD/LOCKED 의미 구분이 사용자 멘탈모델과 어긋나 카테고리화 필요. 국기 lookup 3중복으로 누락국 🌍 표시.
+- **영향 범위**: `tarot_sessions` 신규 테이블·동시성, /library 전반, 결제 후 카드 승격, CI(test_tarot_session 등록), 의존성 lockfile.
+
+### 다음 세션 참고사항
+- `computeCityTags` 52개 도시 snapshot 테스트는 여전히 미작성(백로그).
+
+---
+
+## [2026-05-23 KST 세션 11] — 가이드 UX 개선 + 무료 보고서 저장 차단 + OAuth lightbox 복원
+
+### 변경 파일
+- `frontend/src/app/[locale]/guide/...` : locale 기반 LLM 응답 언어 강제, 마크다운 URL 자동 링크화, 이미지 우클릭/드래그/iOS 롱프레스 저장 차단(`pointerEvents`/`WebkitTouchCallout`), 로딩 UI 개선
+- `frontend/src/lib/feature-flags.ts` (신규)
+- `frontend/src/components/tarot/TarotDeck.tsx` : "Google로 계속하기" OAuth `return_to`를 현재 result URL로, `pending_login_city_id` sessionStorage 저장 → OAuth 복귀 시 lightbox 자동 복원(선택했던 도시 카드로 자동 복귀)
+- `frontend/src/lib/guide-export.*` : 라이브러리 가이드 이미지 export + briefing 마크다운 양방향 변환 + fallback 변환
+- `cowork/marketing/paid-report-enhancement.md` (신규) : Step 2 보고서 강화 제안서 — 설문 입력 1:1 호명, 10개 카테고리(A~J), 무료/유료 분기·출력 스키마 확장안
+
+### 작업 요약
+- **무엇을**: 상세 가이드 페이지의 다국어·링크·이미지 보호·로딩 UX를 다수 개선하고, 무료 사용자 보고서 이미지 저장을 차단. OAuth 로그인 후 선택했던 도시 lightbox로 자동 복원되도록 동선 수정. 유료 보고서 강화 제안서 작성.
+- **왜**: 무료 콘텐츠 이미지 무단 저장 방지(과금 모델 보호), OAuth 왕복 시 사용자가 선택 맥락을 잃던 이탈 지점 제거.
+- **영향 범위**: guide 페이지, OAuth return 동선, library export.
+
+### 다음 세션 참고사항
+- 보고서 강화 제안서는 후속 P1 spec(세션 13)으로 이어짐.
+
+---
+
+## [2026-05-21~22 KST 세션 10] — tasklist 도입 + nomad card library MVP + i18n 로컬라이즈
+
+### 변경 파일
+- `tasklist.md` (신규) + `CLAUDE.md` : 날짜별 작업 요약 로그 형식·규칙 추가(작업자명 없이 2줄)
+- `frontend/src/app/[locale]/library/` (신규) : 노마드 카드 컬렉션 MVP — 비로그인 임시 카드는 10초마다 30%까지 흐려짐
+- 온보딩 페르소나 결과: `거침없는 나그네`·`어디서든 현지인`·`용감한 개척자`는 픽셀 캐릭터 밑줄 숨김
+- i18n 로컬라이즈(5/18~20): 랜딩 auth·footer ux, legal 팝업, 온보딩 흐름 현지화 + result 카드 인터랙션·locked CTA 카피 정리 + `/[locale]/guide` 까만화면 비율 버그·추천 에러 UI 완화
+
+### 작업 요약
+- **무엇을**: 세션 작업 로그(tasklist.md) 체계 도입, /library 노마드 카드 컬렉션 MVP 추가, 랜딩·약관·온보딩 i18n 현지화 마감.
+- **왜**: 작업 이력 추적 표준화(팀 공유), 수집·재방문 동기를 만드는 카드 컬렉션 도입, ko/en 혼재 잔여 텍스트 정리.
+- **영향 범위**: /library 신규 라우트, i18n 전반, 온보딩/결과 카피.
+
+---
+
+## [2026-05-04~17 KST 세션 9] — Country Briefing 마감 + 모바일 API 제거 + dev-preview develop 머지
+
+### 변경 파일
+- `frontend/src/components/guide/CountryBriefingDocument.tsx` : (v7) mdpi 양식 ground truth 적용 — heading hierarchy를 size 차이가 아닌 weight/italic으로, 항 marker leftmost-align, 장 hierarchy 강화, 워터마크 cover, 가운뎃점 정리, 장-절 줄간격 통일
+- Risk Notes 개인화: 도시 specific 기후 데이터 직접 제공(`CITY_CLIMATE_RISKS` hand-curated lookup), 정중체+정보톤 서술형, Cost USD plug-in, 인용 규칙 강화, PNG 텍스트 selection 차단
+- pixel globe: GPS-aware 픽셀 지구본 + journey easter egg 표시 수정
+- `server.py` / `utils/db.py` / `api/` : 모바일 전용 `/api/mobile/*`·`/auth/mobile/*` 엔드포인트 및 관련 DB 스키마 제거
+- `test/dev-preview-flow` → develop 머지 (세션 8 격리 작업 본선 반영)
+
+### 작업 요약
+- **무엇을**: 세션 8의 Country Briefing 양식을 mdpi 학술지 ground truth로 마감(v7) + Risk Notes를 도시별 hand-curated 기후 데이터로 개인화. 미사용 모바일 전용 API/DB 제거. dev-preview-flow 브랜치를 develop에 머지.
+- **왜**: 양식 hierarchy는 reference(mdpi) 실측이 ground truth — 가로선 0·size 통일·weight/italic만으로 층위. Risk Notes의 일반론·추정은 공신력을 떨어뜨려 hand-curated specific lookup으로 교체. 모바일 API는 사용처 없어 surface area 정리.
+- **영향 범위**: Country Briefing 출력 양식, guide Risk Notes, 모바일 엔드포인트 제거(클라이언트 영향 없음 확인), develop 본선.
+
+### 주요 결정사항
+- **Mock/Risk 데이터는 hand-curated specific lookup이 정답**: 가짜 specific도, country-agnostic 일반론도 부적합. `CITY_CLIMATE_RISKS` 같은 실제 큐레이션 lookup 사용.
+- **양식 작업은 reference ground truth 먼저**: mdpi 양식 unzip → styles.xml 메트릭 추출이 최강.
+
+---
+
 ## [2026-05-01 KST 세션 8] — dev preview 진입점 + RitualTransition + Country Briefing 양식
 
 > ⚠ 본 세션 작업은 `test/dev-preview-flow` 브랜치에 격리됨 (develop 미머지). 머지/삭제는 사용자 테스트 후 결정.

@@ -1,10 +1,17 @@
 # CONTEXT.md
-_Last updated: 2026-05-01 KST (세션 8)_
+_Last updated: 2026-06-17 KST (세션 13)_
 
 ## 프로젝트 개요
 - 서비스명: NomadNavigator AI (NNAI)
 - 목적: AI 기반 디지털 노마드 이민 설계 서비스 (Gemini 2.5 Flash로 최적 거주 도시 TOP 5 추천 + 비자/예산/세금 상세 가이드)
-- 현재 단계: 개발 (백엔드+프론트엔드 운영 중, 스코어링 로직 고도화 완료)
+- 현재 단계: 개발 (백엔드+프론트엔드 운영 중, 스코어링 로직 고도화 완료, **과금 모델 단건 결제 전환 + PortOne 결제 통합 완료**)
+
+## 최근 변경 (세션 13, 2026-05-25)
+- **과금 모델 전환**: free/pro 구독 + PAYG → **보고서당 단건 결제** ($4.99 정가 / $2.99 런칭 할인). 무료는 평생 1개 도시 보고서 풀콘텐츠(앞 3섹션 명확 + 뒷부분 blur + 워터마크 + 다운로드 잠금, 결제 시 전부 해제)
+- **PortOne V2 결제 통합**: `BILLING_PROVIDER=portone` 기본, Polar는 글로벌 adapter로 유지. `/api/billing/complete` 서버 검증(paymentId→PAID/금액/customData→report_purchases 저장)
+- **`/api/detail` 게이팅**: quota 기반 → city_id 단건 모델 (401/402/200 + `is_free`). `/auth/me`에 `free_report_city_id`·`library` 추가
+- Google SEO 기본(sitemap/robots/OG/JSON-LD) + 결제 승인용 사업자정보 footer + CI Node 20→22
+- 이전 세션: 타로 세션 PG 영속화(9~12), /library 보관함 카테고리화, 국기 유틸 통합, 의존성 0건, Country Briefing v7(mdpi) 마감, 모바일 API 제거
 
 ## 기술 스택 현황
 - Frontend: Next.js 16 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui, Framer Motion
@@ -46,6 +53,14 @@ _Last updated: 2026-05-01 KST (세션 8)_
 ### 데이터
 - visa_db.json에 `visa_free_days` 필드 추가 (39개국, 한국 여권 기준)
 - 결과 카드에 비자 배지 (무비자 N일 / 셴겐 / 비자 필요)
+
+### 과금/결제 (세션 13 전환 — ⚠️ CLAUDE.md 본문은 아직 구 모델 기술)
+- **단건 결제 모델**: free/pro 구독 + PAYG **폐지** → 보고서당 단건 결제 ($4.99 / 런칭 $2.99). 무료 = 평생 1개 도시 보고서 풀콘텐츠
+- **무료 게이팅(UI)**: 앞 3섹션 명확 + 뒷부분 `blur-sm` + 대각선 워터마크 + 다운로드 잠금. 응답 `is_free` 플래그로 프론트 분기 (LLM 분기 없음). 결제 시 전부 해제
+- **`/api/detail` 가드**: quota 기반 → city_id 단건 (401 미로그인 / 402 미구매 / 200 + `is_free`)
+- **결제 provider**: `BILLING_PROVIDER=portone`(국내 기본) + `polar` adapter(글로벌 전환용 유지). PortOne V2 브라우저 SDK + `/api/billing/complete` 서버 검증
+- **DB**: `users.free_report_city_id`, `detail_guide_cache.is_free`/`city_id`, `report_purchases` 신규. db helper 5종(claim/get/list/mark)
+- ⚠️ **CLAUDE.md "Rate Limit & Billing" 섹션은 여전히 free/pro+PAYG 구독 모델 기술** — 코드와 불일치, 팀 협의 후 정합화 필요
 
 ### 테마 zone (세션 8 명문화)
 - **Dark zone (ritual)**: /result + Lightbox + /guide. 자기 발견 경험 입구, 5장 펼침→reveal→상세 reading 흐름이 ritual moment
@@ -112,7 +127,8 @@ _Last updated: 2026-05-01 KST (세션 8)_
 - 신규 테이블: `user_city_plans` (active 1개 unique partial index), `dashboard_widget_settings`
 - 권한: `plan_tier='pro'` + `status IN ('active','grace')` 만 쓰기/조회
 
-### 팀 작업 — Detail 가이드 캐시 + 무료 quota (rosie, 2026-04-26)
+### 팀 작업 — Detail 가이드 캐시 + 무료 quota (rosie, 2026-04-26) — ⚠️ quota 부분 세션 13에서 단건 결제로 대체됨
+> 캐시(`detail_guide_cache`)는 유지되나, "무료 cache miss 2회" quota 게이팅은 city_id 단건 결제(평생 1개)로 교체됨. 아래는 전환 전 기록.
 - `POST /api/detail` 응답에 `cached`, `quota` 필드 추가
 - 신규 테이블: `detail_guide_cache` (PK = user_id + cache_key, cache_key = `_user_profile + selected_city` SHA-256)
 - 무료: cache miss 기준 2회. Pro: 무제한
@@ -177,7 +193,17 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - [ ] 영문 라벨 worst case 2줄 여부 실측 (필요시 `TAG_LABELS` 추가 축약)
 - [ ] Block C penalty scale 재튜닝 (페르소나 가중치 변경 반영)
 - [ ] visa_free_days 아내팀 검수 (docs/review/REVIEW_visa_free_days.md)
-- [x] 타로 세션 PostgreSQL 마이그레이션 (`tarot_sessions` 테이블, TTL 24시간, lazy cleanup) — 세션 9
+- [x] 타로 세션 PostgreSQL 마이그레이션 (`tarot_sessions` 테이블, TTL 24시간, lazy cleanup) — 세션 12
+- [x] **단건 결제 모델 전환** — free/pro+PAYG 폐지 → 보고서당 $4.99, 무료 평생 1개 (세션 13)
+- [x] **PortOne V2 결제 통합** — `/api/billing/complete` 서버 검증 + report_purchases (세션 13)
+- [x] **Country Briefing v7 (mdpi ground truth) 마감** + Risk Notes 도시별 hand-curated 기후 개인화 (세션 9)
+- [x] **모바일 전용 API/DB 제거** (세션 9)
+- [x] **/library 보관함** — REPORT/CARD/LOCKED 카테고리화 + 구매 후 CARD→REPORT 승격 (세션 10~12)
+- [x] **국기 lookup 유틸 통합** (`@/lib/country-flag`, ISO-2 Regional Indicator) (세션 12)
+- [x] **프론트 의존성 취약점 14건 → 0건** (next 16.2.6 등) (세션 12)
+- [x] **Google SEO 기본** (sitemap/robots/OG/JSON-LD) + 사업자정보 footer (세션 13)
+- [ ] **CLAUDE.md ↔ 코드 과금 모델 정합화** — CLAUDE.md "Rate Limit & Billing"이 구 free/pro+PAYG 기술, 단건 모델로 갱신 필요 (팀 협의)
+- [ ] **유료 보고서 강화 P1 구현** — A·I·G·H 4 카테고리(Personalized Summary·Resource Pack·Pre-Departure Timeline·Plan B), spec만 확정 (`cowork/marketing/paid-report-phase1-spec.md`)
 - [ ] IRT 문항반응이론 도입 (사용자 데이터 1000명+ 수집 후)
 - [ ] 페르소나 결과 공유 기능
 - [ ] 도시 데이터 확충 (북미/중동 커버리지 부족 → 빈 결과 원인)
@@ -217,6 +243,11 @@ BlockWeight: 체류 기간별 동적 (단기/중기/장기)
 - **Document № 체계** (세션 8): NNAI-{cc}-{date}-{userhash6}. userhash는 user_profile SHA-256 prefix 6 hex (개인화 표시)
 - **Path A (HTML + html-to-image) 선택** (세션 8): 양식 fidelity가 캔버스 직접 그리기 한계 초과. 1080px hidden DOM 렌더 후 toPng 캡쳐. 단 캡쳐 시 root clone에 `style: { position:'static', left:'auto' }` 필수 — opacity:0/visibility:hidden/offscreen 위치 모두 SVG foreignObject에 그대로 전이됨
 - **테스트 브랜치 컨벤션** (세션 8): test/* 브랜치는 머지+삭제 라이프사이클. 세션 문서는 develop merge 시점에 갱신 (격리 브랜치 작업 기록은 본 CONTEXT/CHANGELOG에 명시)
+- **단건 결제 모델 채택** (세션 13): 구독(free/pro) + PAYG 폐지 → 보고서당 단건 결제. 노마드 의사결정이 1회성 상품에 가까워 구독보다 funnel·가격 인지가 단순. 무료는 평생 1개 도시 풀콘텐츠로 가치 체험 후 추가 구매 유도
+- **결제 provider-neutral 구조** (세션 13): `BILLING_PROVIDER` env로 PortOne(국내 기본)/Polar(글로벌) 전환. `/api/billing/*` 경로는 provider 무관 유지
+- **무료 게이팅은 응답 플래그 분기** (세션 13): LLM 출력은 동일, `is_free` 플래그로 프론트가 blur/워터마크/다운로드 잠금 적용 (콘텐츠 생성 비용·일관성 위해 LLM 분기 회피)
+- **타로 세션 영속화** (세션 12): in-memory dict는 Railway 재배포마다 유실 → `tarot_sessions` 테이블(TTL 24h, `SELECT FOR UPDATE`)로 전환
+- **데이터는 hand-curated specific lookup** (세션 9): Risk Notes·Mock의 가짜 specific도 country-agnostic 일반론도 부적합. `CITY_CLIMATE_RISKS` 같은 실제 큐레이션 lookup이 정답
 
 ## 참고 링크
 - Repository: git@github.com:wingcraft-co/nnai.git
