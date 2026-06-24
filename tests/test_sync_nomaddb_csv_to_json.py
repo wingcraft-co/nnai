@@ -97,3 +97,56 @@ def test_merge_skips_missing_country_without_add_flag():
 
     assert merged["countries"] == []
     assert stats["skipped_missing_in_base"] == 1
+
+
+def test_merge_syncs_ees_applicable_flag():
+    mod = _load_module()
+
+    base = {
+        "countries": [
+            {
+                "id": "NL",
+                "name": "Netherlands",
+                "name_kr": "네덜란드",
+                "visa_type": "Old",
+                "min_income_usd": 0,
+                "stay_months": 0,
+                "renewable": False,
+                "key_docs": ["여권", "소득 증빙"],
+                "visa_fee_usd": 0,
+                "tax_note": "확인 필요",
+                "cost_tier": "medium",
+                "notes": "",
+                "source": "https://example.com",
+                "schengen": True,
+                "buffer_zone": False,
+                "tax_residency_days": 183,
+                "double_tax_treaty_with_kr": True,
+                "mid_term_rental_available": True,
+            }
+        ]
+    }
+
+    merged, _ = mod.merge_nomaddb_into_visa_db(
+        base_json=copy.deepcopy(base),
+        countries_csv_rows=[],
+        visa_csv_rows=[
+            {
+                "country_code": "NLD",
+                "nomad_visa_name": "MVV Zelfstandige",
+                "nomad_visa_income_req_usd": "2020",
+                "nomad_visa_fee_usd": "423",
+                "nomad_visa_duration_months": "36",
+                "nomad_visa_renewable": "Y",
+                "ees_applicable": "Y",
+                "source_notes": "",
+                "tourist_visa_notes": "",
+                "last_verified": "2026-06-12",
+                "official_source_url": "https://ind.nl/example",
+            }
+        ],
+        visa_urls={},
+        add_missing_countries=False,
+    )
+
+    assert merged["countries"][0]["ees_applicable"] is True

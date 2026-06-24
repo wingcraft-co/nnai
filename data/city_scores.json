@@ -1749,7 +1749,7 @@
       "country": "Paraguay",
       "country_id": "PY",
       "monthly_cost_usd": 1300,
-      "internet_mbps": null,
+      "internet_mbps": 119,
       "safety_score": 6,
       "english_score": 3,
       "nomad_score": 7,
@@ -1769,9 +1769,10 @@
       },
       "source_refs": [
         "nomads_fastest_growing_2026",
-        "travel_blog_checks_2026Q1"
+        "travel_blog_checks_2026Q1",
+        "speedtest_global_index_country_proxy_2026_03"
       ],
-      "data_verified_date": "2026-04-03"
+      "data_verified_date": "2026-06-25"
     },
     {
       "id": "DOH",

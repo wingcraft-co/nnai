@@ -23,6 +23,16 @@
       "last_checked": "2026-04-03"
     },
     {
+      "id": "speedtest_global_index_country_proxy_2026_03",
+      "name": "Speedtest Global Index Country Proxy (March 2026)",
+      "publisher": "Wikipedia citing Ookla",
+      "url": "https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds",
+      "metric_scope": [
+        "internet_mbps country proxy"
+      ],
+      "last_checked": "2026-06-25"
+    },
+    {
       "id": "official_visa_portals",
       "name": "Official Immigration / MFA Portals",
       "publisher": "Government Agencies",
@@ -31,7 +41,7 @@
         "entry_tips",
         "visa practicality context"
       ],
-      "last_checked": "2026-06-11"
+      "last_checked": "2026-06-25"
     },
     {
       "id": "internal_editorial_scoring",

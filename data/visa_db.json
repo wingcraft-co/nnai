@@ -41,7 +41,7 @@
           "introduced_date": "2024-06-07"
         }
       ],
-      "data_verified_date": "2026-05-14",
+      "data_verified_date": "2026-06-13",
       "visa_notes": [
         "MDEC DE Rantau 기준 테크 직군은 연 $24,000 이상, 비테크 직군은 연 $60,000 이상 소득 요건",
         "한국인 무비자 90일 (MOU)"
@@ -77,7 +77,7 @@
       "income_calculation_base": "최저임금 × 4",
       "min_wage_eur": 920,
       "application_note": "AIMA는 비자 신청 시점이 아닌 거주 허가 심사 예약일 기준 최저임금 적용",
-      "data_verified_date": "2026-06-01",
+      "data_verified_date": "2026-06-12",
       "data_source": "msplawyer.io, citizenremote.com",
       "visa_notes": [
         "D8 비자 최소 €3680/월; 가족 동반 시 50%·30% 추가",
@@ -134,7 +134,7 @@
         "parents_included": true,
         "note": "인원 제한 없음 (2025-02-12 개정)"
       },
-      "data_verified_date": "2026-05-19",
+      "data_verified_date": "2026-06-25",
       "data_source": "Thailand BOI 공식 발표, KPMG Flash Alert 2025-040",
       "visa_notes": [
         "DTV: 잔고 500,000THB(약 $15,340) 증명 필요; 1회 입국 180일+연장 180일; 연 2회 비자런 제한(2025년 11월); 2025년 1월 완전 전자비자 전환; 비자 갱신 반복 가능",
@@ -157,7 +157,7 @@
       "visa_fee_usd": 120,
       "tax_note": "에스토니아 거주자 아닐 시 현지 소득세 없음. e-Residency 별도 신청 가능",
       "cost_tier": "medium",
-      "notes": "Digital Nomad Visa 유지; 2026-05 공식 안내 기준 teleworking 소득요건 €3960/월 및 D비자 수수료 €120 재확인; e-Residency 프로그램 유명; Schengen EES는 2026-04-10 전면 시행됨.",
+      "notes": "Digital Nomad Visa 유지; 2026-06 공식 안내 기준 teleworking 소득요건 €3960/월 및 D비자 수수료 €120 재확인; e-Residency 프로그램 유명; Schengen EES는 2026-04-10 전면 시행됨.",
       "source": "https://www.vm.ee/en/consular-visa-and-travel-information/visa-information/application-long-stay-d-visa",
       "schengen": true,
       "visa_free_days": 90,
@@ -175,7 +175,7 @@
         "재신청 시 6개월 연장만 가능",
         "가족 동반 신청 가능 (본인 소득 기준으로 동반 가족 커버)"
       ],
-      "data_verified_date": "2026-05-16"
+      "data_verified_date": "2026-06-13"
     },
     {
       "id": "ES",
@@ -303,7 +303,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-05-16",
+      "data_verified_date": "2026-06-13",
       "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
       "visa_notes": [
         "전용 DN 비자 없음; 프리랜서(Freiberufler) 비자로 장기 체류 가능; 소득 요건 사안별 상이",
@@ -520,7 +520,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-05-17",
+      "data_verified_date": "2026-06-25",
       "visa_notes": [
         "€3,295/월 (~$3,600); 거주허가 신청비 약 €35; 18개월 비갱신; 과세 면제",
         "한국인 솅겐 협정 90일/180일"
@@ -552,7 +552,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-05-16",
+      "data_verified_date": "2026-06-13",
       "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
       "visa_notes": [
         "전용 DN 비자 없음; 장기 체류 시 자유직업(Freelance) 비자 또는 사업 비자 고려",
@@ -585,7 +585,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-05-17",
+      "data_verified_date": "2026-06-25",
       "visa_notes": [
         "€3,000/월 (~$3,300); 신청비 €110; 최대 2년 (1회 연장); 온라인/방문 신청 모두 가능",
         "한국인 솅겐 협정 90일/180일"
@@ -617,7 +617,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-01",
+      "data_verified_date": "2026-06-12",
       "visa_notes": [
         "월 €3,200 세후 소득 (~$3,500); 2025년 11월 21일 출시; 갱신 불가 (6개월 후 재신청); EU 솅겐 회원국; 류블랴나 거점",
         "한국인 솅겐 협정 90일/180일"
@@ -706,7 +706,7 @@
       "visa_fee_usd": 0,
       "tax_note": "비거주자 현지 소득세 없음. 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "공식 디지털 이동근로자(leje unike për punonjës lëvizës digjital) 제도 유지; 최초 1년·갱신 가능·심사 4~12주·e-Albania 서비스 15146 확인; EU 솅겐 비가입; 발칸 반도; 저렴한 유럽 물가; EU 가입 후보국",
+      "notes": "공식 디지털 이동근로자(leje unike për punonjës lëvizës digjital) 제도 유지; 최초 1년·갱신 가능·서비스 수수료 4500lek(갱신 2250lek)·e-Albania 서비스 15146 확인; EU 솅겐 비가입; 발칸 반도; 저렴한 유럽 물가; EU 가입 후보국",
       "source": "https://mb.gov.al/en/procedura-dhe-dokumentacioni-per-pajisjen-me-leje-qendrimi-dhe-leje-unike-residence-unique-permit-al-en/",
       "schengen": false,
       "visa_free_days": 90,
@@ -716,7 +716,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-16",
+      "data_verified_date": "2026-06-13",
       "visa_notes": [
         "연 $9,800 (~$817/월) 자립 증명; 비자 수수료 상호주의; 온라인 신청 가능; Type D 장기비자 → 거주허가; EU 솅겐 비가입 (EU 가입 후보국)",
         "한국인 무비자 90일 (쌍무 협약)"
@@ -1071,7 +1071,8 @@
       "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
-      "mid_term_rental_available": true
+      "mid_term_rental_available": true,
+      "ees_applicable": true
     },
     {
       "id": "CV",
@@ -1129,7 +1130,8 @@
       "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
-      "mid_term_rental_available": true
+      "mid_term_rental_available": true,
+      "ees_applicable": false
     },
     {
       "id": "NL",
@@ -1159,7 +1161,8 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "data_verified_date": "2026-06-01"
+      "data_verified_date": "2026-06-12",
+      "ees_applicable": true
     },
     {
       "id": "PA",
@@ -1188,7 +1191,7 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "data_verified_date": "2026-05-19"
+      "data_verified_date": "2026-06-25"
     },
     {
       "id": "RO",
@@ -1217,7 +1220,8 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "data_verified_date": "2026-05-19"
+      "data_verified_date": "2026-05-19",
+      "ees_applicable": true
     },
     {
       "id": "UY",
@@ -1276,7 +1280,8 @@
       "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
-      "mid_term_rental_available": true
+      "mid_term_rental_available": true,
+      "ees_applicable": false
     },
     {
       "id": "QA",
@@ -1306,15 +1311,16 @@
       "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
-      "mid_term_rental_available": true
+      "mid_term_rental_available": true,
+      "ees_applicable": false
     },
     {
       "id": "TW",
       "name": "Taiwan",
       "name_kr": "대만",
       "cost_tier": "medium",
-      "notes": "NDC/BOCA 공식 안내 기준 디지털 노마드 방문비자 유지; 30세 이상 연소득 $40",
-      "data_verified_date": "2026-05-19",
+      "notes": "NDC/BOCA 공식 안내 기준 디지털 노마드 방문비자 유지; 30세 이상 연소득 $40,000 또는 20~29세 $20,000; 공식 포털은 최대 2년 체류 가능으로 안내",
+      "data_verified_date": "2026-06-25",
       "visa_type": "Digital Nomad Visitor Visa",
       "min_income_usd": 3333,
       "visa_fee_usd": 100,
@@ -1335,7 +1341,8 @@
       "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
-      "mid_term_rental_available": true
+      "mid_term_rental_available": true,
+      "ees_applicable": false
     }
   ]
 }

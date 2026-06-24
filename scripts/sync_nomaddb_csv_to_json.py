@@ -185,6 +185,10 @@ def merge_nomaddb_into_visa_db(
             if renewable is not None:
                 c["renewable"] = renewable
 
+            ees_applicable = _parse_yn(visa.get("ees_applicable"))
+            if ees_applicable is not None:
+                c["ees_applicable"] = ees_applicable
+
             source_notes = (visa.get("source_notes") or "").strip()
             tourist_notes = (visa.get("tourist_visa_notes") or "").strip()
             notes_list = [x for x in [source_notes, tourist_notes] if x]
