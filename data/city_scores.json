@@ -1665,9 +1665,10 @@
       "source_refs": [
         "nomads_fastest_growing_2026",
         "numbeo_cost_index",
-        "internal_editorial_scoring"
+        "internal_editorial_scoring",
+        "speedtest_global_index_country_proxy_2026_03"
       ],
-      "data_verified_date": "2026-04-03",
+      "data_verified_date": "2026-06-25",
       "safety_source_id": "blended_numbeo_city_gpi_2024",
       "safety_source_rank": 41,
       "safety_method": "0.6*numbeo_city_safety_0_10 + 0.4*gpi_country_rank_4_10",
