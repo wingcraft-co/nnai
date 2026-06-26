@@ -402,7 +402,7 @@
       "visa_fee_usd": 264,
       "tax_note": "7% 단일세율 10년 적용 (외국 연금·소득 특별세제)",
       "cost_tier": "medium",
-      "notes": "디지털 노마드 비자 유지; 월 순소득 €3,500 요건과 비자 €75+행정수수료 €150 재확인; 1년 체류 후 2년 거주허가 갱신 가능; EU 솅겐 회원국; 아테네·크레타 인기; Schengen EES 2026-04-10 전면 시행.",
+      "notes": "그리스 MFA 안내와 MFA가 연결한 Work From Greece 체크리스트 기준 월 순소득 €3,500 및 비자 €75+행정수수료 €150 재확인; 1년 비자 후 2년 거주허가 갱신 경로 유지; EU 솅겐 회원국; 아테네·크레타 인기; Schengen EES 2026-04-10 전면 시행.",
       "source": "https://www.mfa.gr/en/services/working-in-greece-as-a-digital-nomad/",
       "schengen": true,
       "visa_free_days": 90,
@@ -423,7 +423,7 @@
         "main_applicant": 1000,
         "per_dependent": 150
       },
-      "data_verified_date": "2026-05-17",
+      "data_verified_date": "2026-06-27",
       "visa_notes": [
         "2021년 도입; 월 €3,500 소득 요건 (~$3,850); 부양가족 동반 시 +20%; 1년 후 2년 거주허가 갱신 가능; 그리스 체류 시 현지 소득세 없음; 아테네 영사관 신청 필수 (국외 신청); 솅겐 EES 2026년 4월 10일 발효; EES started 2025-10-12; progressive rollout with full implementation by 2026-04-10 (EU Travel Europe / eu-LISA).",
         "한국인 솅겐 협정 90일/180일; EES 2026년 4월 10일부터 전자 추적"
@@ -1212,7 +1212,7 @@
         "여권",
         "소득 증빙"
       ],
-      "visa_fee_usd": 349,
+      "visa_fee_usd": 137,
       "tax_note": "확인 필요",
       "schengen": true,
       "visa_free_days": 90,
@@ -1220,7 +1220,7 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "data_verified_date": "2026-05-19",
+      "data_verified_date": "2026-06-27",
       "ees_applicable": true
     },
     {
