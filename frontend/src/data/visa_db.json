@@ -41,7 +41,7 @@
           "introduced_date": "2024-06-07"
         }
       ],
-      "data_verified_date": "2026-06-13",
+      "data_verified_date": "2026-06-28",
       "visa_notes": [
         "MDEC DE Rantau 기준 테크 직군은 연 $24,000 이상, 비테크 직군은 연 $60,000 이상 소득 요건",
         "한국인 무비자 90일 (MOU)"
@@ -175,7 +175,7 @@
         "재신청 시 6개월 연장만 가능",
         "가족 동반 신청 가능 (본인 소득 기준으로 동반 가족 커버)"
       ],
-      "data_verified_date": "2026-06-13"
+      "data_verified_date": "2026-06-28"
     },
     {
       "id": "ES",
@@ -303,7 +303,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-13",
+      "data_verified_date": "2026-06-28",
       "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
       "visa_notes": [
         "전용 DN 비자 없음; 프리랜서(Freiberufler) 비자로 장기 체류 가능; 소득 요건 사안별 상이",
@@ -552,7 +552,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-13",
+      "data_verified_date": "2026-06-28",
       "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
       "visa_notes": [
         "전용 DN 비자 없음; 장기 체류 시 자유직업(Freelance) 비자 또는 사업 비자 고려",
@@ -716,7 +716,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-13",
+      "data_verified_date": "2026-06-28",
       "visa_notes": [
         "연 $9,800 (~$817/월) 자립 증명; 비자 수수료 상호주의; 온라인 신청 가능; Type D 장기비자 → 거주허가; EU 솅겐 비가입 (EU 가입 후보국)",
         "한국인 무비자 90일 (쌍무 협약)"
