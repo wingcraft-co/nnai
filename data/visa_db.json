@@ -225,14 +225,14 @@
       "stay_months": 12,
       "renewable": true,
       "key_docs": [
-        "여권 (유효기간 18개월 이상)",
-        "소득 증빙 ($2,000+/월)",
-        "귀국 또는 제3국행 항공권"
+        "여권 (만료 6개월 이상)",
+        "최근 3개월 최소 US$2,000 잔고 증빙",
+        "해외 법인 고용계약서 + 이력서 + 여행일정표"
       ],
       "visa_fee_usd": 403,
       "tax_note": "외국 소득에 현지 소득세 미부과 (2024 기준)",
       "cost_tier": "medium",
-      "notes": "E33G 원격근로 비자 공식 페이지 기준 1년 체류·온라인 연장 가능·스폰서 불요 재확인; 캉구 코워킹 허브",
+      "notes": "이민국 E33G 공식 페이지 기준 1년 체류, 온라인 연장 가능, 스폰서 불요 재확인; 연소득 US$60,000 및 최근 3개월 최소 US$2,000 잔고 요건 명시; 캉구 코워킹 허브",
       "source": "https://www.imigrasi.go.id/wna/daftar-visa-indonesia/E33G",
       "schengen": false,
       "visa_free_days": 30,
@@ -240,9 +240,9 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "income_period": "monthly",
+      "income_period": "annual",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-21",
+      "data_verified_date": "2026-06-29",
       "e33g_kitas": {
         "visa_type": "E33G (디지털 노마드 KITAS)",
         "introduced_date": "2024-04",
@@ -273,7 +273,7 @@
         "source": "rumavi.com, letsmoveindonesia.com, flado.id"
       },
       "visa_notes": [
-        "E33G 연소득 $60,000 요건; 발리 특화 비자 에이전시 이용 시 $600~1000",
+        "공식 E33G 페이지는 연소득 US$60,000, 최근 3개월 최소 US$2,000 잔고, 해외 법인 고용계약, 이력서, 여행일정표를 요구함",
         "30일 도착비자; 1회 연장 30일 가능(총 60일); 장기 체류 시 E33G 비자 신청"
       ]
     },
@@ -1021,26 +1021,26 @@
       "stay_months": 6,
       "renewable": false,
       "key_docs": [
-        "고용계약서 또는 프리랜서 계약서 (영문)",
-        "소득 증빙 ($7,000+/월)",
-        "건강보험 (일본 체류 기간 커버)"
+        "비일본 고용주와의 고용계약서",
+        "연소득 ¥10,000,000 이상 소득 증빙",
+        "체류기간 전부를 덮는 의료보험"
       ],
       "visa_fee_usd": 100,
       "tax_note": "6개월 이하 체류 시 일본 소득세 없음 (비거주자). 단기 체류 한정",
       "cost_tier": "medium",
-      "notes": "디지털 노마드 비자 2024년 4월 도입; 연소득 ¥10,000,000 (~$67,000) 및 의료보장 ¥10,000,000 보험 요건 재확인; 최대 6개월 체류; 갱신 불가; 한국인 90일 무비자 입국; 후쿠오카·도쿄·오사카 인기 거점; 높은 소득 요건이 진입 장벽",
-      "source": "https://www.moj.go.jp/isa/applications/status/designatedactivities10_00001",
+      "notes": "공식 안내 기준 디지털 노마드 특정활동 비자 유지; 본인 및 동반 배우자·자녀 모두 최대 6개월 체류, 갱신 불가, 출국 후 6개월 뒤 재신청 가능; 연소득 ¥10,000,000 및 체류 전 기간을 덮는 의료보험 요건 재확인; 한국인 90일 무비자 입국",
+      "source": "https://www.moj.go.jp/isa/applications/status/designatedactivities10_00001.html",
       "schengen": false,
       "visa_free_days": 90,
       "buffer_zone": false,
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "income_period": "monthly",
+      "income_period": "annual",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-21",
+      "data_verified_date": "2026-06-29",
       "visa_notes": [
-        "2024년 4월 도입; 연소득 ¥10,000,000 이상 (~$67,000); 6개월 최대 체류; 갱신 불가; 재신청 시 출국 후 재입국 필요; 이중과세방지협약 보유 국적자만 신청 가능 (한국 포함); 비일본 고용주 대상 원격근무자만 해당",
+        "공식 안내 기준 6개월 최대 체류, 갱신 불가, 출국 후 6개월 뒤 재신청 가능; 이중과세방지협약 보유 국적자만 신청 가능 (한국 포함)",
         "한국인 90일 무비자 입국; 비자 면제 협정 적용"
       ]
     },
