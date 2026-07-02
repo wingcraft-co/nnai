@@ -380,7 +380,7 @@
       "mid_term_rental_available": false,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-07",
+      "data_verified_date": "2026-07-03",
       "visa_notes": [
         "Ley 10008 및 Reglamento 43619 기준 월 $3,000, 가족 포함 시 월 $4,000 소득 요건과 정부 수수료 $100이 유지된다",
         "한국인 무비자 90일"
@@ -455,7 +455,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-06",
+      "data_verified_date": "2026-07-03",
       "visa_notes": [
         "EO No. 86은 해외 고용주·클라이언트를 위한 원격근무자 대상 DNV, 최대 1년 체류 및 동일 기간 갱신 가능만 명시한다",
         "최소소득·신청 수수료·실제 접수 절차는 시행 가이드라인 확인 전까지 확인필요"
@@ -877,7 +877,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-07",
+      "data_verified_date": "2026-07-03",
       "visa_notes": [
         "Argentina.gob.ar 기준 디지털 노마드 입국 허가는 최대 180일이며 Disposición 758/2022는 동일 기간 1회 prorroga를 허용한다",
         "고정 소득 하한과 USD 수수료는 현재 공식 본문에서 확인되지 않아 확인필요이며, 한국인은 관광목적 무비자 90일 입국이 가능하다"
@@ -931,7 +931,7 @@
       "visa_fee_usd": 600,
       "tax_note": "UAE 소득세 없음 (개인). 세계 최저 세율 국가",
       "cost_tier": "high",
-      "notes": "Virtual Working Programme 유지; UAE 공식 포털 2026-03-03 업데이트 기준 1년 self-sponsorship 체류와 월 $3,500 급여요건 유지 확인; 건강보험·medical fitness 필요; 여름 혹서 (45°C+).",
+      "notes": "Virtual Working Programme 유지; UAE 공식 포털이 2026-07-03 기준 1년 self-sponsorship 체류와 월 $3,500 급여요건, 건강보험, medical fitness 요건을 계속 명시함; 여름 혹서 (45°C+).",
       "source": "https://u.ae/en/information-and-services/visa-and-emirates-id/residence-visas/residence-visa-for-working-outside-the-uae",
       "schengen": false,
       "visa_free_days": 30,
@@ -941,7 +941,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-05-20",
+      "data_verified_date": "2026-07-03",
       "visa_notes": [
         "월 $3,500 이상; 기본 신청비 $101 (UAE 외부) 또는 $334 (내부); 의료검사 $85~270 + Emirates ID $165 별도",
         "한국인 무비자 30일 (연장 60일 가능)"
