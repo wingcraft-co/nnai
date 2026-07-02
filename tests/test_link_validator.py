@@ -15,13 +15,17 @@ class TestValidateUrl:
     def test_404_returns_false(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 404
-        with patch("utils.link_validator.requests.head", return_value=mock_resp):
+        with patch("utils.link_validator.requests.head", return_value=mock_resp), patch(
+            "utils.link_validator.requests.get", return_value=mock_resp
+        ):
             assert validate_url("https://example.com/gone") is False
 
     def test_503_returns_false(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 503
-        with patch("utils.link_validator.requests.head", return_value=mock_resp):
+        with patch("utils.link_validator.requests.head", return_value=mock_resp), patch(
+            "utils.link_validator.requests.get", return_value=mock_resp
+        ):
             assert validate_url("https://example.com/down") is False
 
     def test_connection_error_returns_false(self):
@@ -85,7 +89,9 @@ class TestRunValidationBatch:
 
         mock_resp = MagicMock()
         mock_resp.status_code = 404
-        with patch("utils.link_validator.requests.head", return_value=mock_resp):
+        with patch("utils.link_validator.requests.head", return_value=mock_resp), patch(
+            "utils.link_validator.requests.get", return_value=mock_resp
+        ):
             run_validation_batch(urls_path=str(urls_file))
 
         result = json.loads(urls_file.read_text())

@@ -79,9 +79,12 @@ def _ensure_required_defaults(country: dict[str, Any], visa_urls: dict[str, str]
     country.setdefault("name", cid)
     country.setdefault("name_kr", cid)
     country.setdefault("visa_type", "없음")
-    country.setdefault("min_income_usd", 0)
-    country.setdefault("stay_months", 12)
-    country.setdefault("renewable", True)
+    if country.get("min_income_usd") is None:
+        country["min_income_usd"] = 0
+    if country.get("stay_months") is None:
+        country["stay_months"] = 12
+    if country.get("renewable") is None:
+        country["renewable"] = True
     country.setdefault("key_docs", ["여권", "소득 증빙"])
     if len(country["key_docs"]) < 2:
         country["key_docs"] = ["여권", "소득 증빙"]
@@ -93,9 +96,12 @@ def _ensure_required_defaults(country: dict[str, Any], visa_urls: dict[str, str]
 
     country.setdefault("schengen", cid in SCHENGEN_IDS)
     country.setdefault("buffer_zone", False)
-    country.setdefault("tax_residency_days", 183)
-    country.setdefault("double_tax_treaty_with_kr", True)
-    country.setdefault("mid_term_rental_available", True)
+    if country.get("tax_residency_days") is None:
+        country["tax_residency_days"] = 183
+    if country.get("double_tax_treaty_with_kr") is None:
+        country["double_tax_treaty_with_kr"] = True
+    if country.get("mid_term_rental_available") is None:
+        country["mid_term_rental_available"] = True
 
 
 def merge_nomaddb_into_visa_db(

@@ -150,3 +150,42 @@ def test_merge_syncs_ees_applicable_flag():
     )
 
     assert merged["countries"][0]["ees_applicable"] is True
+
+
+def test_merge_normalizes_null_defaults_for_base_only_country():
+    mod = _load_module()
+
+    base = {
+        "countries": [
+            {
+                "id": "MK",
+                "name": "North Macedonia",
+                "name_kr": "북마케도니아",
+                "visa_type": "사전비자 필요",
+                "min_income_usd": None,
+                "stay_months": 3,
+                "renewable": False,
+                "key_docs": ["유효 여권", "체류 경비 증빙"],
+                "visa_fee_usd": 60,
+                "tax_note": "확인 필요",
+                "cost_tier": "low",
+                "notes": "old",
+                "source": "https://example.com/mk",
+                "schengen": False,
+                "buffer_zone": False,
+                "tax_residency_days": 183,
+                "double_tax_treaty_with_kr": False,
+                "mid_term_rental_available": False,
+            }
+        ]
+    }
+
+    merged, _ = mod.merge_nomaddb_into_visa_db(
+        base_json=copy.deepcopy(base),
+        countries_csv_rows=[],
+        visa_csv_rows=[],
+        visa_urls={},
+        add_missing_countries=False,
+    )
+
+    assert merged["countries"][0]["min_income_usd"] == 0

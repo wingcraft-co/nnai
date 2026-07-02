@@ -434,7 +434,7 @@
       "name": "Philippines",
       "name_kr": "필리핀",
       "visa_type": "Digital Nomad Visa (EO No. 86, s.2025)",
-      "min_income_usd": null,
+      "min_income_usd": 0,
       "stay_months": 12,
       "renewable": true,
       "key_docs": [
@@ -759,7 +759,7 @@
       "name": "North Macedonia",
       "name_kr": "북마케도니아",
       "visa_type": "사전비자 필요 (목적지 정부 기준)",
-      "min_income_usd": null,
+      "min_income_usd": 0,
       "stay_months": 3,
       "renewable": false,
       "key_docs": [
@@ -856,7 +856,7 @@
       "name": "Argentina",
       "name_kr": "아르헨티나",
       "visa_type": "Digital Nomad Visa",
-      "min_income_usd": null,
+      "min_income_usd": 0,
       "stay_months": 6,
       "renewable": true,
       "key_docs": [
