@@ -1266,7 +1266,8 @@
       "stay_months": 24,
       "renewable": true,
       "visa_notes": [
-        "공식 Migraciones 기준 전용 DN 비자는 확인되지 않으며 일반 임시거주 경로만 확인된다.",
+        "공식 Migraciones 기준 전용 DN 비자는 확인되지 않으며 일반 임시거주 경로만 확인된다. 임시거주 카드는 최대 2년 유효하고 동일 기간 연장 가능하다.",
+        "2026-07-01 시행 Migraciones aranceles 기준 임시거주 수수료는 현금 Gs. 2,926,925, 직불카드 Gs. 2,991,317, 신용카드 Gs. 3,023,514다. USD 환산값은 공식 1차 소스가 없어 별도 확정하지 않았다.",
         "대한민국 여권 입국 조건 확인필요 (최근 공지 재확인 필요)"
       ],
       "source": "https://migraciones.gov.py/residencia-temporal/",
