@@ -845,7 +845,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-07",
+      "data_verified_date": "2026-07-05",
       "visa_notes": [
         "Cancillería 기준 최근 3개월 3 SMLMV 소득이 필요하며 2026 SMMLV 기준 약 COP 5,252,715/월이다; USD 값은 환율 추정치다",
         "2026 Cancillería 수수료 고시 기준 Visa Tipo V 총액은 USD 194이며, 한국인은 무비자 90일 후 최대 180일까지 체류 연장이 가능하다"
@@ -1257,8 +1257,8 @@
       "name": "Paraguay",
       "name_kr": "파라과이",
       "cost_tier": "low",
-      "notes": "전용 DN 비자는 확인되지 않았으나 Migraciones 일반 임시거주 경로는 공식 유지(최대 2년+동일 기간 연장 가능); 일반 요건과 수수료 공지 재확인",
-      "data_verified_date": "2026-06-02",
+      "notes": "전용 DN 비자는 확인되지 않았으나 Migraciones 일반 임시거주 경로는 공식 유지(최대 2년+동일 기간 연장 가능); 일반 요건과 2026-07-01 시행 수수료 공지를 재확인",
+      "data_verified_date": "2026-07-05",
       "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
       "visa_type": "Residencia Temporal (general long-stay route)",
       "min_income_usd": 0,
