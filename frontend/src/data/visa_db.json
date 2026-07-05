@@ -326,7 +326,7 @@
       "visa_fee_usd": 0,
       "tax_note": "조지아 거주 1년 이상 시 플랫세율 1% 적용 (Virtual Zone 등록 시)",
       "cost_tier": "low",
-      "notes": "한국인 무비자 1년 체류 가능은 공식 관광청 안내로 재확인. 관광청은 Remotely from Georgia를 팬데믹기 프로젝트로 서술하므로 현행 전용 DN 라우트 상세는 확인필요; 2026-03-01부터 원격근무 포함 취업허가 요건 도입",
+      "notes": "한국인 무비자 1년 체류 가능은 공식 관광청 안내로 재확인. 관광청은 Remotely from Georgia를 팬데믹기 프로젝트로 서술하므로 현행 전용 DN 라우트 상세는 확인필요; 2026-03-01부터 원격근무 포함 취업허가 요건 도입. 2026-07-06 geoconsul 메인 포털은 still in test mode로 generic visa-free/entering Georgia 안내만 노출돼 상세 요건 재확인 실패.",
       "source": "https://www.geoconsul.gov.ge/en",
       "schengen": false,
       "visa_free_days": 365,
@@ -649,7 +649,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-06",
+      "data_verified_date": "2026-07-06",
       "min_income_monthly_eur": 3500,
       "min_income_annual_eur": 42000,
       "visa_notes": [
@@ -683,7 +683,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-06",
+      "data_verified_date": "2026-07-06",
       "min_income_monthly_eur": 3500,
       "visa_notes": [
         "키프로스 이민부 영문 안내 기준 세후 월 3,500유로 이상 안정적 소득 필요",
@@ -748,7 +748,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-06",
+      "data_verified_date": "2026-07-06",
       "visa_notes": [
         "세르비아 외교부 비자 레짐 페이지 기준 한국 일반여권은 최대 90일 무비자 입국 가능",
         "전용 디지털 노마드 비자나 원격근무 전용 장기체류 카테고리는 공식 출처에서 확인되지 않아 기본값은 단기 체류로 유지"
@@ -770,7 +770,7 @@
       "visa_fee_usd": 60,
       "tax_note": "비거주자 현지 소득세 없음. 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "목적지 정부 MFA 비자 체커는 2026-06-07 기준 Republic of Korea 여권 소지자에게 사전비자가 필요하다고 안내한다. 한국 정부 0404 안내와 상충해 출국 전 대사관 재확인을 권장",
+      "notes": "목적지 정부 MFA 비자 체커는 2026-07-06 기준 Republic of Korea 여권 소지자에게 사전비자가 필요하다고 안내한다. 한국 정부 0404 안내와 상충해 출국 전 대사관 재확인을 권장",
       "source": "https://mfa.gov.mk/en-GB/konzularni-uslugi/dali-ti-e-potrebna-viza?region=asia",
       "schengen": false,
       "visa_free_days": 0,
@@ -780,7 +780,7 @@
       "mid_term_rental_available": false,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-07",
+      "data_verified_date": "2026-07-06",
       "visa_notes": [
         "북마케도니아 MFA의 국가별 비자 체커는 Republic of Korea 국적에 대해 Visa for foreign citizens: Needed로 표시한다",
         "공식 안내상 단기 C비자·장기 D비자 체계만 확인되며 전용 디지털 노마드 비자는 확인되지 않는다"
@@ -802,7 +802,7 @@
       "visa_fee_usd": 56,
       "tax_note": "멕시코 거주자 외국 소득 과세. 비거주자 멕시코 소득만 과세",
       "cost_tier": "medium",
-      "notes": "전용 DN 비자 없음; 임시거주비자 활용; 오악사카·플라야델카르멘 인기",
+      "notes": "전용 DN 비자 없음; 임시거주비자 활용; 오악사카·플라야델카르멘 인기. 2026-07-06 공식 PDF는 Radware bot block page로 리다이렉트돼 본문 재확인 실패",
       "source": "https://consulmex.sre.gob.mx/lasvegas/images/2026/VISAS2026/VisadeResidenteTemporal2026",
       "schengen": false,
       "visa_free_days": 180,
@@ -899,7 +899,7 @@
       "visa_fee_usd": 110,
       "tax_note": "브라질 비거주자 현지 소득세 없음. 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권",
+      "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권. 2026-07-06 공식 이민 포털 PDF는 Sistema em Manutenção 상태로 열려 본문 재확인 실패.",
       "source": "https://portaldeimigracao.mj.gov.br/images/Informativos_Publica%C3%A7%C3%A3o/FOLDER_INGLES.pdf",
       "schengen": false,
       "visa_free_days": 90,
@@ -963,7 +963,7 @@
       "visa_fee_usd": 0,
       "tax_note": "비거주자 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "공식 영사 비자 안내 재확인 결과 short/long/transit/border visa 체계만 확인되며 전용 DN 비자는 미확인 유지; 마라케시·아가디르 인기; 관광비자 90일 체류 활용",
+      "notes": "공식 영사 비자 안내 재확인 결과 short/long/transit/border visa 체계만 확인되며 전용 DN 비자는 미확인 유지; 마라케시·아가디르 인기; 관광비자 90일 체류 활용. 2026-07-06 consulat.ma 경로는 Internal Error 응답으로 본문 재확인 실패.",
       "source": "https://www.consulat.ma/index.php/en/types-granted-visas",
       "schengen": false,
       "visa_free_days": 90,
@@ -1006,7 +1006,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": false,
-      "data_verified_date": "2026-06-04",
+      "data_verified_date": "2026-07-06",
       "visa_notes": [
         "캐나다 정부는 디지털 노마드가 방문자 자격으로 최대 6개월 체류하며 해외 고용주·본인 사업을 위한 원격근무를 할 수 있다고 안내",
         "6개월 초과 체류는 방문자 연장 신청이 가능하지만 캐나다 취업은 별도 취업허가가 필요"
@@ -1049,7 +1049,7 @@
       "name": "Bulgaria",
       "name_kr": "불가리아",
       "cost_tier": "low",
-      "notes": "DN 비자 2025년 12월 20일 공식 출시 유지; 솅겐 가입; 저렴한 유럽 물가; 연 €31,000 소득 요건 (평균) 유지; 솅겐 EES는 2026년 4월 10일부터 전면 운영 중.",
+      "notes": "불가리아 공식 MFA /en/5638 페이지는 2026-07-06 현재 일반 장기 D비자 안내는 열리지만 digital nomad / €31,000 본문 문구는 재확인되지 않아 prior verified state를 보수 유지한다; 솅겐 EES 적용 자체는 현행 제도상 유지.",
       "data_verified_date": "2026-05-20",
       "visa_type": "Digital Nomad Residence Permit (2025년 12월 도입)",
       "min_income_usd": 2800,
