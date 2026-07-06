@@ -63,7 +63,7 @@
       "visa_fee_usd": 110,
       "tax_note": "NHR 세제 신청 시 외국 소득 20% 단일세율 10년 적용",
       "cost_tier": "medium",
-      "notes": "D8 비자 유지; 포르투갈 비자 포털 기준 remote work / digital nomad temporary stay 및 residency 카테고리 존속; 국가비자 수수료 €110; 솅겐 EES는 2026-04-10부터 전면 운영 중.",
+      "notes": "D8 비자 유지; 포르투갈 비자 포털 2026-07-07 재확인 시 remote work / digital nomad temporary stay 및 residency 카테고리와 국가비자 수수료 €110는 계속 확인됨; 다만 이번 확인 경로에서는 수치형 생계요건 원문을 재추출하지 못해 기존 금액은 보수적으로 유지.",
       "source": "https://vistos.mne.gov.pt/en/national-visas/general-information/type-of-visa",
       "schengen": true,
       "visa_free_days": 90,
@@ -607,7 +607,7 @@
       "visa_fee_usd": 100,
       "tax_note": "슬로베니아 거주자 소득세 16~50% 누진세율",
       "cost_tier": "medium",
-      "notes": "디지털 노마드 임시거주허가 유지; 2025-11-21 도입; 최대 1년·연장 불가·만료 후 6개월 뒤 재신청 가능; 충분한 생계수단은 최근 공표 평균 순임금의 2배 기준; 솅겐 EES는 2026-04-10부터 전면 운영 중.",
+      "notes": "디지털 노마드 임시거주허가 유지; GOV.SI 2026-07-07 재확인 시 최대 1년·연장 불가·만료 후 6개월 뒤 재신청 가능 및 충분한 생계수단은 최근 공표 평균 순임금의 2배 기준이라는 공식 문구가 계속 유지됨; 이번 확인 경로에서는 수치형 금액 자체는 재기재되지 않아 기존 금액은 보수적으로 유지.",
       "source": "https://www.gov.si/en/news/2025-11-21-temporary-residence-permit-for-digital-nomads/",
       "schengen": true,
       "visa_free_days": 90,
@@ -617,7 +617,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-12",
+      "data_verified_date": "2026-07-07",
       "visa_notes": [
         "월 €3,200 세후 소득 (~$3,500); 2025년 11월 21일 출시; 갱신 불가 (6개월 후 재신청); EU 솅겐 회원국; 류블랴나 거점",
         "한국인 솅겐 협정 90일/180일"
@@ -899,7 +899,7 @@
       "visa_fee_usd": 110,
       "tax_note": "브라질 비거주자 현지 소득세 없음. 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권. 2026-07-06 공식 이민 포털 PDF는 Sistema em Manutenção 상태로 열려 본문 재확인 실패.",
+      "notes": "플로리아노폴리스·상파울루 노마드 씬. 포르투갈어권. 남미 최대 경제권. 2026-07-07 공식 이민 포털 PDF는 Sistema em Manutenção 상태로 열려 본문 재확인 실패.",
       "source": "https://portaldeimigracao.mj.gov.br/images/Informativos_Publica%C3%A7%C3%A3o/FOLDER_INGLES.pdf",
       "schengen": false,
       "visa_free_days": 90,
@@ -1138,15 +1138,15 @@
       "name": "Netherlands",
       "name_kr": "네덜란드",
       "cost_tier": "high",
-      "notes": "전용 DN 비자 없음; IND 자영업 거주허가 경로 유지; 네덜란드 경제에 대한 essential interest 심사와 상공회의소 등록 필요; 신청비 €423; 솅겐 EES는 2026-04-10부터 전면 운영 중.",
+      "notes": "전용 DN 비자 없음; IND 자영업 거주허가 경로 유지; 네덜란드 경제에 대한 essential interest 심사와 상공회의소 등록 필요; 2026-07-01~12-31 자영업 소득기준 gross profit €1,766.77/월 및 신청비 €423를 IND가 공시함; 솅겐 EES는 2026-04-10부터 전면 운영 중.",
       "visa_availability_note": "No dedicated DN visa (from latest CSV metadata).",
       "visa_type": "MVV Zelfstandige (자영업 비자)",
-      "min_income_usd": 2020,
+      "min_income_usd": 2017,
       "visa_fee_usd": 423,
       "stay_months": 36,
       "renewable": true,
       "visa_notes": [
-        "전용 DN 비자 없음; 자영업 MVV 월 €1,300 이상; 3년 발급; 네덜란드 생태계 기여 요건",
+        "전용 DN 비자 없음; IND 자영업 MVV 경로의 2026-07-01~12-31 gross profit 기준은 월 €1,766.77 (ECB 2026-07-06 환율 기준 약 $2017); 최초 허가는 통상 최대 3년.",
         "한국인 솅겐 협정 90일/180일"
       ],
       "source": "https://ind.nl/en/residence-permits/work/residence-permit-self-employed-person",
@@ -1161,7 +1161,7 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "data_verified_date": "2026-06-12",
+      "data_verified_date": "2026-07-07",
       "ees_applicable": true
     },
     {
