@@ -100,7 +100,7 @@
       "visa_fee_usd": 400,
       "tax_note": "LTR 비자 소지 시 외국 소득 비과세",
       "cost_tier": "low",
-      "notes": "태국 외교부 DTV 안내 기준 5년 복수입국 유지; 1회 180일+연장 180일; 재정증빙 500000THB",
+      "notes": "태국 외교부 DTV 안내 기준 5년 복수입국 유지; 1회 180일+연장 180일; 공개 PDF 기준 수수료 10,000THB 및 최근 3개월 잔고 500,000THB 재정증빙 유지",
       "source": "https://image.mfa.go.th/mfa/0/rdX909e54m/%E0%B8%AD%E0%B8%B1%E0%B8%A5%E0%B8%9A%E0%B8%B1%E0%B9%89%E0%B8%A1%E0%B8%A0%E0%B8%B2%E0%B8%9E/New_Measures_as_of_29_May_2024_-_1955.pdf",
       "schengen": false,
       "visa_free_days": 60,
@@ -134,7 +134,7 @@
         "parents_included": true,
         "note": "인원 제한 없음 (2025-02-12 개정)"
       },
-      "data_verified_date": "2026-06-25",
+      "data_verified_date": "2026-07-09",
       "data_source": "Thailand BOI 공식 발표, KPMG Flash Alert 2025-040",
       "visa_notes": [
         "DTV: 잔고 500,000THB(약 $15,340) 증명 필요; 1회 입국 180일+연장 180일; 연 2회 비자런 제한(2025년 11월); 2025년 1월 완전 전자비자 전환; 비자 갱신 반복 가능",
@@ -510,7 +510,7 @@
       "visa_fee_usd": 54,
       "tax_note": "크로아티아 거주 등록 시 현지 소득세 미적용 (비거주자 기준)",
       "cost_tier": "medium",
-      "notes": "DN 체류허가 유지; 2026년 기준 월 소득요건 €3,622.50로 상향 공지; 최대 18개월 체류, 최초 허가가 18개월 미만이면 최대 6개월 연장 가능; 스플리트·두브로브니크 인기; EU 솅겐; Schengen EES 2026-04-10 전면 시행.",
+      "notes": "DN 체류허가 유지; 2026-07-09 기준 월 소득요건 €3,622.50, 12개월 €43,470, 18개월 €65,205 유지; 최대 18개월 체류, 최초 허가가 18개월 미만이면 최대 6개월 연장 가능; 스플리트·두브로브니크 인기; EU 솅겐; Schengen EES 적용 유지.",
       "source": "https://mup.gov.hr/aliens-281621/stay--work/temporary-stay-of-digital-nomads/286833?impaired=1",
       "schengen": true,
       "visa_free_days": 90,
@@ -520,9 +520,9 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-25",
+      "data_verified_date": "2026-07-09",
       "visa_notes": [
-        "€3,295/월 (~$3,600); 거주허가 신청비 약 €35; 18개월 비갱신; 과세 면제",
+        "€3,622.50/월 또는 12개월 €43,470 예치; 기본 체류허가 수수료 €46.45 + 생체카드 별도; 최대 18개월; 과세 면제",
         "한국인 솅겐 협정 90일/180일"
       ]
     },
@@ -575,7 +575,7 @@
       "visa_fee_usd": 129,
       "tax_note": "헝가리 거주자 단일세율 15% (EU 최저 수준)",
       "cost_tier": "medium",
-      "notes": "White Card 유지; 최근 6개월간 월 순소득 €3,000 요건 재확인; 1년 발급 후 1회 연장 가능, 가족동반 불가; 솅겐 지역; Schengen EES 2026-04-10 전면 시행.",
+      "notes": "White Card 유지; 최근 6개월간 월 순소득 €3,000 요건 재확인; 1년 발급 후 1회 연장 가능, 가족동반 불가; 솅겐 지역; Schengen EES 적용 유지.",
       "source": "https://oif.gov.hu/factsheets/white-card-residency-for-digital-nomads",
       "schengen": true,
       "visa_free_days": 90,
@@ -585,7 +585,7 @@
       "mid_term_rental_available": true,
       "income_period": "monthly",
       "ees_applicable": true,
-      "data_verified_date": "2026-06-25",
+      "data_verified_date": "2026-07-09",
       "visa_notes": [
         "€3,000/월 (~$3,300); 신청비 €110; 최대 2년 (1회 연장); 온라인/방문 신청 모두 가능",
         "한국인 솅겐 협정 90일/180일"
@@ -1169,7 +1169,7 @@
       "name": "Panama",
       "name_kr": "파나마",
       "cost_tier": "medium",
-      "notes": "원격근무 단기체류 비자 제도 유지; 9개월 비자 후 1회 연장 가능; USD 사용; 파나마시티 허브",
+      "notes": "원격근무 단기체류 비자 제도 유지; 월 $3,000 및 연 $36,000 외화소득 요건 재확인; 9개월 비자 후 1회 연장 가능; USD 사용; 파나마시티 허브",
       "visa_type": "Short Stay Visa for Remote Workers",
       "min_income_usd": 3000,
       "visa_fee_usd": 300,
@@ -1191,7 +1191,7 @@
       "tax_residency_days": 183,
       "double_tax_treaty_with_kr": true,
       "mid_term_rental_available": true,
-      "data_verified_date": "2026-06-25"
+      "data_verified_date": "2026-07-09"
     },
     {
       "id": "RO",
@@ -1320,8 +1320,8 @@
       "name": "Taiwan",
       "name_kr": "대만",
       "cost_tier": "medium",
-      "notes": "NDC/BOCA 공식 안내 기준 디지털 노마드 방문비자 유지; 30세 이상 연소득 $40,000 또는 20~29세 $20,000; 공식 포털은 최대 2년 체류 가능으로 안내",
-      "data_verified_date": "2026-06-25",
+      "notes": "NDC/BOCA 공식 안내 기준 디지털 노마드 방문비자 유지; 30세 이상 최근 2년 중 1년 연소득 US$40,000 또는 20~29세 US$20,000; 최근 6개월 평균잔고 US$10,000 이상; 공식 포털은 최대 2년 체류 가능으로 안내",
+      "data_verified_date": "2026-07-09",
       "visa_type": "Digital Nomad Visitor Visa",
       "min_income_usd": 3333,
       "visa_fee_usd": 100,
